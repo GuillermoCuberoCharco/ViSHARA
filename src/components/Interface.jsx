@@ -1,3 +1,4 @@
+import axios from "axios";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import '../InterfaceStyle.css';
 import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
@@ -5,10 +6,17 @@ import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
 const Interface = () => {
   const { animations, setAnimationIndex } = useContext(CharacterAnimationsContext);
   const [messages, setMessages] = useState([]);
-  const [isListening, setIsListening] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [socket, setSocket] = useState(null);
   const lastMessageRef = useRef(null);
+
+  const [audioSrc, setAudioSrc] = useState(null);
+
+  const handleSynthesize = async (message) => {
+      const response = await axios.post("http://localhost:8082/synthesize", { text: message });
+      const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
+      setAudioSrc(audioSrc);
+    };
 
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
@@ -20,6 +28,7 @@ const Interface = () => {
       if (command.startsWith("/")) {
         const message = command.slice(1);
         setMessages((prevMessages) => [...prevMessages, { text: message, sender: "them" }]);
+        handleSynthesize(message);
       } else {
         const index = animations.findIndex((anim) => anim === animation);
         if (index !== -1) {
@@ -32,7 +41,7 @@ const Interface = () => {
     return () =>{
       socket.close();
     }
-    
+
   }, []);
 
   useEffect(() => {
@@ -48,57 +57,6 @@ const Interface = () => {
       setNewMessage("");
     }
   };
-
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
- 
-    if (!SpeechRecognition){
-      console.log("El navegador no soporta el reconocimiento de voz");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-ES";
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setNewMessage(transcript);
-    };
-
-    recognition.onend = () => {
-      console.log("Fin del reconocimiento de voz");
-      setIsListening(false);
-    };
-
-    const startListening = () => {
-      setIsListening(true);
-      recognition.start();
-    };
-
-    const stopListening = () => {
-      setIsListening(false);
-      recognition.stop();
-    };
-
-    const toggleListening = () => {
-      if (isListening) {
-        stopListening();
-      } else {
-        startListening();
-      }
-    };
-
-    const listenButton = document.querySelector('#listen-btn');
-    if (listenButton){
-      listenButton.addEventListener("click", toggleListening);
-    }
-
-    return () => {
-      if (listenButton){
-        listenButton.removeEventListener("click", toggleListening);
-      }
-    };
-  }, [isListening, sendMessage]);
 
   return (
     <div className="chat-container">
@@ -128,14 +86,8 @@ const Interface = () => {
           }}
           className="input-field"
         />
-        <button id="listen-btn" className="mic.button">
-          {isListening ? (
-            <i className="fas fa-microphone-slash"></i>
-          ) : (
-            <i className="fas fa-microphone"></i>
-          )}
-            </button>
       </div>
+      <audio src={audioSrc} autoPlay />
     </div>
   );
 };

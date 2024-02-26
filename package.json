@@ -1,5 +1,5 @@
 {
-  "name": "r3f-animations-tutorial",
+  "name": "vishara",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,10 +10,15 @@
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",
+    "@google-cloud/speech": "^6.3.0",
     "@mantine/core": "^5.8.3",
     "@mantine/hooks": "^5.8.3",
     "@react-three/drei": "^9.43.3",
     "@react-three/fiber": "^8.9.1",
+    "axios": "^1.6.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.146.0",
@@ -25,5 +30,9 @@
     "@vitejs/plugin-react": "^2.2.0",
     "concurrently": "^8.2.2",
     "vite": "^3.2.3"
-  }
+  },
+  "description": "<img width=\"1263\" alt=\"image\" src=\"https://user-images.githubusercontent.com/6551176/204001329-2be3eeb3-b243-4a04-a8fe-cb8c3c3f6dc5.png\">",
+  "main": "vite.config.js",
+  "author": "",
+  "license": "ISC"
 }

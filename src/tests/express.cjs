@@ -1,7 +1,6 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 app.use(express.json());
@@ -16,7 +15,7 @@ app.get("/", (req, res) => {
 
 app.post("/synthesize", async (req, res) => {
     const text = req.body.text;
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = "AIzaSyAm4WlilenpBXTYkc1RefU8plElIxnFjD4";
     const endpoint = `https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${apiKey}`;
     const payload = {
         "audioConfig": {
@@ -40,31 +39,7 @@ app.post("/synthesize", async (req, res) => {
       res.json(response.data);
 });
 
-const port = 8082;
+const port = 3000;
 app.listen(port, ()=>{
     console.log(`Servidor de síntesis de voz iniciado en el puerto ${port}`);
 })
-
-const WebSocket = require('ws');
-const server = new WebSocket.Server({ port: 8081 });
-const connections = new Set();
-
-server.on('connection', (socket) => {
-    connections.add(socket);
-
-    socket.on('message', (message) => {
-        console.log('Comando recibido desde la terminal:', message.toLocaleString());
-        connections.forEach((client) => {
-            if (client !== socket && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-    });
-
-    socket.on('close', () => {
-        console.log('Terminal desconectada');
-        connections.delete(socket);
-    });
-});
-
-console.log('Servidor de eventos iniciado en el puerto 8081');
