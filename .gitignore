@@ -76,6 +76,9 @@ typings/
 .env
 .env.test
 
+# credentials file should not be checked in
+vishara-415010-002552ca9ca0.json
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 

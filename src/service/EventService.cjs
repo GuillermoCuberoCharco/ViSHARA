@@ -9,11 +9,7 @@ app.use(
     cors({})
 );
 
-
-app.get("/", (req, res) => {
-    res.send("Servidor de síntesis de voz");
-},);
-
+//Google TTS service
 app.post("/synthesize", async (req, res) => {
     const text = req.body.text;
     const apiKey = process.env.GOOGLE_API_KEY;
@@ -40,11 +36,24 @@ app.post("/synthesize", async (req, res) => {
       res.json(response.data);
 });
 
-const port = 8082;
-app.listen(port, ()=>{
-    console.log(`Servidor de síntesis de voz iniciado en el puerto ${port}`);
-})
+//Google STT servicie
+const transcribeAudio = require('./google_stt.cjs');
 
+app.post('/transcribe', async (req, res) => {
+  try {
+    const audio = req.body.audio;
+    const response = await transcribeAudio(audio);
+    const transcription = response.results
+    .map(result => result.alternatives[0].transcript)
+    .join('\n');
+    res.json({ transcript: transcription });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to transcribe audio' });
+  }
+});
+
+// WebSocket server
 const WebSocket = require('ws');
 const server = new WebSocket.Server({ port: 8081 });
 const connections = new Set();
@@ -68,3 +77,8 @@ server.on('connection', (socket) => {
 });
 
 console.log('Servidor de eventos iniciado en el puerto 8081');
+
+const port = 8082;
+app.listen(port, ()=>{
+    console.log(`Servidor de síntesis de voz iniciado en el puerto ${port}`);
+})

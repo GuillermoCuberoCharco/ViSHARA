@@ -1,5 +1,6 @@
 import axios from "axios";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { ReactMic } from "react-mic";
 import '../InterfaceStyle.css';
 import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
 
@@ -8,15 +9,66 @@ const Interface = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [socket, setSocket] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState(null);
   const lastMessageRef = useRef(null);
-
   const [audioSrc, setAudioSrc] = useState(null);
 
+  const startRecording = () => {
+    setIsRecording(true);
+  };
+  
+  const stopRecording = () => {
+    setIsRecording(false);
+  };
+  
+  const onData = (recordedBlob) => {
+    console.log('chunk of real-time data is: ', recordedBlob);
+  }
+
+  useEffect(() => {
+    if (recordedBlob) {
+      handleTranscribe();
+    }
+  }, [recordedBlob]);
+  
+  const onStop = (recordedBlob) => {
+    setRecordedBlob(recordedBlob);
+    handleTranscribe();
+
+    const url = URL.createObjectURL(recordedBlob.blob);
+    setAudioSrc(url);
+  };
+
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        resolve(reader.result.split(",")[1]);
+      };
+      reader.readAsDataURL(blob);
+    });
+  };
+
+//Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
+  const handleTranscribe = async () => {
+    try {
+      const audio = await blobToBase64(recordedBlob.blob);
+      const response = await axios.post("http://localhost:8082/transcribe", { audio });
+      const transcript = response.data.transcript;
+      setNewMessage(transcript);
+    } catch (error) {
+      console.error("Error transcribing", error);
+    }
+  };
+
+//Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
   const handleSynthesize = async (message) => {
-      const response = await axios.post("http://localhost:8082/synthesize", { text: message });
-      const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
-      setAudioSrc(audioSrc);
-    };
+    const response = await axios.post("http://localhost:8082/synthesize", { text: message });
+    const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
+    setAudioSrc(audioSrc);
+  };
 
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
@@ -51,7 +103,7 @@ const Interface = () => {
   }, [messages]);
 
   const sendMessage = () => {
-    if (socket){
+    if (socket && newMessage){
       setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
       socket.send(newMessage);
       setNewMessage("");
@@ -87,7 +139,18 @@ const Interface = () => {
           className="input-field"
         />
       </div>
+      <audio src={audioSrc} controls />
       <audio src={audioSrc} autoPlay />
+      <button onClick={isRecording ? stopRecording : startRecording}>
+        {isRecording ? "Stop Recording" : "Start Recording"}
+      </button>
+      <ReactMic
+        record={isRecording}
+        className="sound-wave"
+        onStop={onStop}
+        onData={onData}
+        strokeColor="#000000"
+        backgroundColor="#FF4081" />
     </div>
   );
 };
