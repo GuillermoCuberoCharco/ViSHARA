@@ -1,7 +1,9 @@
 .vscode
 .yarn
 node_modules
-
+__pycache__
+.venv
+.venvp8
 # Logs
 logs
 *.log

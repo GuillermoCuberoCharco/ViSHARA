@@ -35,9 +35,6 @@ const Interface = () => {
   const onStop = (recordedBlob) => {
     setRecordedBlob(recordedBlob);
     handleTranscribe();
-
-    const url = URL.createObjectURL(recordedBlob.blob);
-    setAudioSrc(url);
   };
 
   const blobToBase64 = (blob) => {
@@ -139,7 +136,6 @@ const Interface = () => {
           className="input-field"
         />
       </div>
-      <audio src={audioSrc} controls />
       <audio src={audioSrc} autoPlay />
       <button onClick={isRecording ? stopRecording : startRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
