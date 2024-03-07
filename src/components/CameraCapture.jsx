@@ -10,7 +10,7 @@ const WebcamCapture = () => {
     const imageSrc = webcamRef.current.getScreenshot();
 
     try {
-      await axios.post('http://localhost:8080/upload', { image: imageSrc });
+      await axios.post('http://localhost:8082/upload', { image: imageSrc });
       console.log('Image sent to server.');
       setImgSrc(imageSrc);
     } catch (error) {
