@@ -1,13 +1,13 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const app = express();
+const transcribeAudio = require('./googleSTT.cjs');
+const upload = require('./cameraService.cjs');
 require('dotenv').config();
 
-const app = express();
-app.use(express.json());
-app.use(
-    cors({})
-);
+
+app.use(cors());
 
 //Google TTS service
 app.post("/synthesize", async (req, res) => {
@@ -37,8 +37,6 @@ app.post("/synthesize", async (req, res) => {
 });
 
 //Google STT servicie
-const transcribeAudio = require('./google_stt.cjs');
-
 app.post('/transcribe', async (req, res) => {
   try {
     const audio = req.body.audio;
@@ -51,6 +49,12 @@ app.post('/transcribe', async (req, res) => {
     console.error('Error:', error);
     res.status(500).json({ error: 'Failed to transcribe audio' });
   }
+});
+
+//Camera service
+app.post('/upload', upload);
+app.listen(8080, () => {
+  console.log('Servidor de cámara iniciado en el puerto 8080');
 });
 
 // WebSocket server
@@ -76,9 +80,9 @@ server.on('connection', (socket) => {
     });
 });
 
-console.log('Servidor de eventos iniciado en el puerto 8081');
 
-const port = 8082;
-app.listen(port, ()=>{
-    console.log(`Servidor de síntesis de voz iniciado en el puerto ${port}`);
+
+app.listen(8082, ()=>{
+    console.log('Servidor de síntesis de voz iniciado en el puerto 8082');
+    console.log('Servidor de eventos iniciado en el puerto 8081');
 })

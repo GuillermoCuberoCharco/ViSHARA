@@ -3,11 +3,13 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
 import '../InterfaceStyle.css';
 import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
+import WebcamCapture from "./CameraCapture";
 
 const Interface = () => {
   const { animations, setAnimationIndex } = useContext(CharacterAnimationsContext);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [isChatVisible, setChatVisible] = useState(true);
   const [socket, setSocket] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
@@ -67,6 +69,7 @@ const Interface = () => {
     setAudioSrc(audioSrc);
   };
 
+  //Conexión con el servidor WebSocket para recibir comandos de voz
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 
@@ -108,45 +111,51 @@ const Interface = () => {
   };
 
   return (
-    <div className="chat-container">
-      <div className="messages-container">
-        <div className="messages-wrapper">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              ref={index === messages.length - 1 ? lastMessageRef : null}
-              className={`message ${message.sender}`}
-            >
-              {message.text}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="input-container">
-        <textarea
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              sendMessage();
-              e.preventDefault();
-            }
-          }}
-          className="input-field"
-        />
-      </div>
-      <audio src={audioSrc} autoPlay />
-      <button onClick={isRecording ? stopRecording : startRecording}>
-        {isRecording ? "Stop Recording" : "Start Recording"}
+    <div className="chat-wrapper">
+      <button className="toggle-chat-button" onClick={() => setChatVisible(!isChatVisible)}>
+        {isChatVisible ? <i className="fas fa-arrow-left"></i> : <i className="fas fa-arrow-right"></i>}
       </button>
-      <ReactMic
-        record={isRecording}
-        className="sound-wave"
-        onStop={onStop}
-        onData={onData}
-        strokeColor="#000000"
-        backgroundColor="#FF4081" />
+      <div className={`chat-container ${isChatVisible ? 'visible' : 'hidden'}`}>
+        <div className="messages-container">
+          <div className="messages-wrapper">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                ref={index === messages.length - 1 ? lastMessageRef : null}
+                className={`message ${message.sender}`}
+              >
+                {message.text}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="input-container">
+          <textarea
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                sendMessage();
+                e.preventDefault();
+              }
+            }}
+            className="input-field"
+          />
+        </div>
+        <WebcamCapture />
+        <audio src={audioSrc} autoPlay />
+        <button onClick={isRecording ? stopRecording : startRecording}>
+          {isRecording ? "Stop Recording" : "Start Recording"}
+        </button>
+        <ReactMic
+          record={isRecording}
+          className="sound-wave"
+          onStop={onStop}
+          onData={onData}
+          strokeColor="#000000"
+          backgroundColor="#FF4081" />
+      </div>
     </div>
   );
 };

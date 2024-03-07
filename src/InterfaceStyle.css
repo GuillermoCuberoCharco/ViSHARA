@@ -1,4 +1,8 @@
-.chat-container {
+  .chat-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-container {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -11,6 +15,15 @@
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.1);;
     border-radius: 10px 10px 0 0;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .chat-container.visible {
+    transform: translateX(0);
+  }
+  
+  .chat-container.hidden {
+    transform: translateX(-100%);
   }
   
   .messages-container {
@@ -74,6 +87,20 @@
     cursor: pointer;
   }
 
+  .toggle-chat-button {
+    position: absolute;
+    top: 0;
+    right: 97%;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    font-size: 24px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 1;
+  }
+
   .muc-button{
     background-color: #f44336;
     color: white;
@@ -88,6 +115,10 @@
     border-radius: 50%;
   }
 
+  
+
   div::-webkit-scrollbar {
     display: none;
   }
+
+ 
