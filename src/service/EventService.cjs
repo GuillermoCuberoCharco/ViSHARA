@@ -1,11 +1,15 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const app = express();
-app.use(cors());
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
 const upload = require('./cameraService.cjs');
+
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 //Google TTS service
 app.post("/synthesize", synthesize);
@@ -41,3 +45,4 @@ app.listen(8082, ()=>{
     console.log('Servidor de endpoints en el puerto 8082');
     console.log('Servidor de eventos iniciado en el puerto 8081');
 })
+

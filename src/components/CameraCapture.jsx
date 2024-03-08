@@ -5,6 +5,7 @@ import Webcam from 'react-webcam';
 const WebcamCapture = () => {
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState("");
+  const [ intervalId, setIntervalId ] = useState(null);
 
   const capture = async () => {
     const imageSrc = webcamRef.current.getScreenshot();
@@ -18,6 +19,16 @@ const WebcamCapture = () => {
     }
   };
 
+  const startCapture = () => {
+    const interval = setInterval(capture, 33);
+    setInterval(interval);
+  };
+
+  const stopCapture = () => {
+    clearInterval(intervalId);
+    setIntervalId(null);
+  };
+
   return (
     <div className="webcam-capture">
       <div className="webcam-container">
@@ -29,8 +40,11 @@ const WebcamCapture = () => {
         />
       </div>
       <div className="button-container">
-        <button className="capture-button" onClick={capture}>
-          Capture
+        <button className="capture-button" onClick={startCapture}>
+          Start Capture
+        </button>
+        <button className="stop-button" onClick={stopCapture}>
+          Stop Capture
         </button>
       </div>
     </div>
