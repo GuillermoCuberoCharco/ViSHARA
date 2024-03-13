@@ -1,52 +1,73 @@
 import axios from 'axios';
-import React, { useRef, useState } from 'react';
-import Webcam from 'react-webcam';
+import React, { useEffect, useRef } from 'react';
 
 const WebcamCapture = () => {
   const webcamRef = useRef(null);
-  const [imgSrc, setImgSrc] = useState("");
-  const [ intervalId, setIntervalId ] = useState(null);
+  const peerRef = useRef();
 
-  const capture = async () => {
-    const imageSrc = webcamRef.current.getScreenshot();
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then(stream => {
+        webcamRef.current.srcObject = stream;
+        
+        const configuration = {
+          iceServers: [
+            {
+              urls: 'http://localhost:3478'
+            }
+          ]
+        }
+        peerRef.current = new RTCPeerConnection(configuration);
 
-    try {
-      await axios.post('http://localhost:8082/upload', { image: imageSrc });
-      console.log('Image sent to server.');
-      setImgSrc(imageSrc);
-    } catch (error) {
-      console.error('Error sending image to server:', error);
-    }
-  };
+        stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
 
-  const startCapture = () => {
-    const interval = setInterval(capture, 33);
-    setInterval(interval);
-  };
+        peerRef.current.onicecandidate = event => {
+          if (event.candidate) {
+            axios.post('http://localhost:8082/candidates', { candidate: event.candidate })
+              .then(() => console.log('ICE candidate sent to server.'))
+              .catch(error => console.error('Error sending ICE candidate to server:', error));
+          }
+        };
 
-  const stopCapture = () => {
-    clearInterval(intervalId);
-    setIntervalId(null);
-  };
+        peerRef.current.onicegatheringstatechange = () => {
+          if (peerRef.current.iceGatheringState === 'complete') {
+            axios.post('http://localhost:8082/response', { sdp: peerRef.current.localDescription })
+              .then(() => console.log('Local description sent to server.'))
+              .catch(error => console.error('Error sending local description to server:', error));
+          }
+        };
+
+        peerRef.current.onnegotiationneeded = () => {
+          peerRef.current.createOffer().then(offer => {
+            return peerRef.current.setLocalDescription(offer);
+          }).then(() => {
+            axios.post('http://localhost:8082/upload', { sdp: peerRef.current.localDescription })
+              .then(() => console.log('Local description sent to server.'))
+              .catch(error => console.error('Error sending local description to server:', error));
+          });
+        };
+
+        axios.get('http://localhost:8082/response')
+          .then(response => {
+            const remoteDescription = new RTCSessionDescription(response.data.sdp);
+            peerRef.current.setRemoteDescription(remoteDescription);
+          })
+          .catch(error => console.error('Error getting response from server:', error));
+
+        axios.get('http://localhost:8082/candidates')
+          .then(response => {
+            response.data.candidates.forEach(candidateInfo => {
+              const candidate = new RTCIceCandidate(candidateInfo);
+              peerRef.current.addIceCandidate(candidate);
+            });
+          })
+          .catch(error => console.error('Error getting ICE candidates from server:', error));
+      });
+  }, []);
 
   return (
     <div className="webcam-capture">
-      <div className="webcam-container">
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-      <div className="button-container">
-        <button className="capture-button" onClick={startCapture}>
-          Start Capture
-        </button>
-        <button className="stop-button" onClick={stopCapture}>
-          Stop Capture
-        </button>
-      </div>
+      <video ref={webcamRef} autoPlay playsInline muted></video>
     </div>
   );
 };

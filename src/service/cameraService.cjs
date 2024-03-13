@@ -1,10 +1,9 @@
+import axios from 'axios';
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cors = require("cors");
-const fs = require('fs');
-const WebSocket = require('ws');
-const server = new WebSocket.Server({ port: 8083 });
+const wrtc = require('wrtc');
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -12,33 +11,43 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const upload = (req, res) => {
-    console.log('Received image');
-  const image = req.body.image;
-  const imageName = `frame_${Date.now()}.jpg`;
-  const imagePath = `webrtc_event_logs/${imageName}`;
-  const imageBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-  
-  server.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(imageBuffer);
-    }
-  });
-  fs.writeFile(imagePath, imageBuffer, (err) => {
-    if (err) {
-      console.error('Error saving image:', err);
-      res.status(500).send('Error saving image');
-    } else {
-      console.log('Image saved:', imageName);
-      server.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(imageBuffer);
+const peers = new Map();
+
+const upload = async (req, res) => {
+  console.log('Received SDP');
+  const sdp = req.body.sdp;
+
+  const configuration = {
+    iceServers: [
+      {
+        urls: 'http://localhost:3478'
       }
-    });
-      res.sendStatus(200);
+    ]
+  };
+  const peer = new wrtc.RTCPeerConnection(configuration);
+
+  peers.set(sdp, peer);
+
+  peer.onicecandidate = ({ candidate }) => {
+    if (candidate) {
+      axios.post('http://localhost:8082/candidates', { candidate: candidate })
+        .then(() => console.log('ICE candidate sent to server.'))
+        .catch(error => console.error('Error sending ICE candidate to server:', error));
     }
-    
-  });
+  };
+
+  peer.onconnectionstatechange = () => {
+    if (peer.connectionState === 'disconnected' || peer.connectionState === 'failed' || peer.connectionState === 'closed') {
+      console.log('WebRTC connection closed');
+      peers.delete(sdp);
+    }
+  };
+
+  await peer.setRemoteDescription(sdp);
+  const answer = await peer.createAnswer();
+  await peer.setLocalDescription(answer);
+
+  res.json({ sdp: peer.localDescription });
 };
 
 module.exports = upload;

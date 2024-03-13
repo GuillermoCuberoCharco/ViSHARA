@@ -6,6 +6,8 @@ const app = express();
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
 const upload = require('./cameraService.cjs');
+const candidates = require('./candidateHandler.cjs');
+const response = require('./responseHandler.cjs');
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -17,6 +19,12 @@ app.post("/synthesize", synthesize);
 app.post('/transcribe', transcribe);
 //Camera service
 app.post('/upload', upload);
+//WebRTC candidates service
+app.post('/candidates', candidates.post);
+app.get('/candidates', candidates.get);
+//WebRTC response service
+app.post('/response', response.post);
+app.get('/response', response.get);
 
 // WebSocket server
 const WebSocket = require('ws');
