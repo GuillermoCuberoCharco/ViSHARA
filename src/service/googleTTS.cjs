@@ -1,4 +1,5 @@
 const axios = require('axios');
+const fs = require('fs');
 require('dotenv').config();
 
 const synthesize = async (req, res) => {
@@ -24,6 +25,15 @@ const synthesize = async (req, res) => {
       }
 
       const response = await axios.post(endpoint, payload);
+// Save the audio content to a file for debbuging purposes
+      // const audio = response.data.audioContent;
+      // const audioBuffer = Buffer.from(audio, 'base64');
+  
+      // fs.writeFile('src/tests/output.wav', audioBuffer, (err) => {
+      //     if (err) throw err;
+      //     console.log('Audio content has been saved as output.wav');
+      // });
+// Return the audio content to the client
       res.json(response.data);
 };
 

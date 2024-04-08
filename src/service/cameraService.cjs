@@ -1,4 +1,4 @@
-import axios from 'axios';
+const axios = require('axios');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
@@ -20,7 +20,9 @@ const upload = async (req, res) => {
   const configuration = {
     iceServers: [
       {
-        urls: 'http://localhost:3478'
+        urls: 'turn:localhost:3478',
+        username: 'username',
+          credential: 'password'
       }
     ]
   };

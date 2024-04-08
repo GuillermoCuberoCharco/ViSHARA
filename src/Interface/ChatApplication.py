@@ -10,7 +10,7 @@ class ChatApplication(QWidget):
         self.create_widgets()
 
         self.event_service_process = subprocess.Popen(
-            "node src/service/EventService.cjs")
+            ['node', 'src/service/EventService.cjs'])
 
         threading.Thread(target=self.start_wscat, daemon=True).start()
 
@@ -41,7 +41,7 @@ class ChatApplication(QWidget):
         self.layout.addWidget(self.send_button)
 
     def start_wscat(self):
-        wscat_path = "C:/Users/Usuario/AppData/Roaming/npm/wscat.cmd"
+        wscat_path = "wscat"
         self.process = subprocess.Popen([wscat_path, "-c", "ws://localhost:8081"], stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
 

@@ -13,7 +13,9 @@ const WebcamCapture = () => {
         const configuration = {
           iceServers: [
             {
-              urls: 'http://localhost:3478'
+              urls: 'turn:localhost:3478',
+              username: 'username',
+              credential: 'password'
             }
           ]
         }
