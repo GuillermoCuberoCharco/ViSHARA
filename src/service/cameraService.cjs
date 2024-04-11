@@ -1,55 +1,30 @@
-const axios = require('axios');
-const express = require('express');
-const app = express();
-const bodyParser = require('body-parser');
-const cors = require("cors");
-const wrtc = require('wrtc');
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 8082 });
+const { RTCPeerConnection } = require('wrtc');
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+const desktopAppWs = new WebSocket('ws://localhost:8083');
 
-const peers = new Map();
+wss.on('connection', ws => {
+  const pc = new RTCPeerConnection();
 
-const upload = async (req, res) => {
-  console.log('Received SDP');
-  const sdp = req.body.sdp;
-
-  const configuration = {
-    iceServers: [
-      {
-        urls: 'turn:localhost:3478',
-        username: 'username',
-          credential: 'password'
-      }
-    ]
+  pc.ontrack = event => {
+    desktopAppWs.send(JSON.stringify({ track: event.track }));
+    console.log('Received video track');
   };
-  const peer = new wrtc.RTCPeerConnection(configuration);
 
-  peers.set(sdp, peer);
+  ws.on('message', message => {
+    const data = JSON.parse(message);
 
-  peer.onicecandidate = ({ candidate }) => {
-    if (candidate) {
-      axios.post('http://localhost:8082/candidates', { candidate: candidate })
-        .then(() => console.log('ICE candidate sent to server.'))
-        .catch(error => console.error('Error sending ICE candidate to server:', error));
+    if (data.track) {
+      pc.addTrack(data.track);
     }
-  };
 
-  peer.onconnectionstatechange = () => {
-    if (peer.connectionState === 'disconnected' || peer.connectionState === 'failed' || peer.connectionState === 'closed') {
-      console.log('WebRTC connection closed');
-      peers.delete(sdp);
+    if (data.candidate) {
+      pc.addIceCandidate(data.candidate);
     }
-  };
+  });
 
-  await peer.setRemoteDescription(sdp);
-  const answer = await peer.createAnswer();
-  await peer.setLocalDescription(answer);
-
-  res.json({ sdp: peer.localDescription });
-};
-
-module.exports = upload;
+  ws.on('close', () => {
+    pc.close();
+  });
+});

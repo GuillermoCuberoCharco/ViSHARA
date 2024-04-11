@@ -5,9 +5,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
-const upload = require('./cameraService.cjs');
-const candidates = require('./candidateHandler.cjs');
-const response = require('./responseHandler.cjs');
+
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -17,14 +15,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.post("/synthesize", synthesize);
 //Google STT servicie
 app.post('/transcribe', transcribe);
-//Camera service
-app.post('/upload', upload);
-//WebRTC candidates service
-app.post('/candidates', candidates.post);
-app.get('/candidates', candidates.get);
-//WebRTC response service
-app.post('/response', response.post);
-app.get('/response', response.get);
 
 // WebSocket server
 const WebSocket = require('ws');
@@ -48,6 +38,26 @@ server.on('connection', (socket) => {
         connections.delete(socket);
     });
 });
+
+//Camera service
+
+const wss = new WebSocket.Server({ port: 8084 });
+
+wss.on('connection', ws => {
+  ws.on('message', message => {
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  });
+
+  ws.on('close', () => {
+    console.log('WebSocket connection closed');
+  });
+});
+
+
 
 app.listen(8082, ()=>{
     console.log('Servidor de endpoints en el puerto 8082');

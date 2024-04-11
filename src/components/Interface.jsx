@@ -69,7 +69,7 @@ const Interface = () => {
     setAudioSrc(audioSrc);
   };
 
-  //Conexión con el servidor WebSocket para recibir comandos de voz
+  //Conexión con el servidor WebSocket
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 

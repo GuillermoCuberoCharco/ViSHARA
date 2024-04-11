@@ -1,16 +1,14 @@
-from ChatApplication import ChatApplication
-from PyQt5.QtWebSockets import QWebSocket
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebSockets import QWebSocket, QWebSocketProtocol
+from PyQt5.QtCore import QUrl, QJsonDocument
+from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QMessageBox
-from PyQt5.QtGui import QPixmap, QImage, QTextCursor
-from PyQt5.QtCore import QUrl
-import sys
-#fmt: off
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
-#fmt: on
-Gst.init(None)
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from ChatApplication import ChatApplication
+import cv2
+import numpy as np
+import tempfile
+import os
+import threading
 
 
 class MainWindow(QMainWindow):
@@ -29,41 +27,44 @@ class MainWindow(QMainWindow):
         web_view.load(QUrl("http://localhost:5173/"))
         layout.addWidget(web_view)
 
-        chat_app = ChatApplication()
-        layout.addWidget(chat_app)
-
         self.camera_view = QLabel()
         layout.addWidget(self.camera_view)
 
-        self.pipeline = Gst.parse_launch(
-            "udpsrc port=5000 ! application/x-rtp, encoding-name=JPEG, payload=26 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink")
+        self.websocket = QWebSocket()
+        self.websocket.connected.connect(self.on_connected)
+        self.websocket.disconnected.connect(self.on_disconnected)
+        self.websocket.textMessageReceived.connect(self.on_textMessageReceived)
+        self.websocket.binaryMessageReceived.connect(
+            self.on_binaryMessageReceived)
+        self.websocket.error.connect(self.on_error)
 
-        if not self.pipeline:
-            print("Failed to create pipeline")
-        else:
-            self.appsink = self.pipeline.get_by_name("appsink")
+        self.websocket.open(QUrl("ws://localhost:8084"))
 
-            if not self.appsink:
-                print("Failed to get appsink")
-            else:
-                self.appsink.set_property("emit-signals", True)
-                self.appsink.connect("new-sample", self.on_new_sample)
-                self.pipeline.set_state(Gst.State.PLAYING)
+        self.chat_app = ChatApplication()
+        layout.addWidget(self.chat_app)
 
-    def on_new_sample(self, sink):
-        sample = sink.emit("pull-sample")
-        buffer = sample.get_buffer()
-        caps = sample.get_caps()
-        print(caps.get_structure(0).get_value("format"))
-        print(caps.get_structure(0).get_value("height"))
-        print(caps.get_structure(0).get_value("width"))
-        print(buffer.get_size())
+    def on_connected(self):
+        print("WebSocket connected")
 
-        image = QImage(buffer.extract_dup(0, buffer.get_size()), caps.get_structure(
-            0).get_value("width"), caps.get_structure(0).get_value("height"), QImage.Format_RGB888)
-        self.camera_view.setPixmap(QPixmap.fromImage(image))
+    def on_disconnected(self):
+        print("WebSocket disconnected")
 
-        return Gst.FlowReturn.OK
+    def on_textMessageReceived(self, message):
+        print("Received text message:", message)
+
+    def on_binaryMessageReceived(self, message):
+        nparr = np.frombuffer(message, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        height, width, channel = img.shape
+        bytesPerLine = 3 * width
+        qImg = QImage(img.data, width, height,
+                      bytesPerLine, QImage.Format_RGB888)
+        self.camera_view.setPixmap(QPixmap.fromImage(qImg))
+
+    def on_error(self, error_code):
+        error_string = self.websocket.closeReason()
+        print("WebSocket error:", error_string)
 
 
 app = QApplication([])
