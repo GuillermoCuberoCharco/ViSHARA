@@ -45,8 +45,9 @@ const wss = new WebSocket.Server({ port: 8084 });
 
 wss.on('connection', ws => {
   ws.on('message', message => {
+    //console.log('Received data:', message.slice(0, 10));
     wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
     });

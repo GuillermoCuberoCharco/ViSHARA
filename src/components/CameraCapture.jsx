@@ -13,11 +13,19 @@ const WebcamCapture = () => {
         wsRef.current = new WebSocket('ws://localhost:8084');
 
         wsRef.current.onopen = () => {
-          mediaRecorderRef.current = new MediaRecorder(stream);
+          if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            console.log('WebM format is supported')
+            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+          } else {
+            console.error('WebM format is not supported');
+          }
           mediaRecorderRef.current.ondataavailable = event => {
-            wsRef.current.send(event.data);
+            
+            if (event.data && event.data.size > 1){
+              wsRef.current.send(event.data);
+            }
           };
-          mediaRecorderRef.current.start(100); 
+          mediaRecorderRef.current.start(33); 
         };
 
         wsRef.current.onerror = error => {

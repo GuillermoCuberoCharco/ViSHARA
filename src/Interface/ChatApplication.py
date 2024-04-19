@@ -9,9 +9,6 @@ class ChatApplication(QWidget):
         super(ChatApplication, self).__init__(parent)
         self.create_widgets()
 
-        self.event_service_process = subprocess.Popen(
-            ['node', 'src/service/EventService.cjs'])
-
         threading.Thread(target=self.start_wscat, daemon=True).start()
 
         self.predefined_responses = [
