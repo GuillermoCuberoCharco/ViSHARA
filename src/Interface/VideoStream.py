@@ -3,6 +3,8 @@ import websocket
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from PyQt5.QtGui import QImage, QPixmap
+import os
+os.environ['GST_DEBUG'] = '3'
 
 try:
     import gi
@@ -20,6 +22,7 @@ class VideoStream(QObject):
 
     def __init__(self):
         super().__init__()
+        self.image_display_widget = QLabel()
         self.ws = websocket.WebSocketApp("ws://localhost:8084",
                                          on_message=self.on_message,
                                          on_error=self.on_error,
@@ -29,12 +32,11 @@ class VideoStream(QObject):
         self.thread.started.connect(self.ws.run_forever)
 
         self.pipeline = Gst.parse_launch(
-            'appsrc name=src ! decodebin ! videoconvert ! appsink name=sink emit-signals=True')
+            'appsrc name=src ! decodebin ! videoconvert ! videoscale ! appsink name=sink emit-signals=True')
         self.appsrc = self.pipeline.get_by_name('src')
         self.appsink = self.pipeline.get_by_name('sink')
         self.appsink.connect('new-sample', self.on_new_sample)
         self.pipeline.set_state(Gst.State.PLAYING)
-        # print('Pipeline state:', self.pipeline.get_state(Gst.CLOCK_TIME_NONE))
 
     def on_new_sample(self, appsink):
         print('Received new sample')
@@ -44,20 +46,21 @@ class VideoStream(QObject):
         image = QImage(mapinfo.data, 640, 480, QImage.Format_RGB888)
         self.frame_received.emit(image)
         buf.unmap(mapinfo)
+        self.image_display_widget.setPixmap(QPixmap.fromImage(image))
         return Gst.FlowReturn.OK
 
     def start(self):
         self.thread.start()
 
     def on_message(self, ws, message):
-        print('Received video data:', len(message))
+        print('Received message: ', len(message))
         buf = Gst.Buffer.new_wrapped(message)
         self.appsrc.emit('push-buffer', buf)
 
     def on_error(self, ws, error):
         print('WebSocket error: ', error)
 
-    def on_close(self, ws):
+    def on_close(self, ws, close_status_code, close_msg, close_headers):
         print('WebSocket close')
 
 

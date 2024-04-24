@@ -1,12 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const WebcamCapture = () => {
   const webcamRef = useRef(null);
   const wsRef = useRef();
   const mediaRecorderRef = useRef();
+  const [isSending, setIsSending] = useState(false);
+  const [lastSentMessage, setLastSentMessage] = useState(null);
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: {exact: 640}, 
+        heigth: {exact: 480}}, 
+        audio: false })
       .then(stream => {
         webcamRef.current.srcObject = stream;
 
@@ -19,19 +25,42 @@ const WebcamCapture = () => {
           } else {
             console.error('WebM format is not supported');
           }
+
+          let chunks = [];
+
           mediaRecorderRef.current.ondataavailable = event => {
-            
-            if (event.data && event.data.size > 1){
-              wsRef.current.send(event.data);
+            if (event.data && event.data.size > 0){
+              chunks.push(event.data);
             }
           };
-          mediaRecorderRef.current.start(33); 
+          
+          mediaRecorderRef.current.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            if (blob !== lastSentMessage) {
+              wsRef.current.send(blob, () => setIsSending(false));
+              console.log('Blob sent:', blob.size, 'bytes');
+              setLastSentMessage(blob);
+            }
+            chunks = [];
+            if (!isSending) {
+              setTimeout(startRecording, 1000);
+            }
         };
+
+        const startRecording = () => {
+          setIsSending(true);
+          chunks = [];
+          mediaRecorderRef.current.start();
+          setTimeout(() => mediaRecorderRef.current.stop(), 5000);
+        };
+
+        startRecording();
 
         wsRef.current.onerror = error => {
           console.error('WebSocket error:', error);
         };
-      });
+      }
+    });
   }, []);
 
   return (

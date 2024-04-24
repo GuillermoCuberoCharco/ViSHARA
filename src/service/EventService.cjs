@@ -43,14 +43,18 @@ server.on('connection', (socket) => {
 
 const wss = new WebSocket.Server({ port: 8084 });
 
-wss.on('connection', ws => {
+wss.on('connection', (ws) => {
   ws.on('message', message => {
-    //console.log('Received data:', message.slice(0, 10));
-    wss.clients.forEach(client => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+    if (wss.clients.size > 2){
+      wss.clients.forEach(client => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    } else {
+      console.log('No clients connected, discarding message');
+    }
+    
   });
 
   ws.on('close', () => {

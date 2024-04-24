@@ -1,23 +1,21 @@
-from PyQt5.QtWebSockets import QWebSocket, QWebSocketProtocol
-from PyQt5.QtCore import QUrl, QJsonDocument, QTimer
+from PyQt5.QtWebSockets import QWebSocket
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from ChatApplication import ChatApplication
 import numpy as np
-import threading
 
 
 def init_gstreamer():
     import gi
     gi.require_version('Gst', '1.0')
-    gi.require_version('GLib', '2.0')
-    from gi.repository import Gst, GLib
+    from gi.repository import Gst
     Gst.init(None)
-    return Gst, GLib
+    return Gst
 
 
-Gst, GLib = init_gstreamer()
+Gst = init_gstreamer()
 
 
 class MainWindow(QMainWindow):
@@ -55,28 +53,17 @@ class MainWindow(QMainWindow):
         self.chat_app = ChatApplication()
         layout.addWidget(self.chat_app)
 
-        self.gst_timer = QTimer()
-        self.gst_timer.timeout.connect(self.gst_main_loop)
-        self.gst_timer.start(0)
-
-    def gst_main_loop(self):
-        GLib.MainContext.default().iteration(False)
-
     def on_connected(self):
         print("WebSocket connected")
         caps = Gst.Caps.from_string('video/webm;codecs=vp9')
         self.pipeline = Gst.parse_launch(
-            'appsrc name=src ! multiqueue ! decodebin ! videoconvert ! appsink name=sink')
+            'appsrc name=src ! decodebin ! videoconvert ! videoscale ! appsink name=sink emit-signals=True')
 
         self.appsrc = self.pipeline.get_by_name('src')
         self.appsrc.set_property('caps', caps)
         self.appsink = self.pipeline.get_by_name('sink')
-        self.appsink.set_property('emit-signals', True)
         self.appsink.connect('new-sample', self.on_new_sample)
-        self.appsink.connect('eos', self.on_eos)
         self.pipeline.set_state(Gst.State.PLAYING)
-        self.gst_thread = threading.Thread(target=self.gst_main_loop)
-        self.gst_thread.start()
 
         bus = self.pipeline.get_bus()
         bus.connect("message::error", self.on_error)
@@ -86,26 +73,21 @@ class MainWindow(QMainWindow):
 
     def on_binary_message_received(self, message):
         buf = Gst.Buffer.new_wrapped(message)
-        ret = self.appsrc.emit('push-buffer', buf)
-        if ret == Gst.FlowReturn.OK:
-            print('Pushed buffer to GStreamer')
-        else:
-            print('Push buffer error')
+        self.appsrc.emit('push-buffer', buf)
 
     def on_new_sample(self, appsink):
         print('New sample')
         sample = appsink.emit('pull-sample')
         buf = sample.get_buffer()
-        print('Recived frame: ', buf)
 
-        data = buf.extract_dup(0, buf.get_size())
-        image = QImage(data, 640, 480, QImage.Format_RGB888)
+        result, mapinfo = buf.map(Gst.MapFlags.READ)
+        image = QImage(mapinfo.data, 640, 480, QImage.Format_RGB888)
+        buf.unmap(mapinfo)
+        print('Buffer unmapped')
         self.camera_view.setPixmap(QPixmap.fromImage(image))
+        print('Image displayed')
 
         return Gst.FlowReturn.OK
-
-    def on_eos(self, appsink):
-        print('End of stream')
 
     def on_error(self, bus, message):
         err, debug_info = message.parse_error()
