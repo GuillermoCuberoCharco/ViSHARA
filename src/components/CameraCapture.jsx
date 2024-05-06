@@ -11,7 +11,7 @@ const WebcamCapture = () => {
     navigator.mediaDevices.getUserMedia({ 
       video: { 
         width: {exact: 640}, 
-        heigth: {exact: 480}}, 
+        height: {exact: 480}}, 
         audio: false })
       .then(stream => {
         webcamRef.current.srcObject = stream;

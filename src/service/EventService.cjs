@@ -51,8 +51,6 @@ wss.on('connection', (ws) => {
           client.send(message);
         }
       });
-    } else {
-      console.log('No clients connected, discarding message');
     }
     
   });
