@@ -1,8 +1,10 @@
 const express = require('express');
+const multer = require('multer');
 const axios = require('axios');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const app = express();
+const http = require('http');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
 
@@ -18,10 +20,10 @@ app.post('/transcribe', transcribe);
 
 // WebSocket server
 const WebSocket = require('ws');
-const server = new WebSocket.Server({ port: 8081 });
+const ws_server = new WebSocket.Server({ port: 8081 });
 const connections = new Set();
 
-server.on('connection', (socket) => {
+ws_server.on('connection', (socket) => {
     connections.add(socket);
 
     socket.on('message', (message) => {
@@ -40,27 +42,35 @@ server.on('connection', (socket) => {
 });
 
 //Camera service
+const server = http.createServer(app);
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+const wss = new WebSocket.Server({ server });
 
-const wss = new WebSocket.Server({ port: 8084 });
-
+let wsClient = null;
 wss.on('connection', (ws) => {
-  ws.on('message', message => {
-    if (wss.clients.size > 2){
-      wss.clients.forEach(client => {
-        if (client !== ws && client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    }
-    
-  });
-
-  ws.on('close', () => {
-    console.log('WebSocket connection closed');
-  });
+    wsClient = ws;
+    ws.on('close', () => {
+        wsClient = null;
+    });
+    console.log('Cliente conectado');
 });
 
+app.post('/upload', upload.single('video'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+    const videoBuffer = req.file.buffer;
+    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
+        wsClient.send(videoBuffer);
+        console.log('Video enviado');
+    }
+    req.status(200).send('Video received');
+});
 
+server.listen(8084, () => {
+    console.log('Servidor de carga de videos en el puerto 8084');
+});
 
 app.listen(8082, ()=>{
     console.log('Servidor de endpoints en el puerto 8082');

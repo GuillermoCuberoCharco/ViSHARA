@@ -1,73 +1,80 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const WebcamCapture = () => {
-  const webcamRef = useRef(null);
-  const wsRef = useRef();
-  const mediaRecorderRef = useRef();
-  const [isSending, setIsSending] = useState(false);
-  const [lastSentMessage, setLastSentMessage] = useState(null);
+const CameraCapture = () => {
+    const [stream, setStream] = useState(null);
+    const videoRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const [chunks, setChunks] = useState([]);
+    const [isRecording, setIsRecording] = useState(false);
 
-  useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ 
-      video: { 
-        width: {exact: 640}, 
-        height: {exact: 480}}, 
-        audio: false })
-      .then(stream => {
-        webcamRef.current.srcObject = stream;
+    useEffect(() => {
+        let isMounted = true;
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                if (isMounted) {
+                    setStream(stream);
+                    videoRef.current.srcObject = stream;
+                    mediaRecorderRef.current = new MediaRecorder(stream);
+                    mediaRecorderRef.current.ondataavailable = event => {
+                        setChunks(prev => [...prev, event.data]);
+                    };
+                    mediaRecorderRef.current.start(1000);
+                    setIsRecording(true);
+                    console.log('Camera started');
+                }
+            })
+            .catch(err => {
+                console.error('Error accessing the camera', err);
+                alert('Error accessing the camera: ${err.name} - ${err.message}');
+            });
 
-        wsRef.current = new WebSocket('ws://localhost:8084');
 
-        wsRef.current.onopen = () => {
-          if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-            console.log('WebM format is supported')
-            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
-          } else {
-            console.error('WebM format is not supported');
-          }
-
-          let chunks = [];
-
-          mediaRecorderRef.current.ondataavailable = event => {
-            if (event.data && event.data.size > 0){
-              chunks.push(event.data);
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+                mediaRecorderRef.current.stop();
             }
-          };
-          
-          mediaRecorderRef.current.onstop = () => {
+            if (videoRef.current && videoRef.current.srcObject) {
+                videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+            }
+            isMounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        console.log('Updating chunks')
+        const interval = setInterval(() => {
+            console.log('He entrado en el intervalo');
             const blob = new Blob(chunks, { type: 'video/webm' });
-            if (blob !== lastSentMessage) {
-              wsRef.current.send(blob, () => setIsSending(false));
-              console.log('Blob sent:', blob.size, 'bytes');
-              setLastSentMessage(blob);
+            sendVideo(blob);
+            setChunks([]);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [chunks, isRecording]);
+
+    const sendVideo = (blob) => {
+        console.log('Sending video');
+        const formData = new FormData();
+        formData.append('video', blob, 'video.webm');
+
+        fetch('http://localhost:8084/upload', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error sending video');
             }
-            chunks = [];
-            if (!isSending) {
-              setTimeout(startRecording, 1000);
-            }
-        };
+            console.log('Video sent');
+        })
+        .catch(error => console.error('Error sending video', error));
+    };
 
-        const startRecording = () => {
-          setIsSending(true);
-          chunks = [];
-          mediaRecorderRef.current.start();
-          setTimeout(() => mediaRecorderRef.current.stop(), 5000);
-        };
-
-        startRecording();
-
-        wsRef.current.onerror = error => {
-          console.error('WebSocket error:', error);
-        };
-      }
-    });
-  }, []);
-
-  return (
-    <div className="webcam-capture">
-      <video ref={webcamRef} autoPlay playsInline muted></video>
-    </div>
-  );
+    return (
+        <div>
+            <video ref={videoRef} autoPlay muted />
+        </div>
+    );
 };
 
-export default WebcamCapture;
+export default CameraCapture;

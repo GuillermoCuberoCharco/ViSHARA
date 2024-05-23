@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
 import '../InterfaceStyle.css';
 import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
-import WebcamCapture from "./CameraCapture";
+import CameraCapture from "./CameraCapture";
 
 const Interface = () => {
   const { animations, setAnimationIndex } = useContext(CharacterAnimationsContext);
@@ -143,7 +143,7 @@ const Interface = () => {
             className="input-field"
           />
         </div>
-        <WebcamCapture />
+        <CameraCapture />
         <audio src={audioSrc} autoPlay />
         <button onClick={isRecording ? stopRecording : startRecording}>
           {isRecording ? "Stop Recording" : "Start Recording"}
