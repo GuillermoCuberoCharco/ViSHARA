@@ -1,17 +1,31 @@
 const express = require('express');
 const multer = require('multer');
-const axios = require('axios');
 const cors = require('cors');
+const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
-const app = express();
-const http = require('http');
+const cameraService = require('./cameraService.cjs');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
-
+const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const io = socketIo(server);
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+io.on('connection', (socket) => {
+    console.log('A user connected');
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
+
+server.listen(4000, () => {
+    console.log('Server running on port 4000');
+    cameraService.startCameraService();
+});
 
 //Google TTS service
 app.post("/synthesize", synthesize);
@@ -41,36 +55,6 @@ ws_server.on('connection', (socket) => {
     });
 });
 
-//Camera service
-const server = http.createServer(app);
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-const wss = new WebSocket.Server({ server });
-
-let wsClient = null;
-wss.on('connection', (ws) => {
-    wsClient = ws;
-    ws.on('close', () => {
-        wsClient = null;
-    });
-    console.log('Cliente conectado');
-});
-
-app.post('/upload', upload.single('video'), (req, res) => {
-    if (!req.file) {
-      return res.status(400).send('No file uploaded.');
-    }
-    const videoBuffer = req.file.buffer;
-    if (wsClient && wsClient.readyState === WebSocket.OPEN) {
-        wsClient.send(videoBuffer);
-        console.log('Video enviado');
-    }
-    req.status(200).send('Video received');
-});
-
-server.listen(8084, () => {
-    console.log('Servidor de carga de videos en el puerto 8084');
-});
 
 app.listen(8082, ()=>{
     console.log('Servidor de endpoints en el puerto 8082');

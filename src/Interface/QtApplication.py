@@ -1,93 +1,87 @@
-from PyQt5.QtWebSockets import QWebSocket
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from ChatApplication import ChatApplication
-import numpy as np
-import cv2
-import asyncio
-import websockets
 import sys
-from qasync import QEventLoop
+import base64
+import cv2
+import numpy as np
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget, QGridLayout
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QUrl, QThread, pyqtSignal
+import socketio
+from ChatApplication import ChatApplication
 
 
-class VideoStreanmClient:
-    def __init__(self, label):
-        self.label = label
-        self.running = True
-        self.loop = asyncio.get_event_loop()
-
-    async def receive_video(self):
-        uri = 'ws://localhost:8084'
-        print(f"Connecting to video server at {uri}")
-        while self.running:
-            try:
-                print("Connecting to video server")
-                async with websockets.connect(uri) as websocket:
-                    while self.running:
-                        print("Receiving video")
-                        try:
-                            data = await websocket.recv()
-                            nparr = np.frombuffer(data, np.uint8)
-                            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                            h, w, ch = image.shape
-                            bytes_per_line = ch * w
-                            qt_image = QImage(image.data, w, h,
-                                              bytes_per_line, QImage.Format_RGB888)
-                            pixmap = QPixmap.fromImage(qt_image)
-                            self.label.setPixmap(pixmap)
-                            print("Video received")
-                        except websockets.ConnectionClosed:
-                            break
-                        except Exception as e:
-                            print(f"Error receiving video: {e}")
-            except Exception as e:
-                print(f"Error connecting to video server: {e}")
-                await asyncio.sleep(1)
-
-    def start(self):
-        self.loop.run_until_complete(self.receive_video())
-
-    def stop(self):
-        self.running = False
-
-
-class MainWindow(QMainWindow):
+class WebSocketClient(QThread):
+    message_received = pyqtSignal(bytes)
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Mi Aplicación")
+        self.sio = socketio.Client()
 
-        self.widget = QWidget()
-        self.setCentralWidget(self.widget)
+        @self.sio.event
+        def connect():
+            print("Connected to the server")
 
-        self.layout = QVBoxLayout(self.widget)
+        @self.sio.event
+        def disconnect():
+            print("Disconnected from the server")
 
-        # self.web_view = QWebEngineView()
-        # self.web_view.load(QUrl("http://localhost:5173/"))
-        # self.layout.addWidget(self.web_view)
+        @self.sio.on('video_chunk')
+        def on_message(data):
+            data_bytes = bytes(data, 'utf-8')
+            self.message_received.emit(data_bytes)
+
+    def run(self):
+        print("Connecting to the server")
+        self.sio.connect('http://localhost:3000')
+        self.sio.wait()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Wizard of Oz")
+        self.label = QLabel(self)
+        self.layout = QVBoxLayout()
+
+        self.websocket_client = WebSocketClient()
+        self.websocket_client.message_received.connect(
+            self.on_binary_message_received)
+        self.websocket_client.start()
 
         self.chat_app = ChatApplication()
-        self.layout.addWidget(self.chat_app)
 
-        self.video_stream = QLabel(self)
-        self.layout.addWidget(self.video_stream)
+        self.web_view = QWebEngineView()
+        self.web_view.load(QUrl("http://localhost:5173"))
 
-        self.camera_view = VideoStreanmClient(self.video_stream)
-        self.camera_view.start()
+        self.layout = QGridLayout()
 
-    def closeEvent(self, event):
-        # self.event_service_process.kill()
-        self.camera_view.close()
-        event.accept()
+        self.layout.addWidget(self.label, 0, 0)
+        self.layout.addWidget(self.web_view, 0, 1)
+        self.layout.addWidget(self.chat_app, 1, 0, 1, 2)
+
+        container = QWidget()
+        container.setLayout(self.layout)
+        self.setCentralWidget(container)
+
+    def on_binary_message_received(self, message):
+        try:
+            decoded_data = base64.b64decode(message)
+            nparr = np.frombuffer(decoded_data, np.uint8)
+            img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img_np is not None:
+                height, width, channel = img_np.shape
+                bytes_per_line = 3 * width
+                q_img = QImage(img_np.data, width, height,
+                               bytes_per_line, QImage.Format_BGR888)
+                self.label.setPixmap(QPixmap.fromImage(q_img))
+            else:
+                print("Error decoding the image")
+        except Exception as e:
+            print(f"Error processing the image: {e}")
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
     window = MainWindow()
     window.show()
-    with loop:
-        loop.run_forever()
+    sys.exit(app.exec_())
