@@ -5,35 +5,9 @@ import numpy as np
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget, QGridLayout
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import QUrl, QThread, pyqtSignal
-import socketio
+from PyQt5.QtCore import QUrl
 from ChatApplication import ChatApplication
-
-
-class WebSocketClient(QThread):
-    message_received = pyqtSignal(bytes)
-
-    def __init__(self):
-        super().__init__()
-        self.sio = socketio.Client()
-
-        @self.sio.event
-        def connect():
-            print("Connected to the server")
-
-        @self.sio.event
-        def disconnect():
-            print("Disconnected from the server")
-
-        @self.sio.on('video_chunk')
-        def on_message(data):
-            data_bytes = bytes(data, 'utf-8')
-            self.message_received.emit(data_bytes)
-
-    def run(self):
-        print("Connecting to the server")
-        self.sio.connect('http://localhost:3000')
-        self.sio.wait()
+from WSVideoStream import WebSocketClient
 
 
 class MainWindow(QMainWindow):
