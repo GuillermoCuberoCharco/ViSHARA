@@ -1,5 +1,4 @@
 const express = require('express');
-const multer = require('multer');
 const cors = require('cors');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
@@ -15,6 +14,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Camera service
 io.on('connection', (socket) => {
     console.log('A user connected');
     socket.on('disconnect', () => {
@@ -27,9 +27,9 @@ server.listen(4000, () => {
     cameraService.startCameraService();
 });
 
-//Google TTS service
+// Google TTS service
 app.post("/synthesize", synthesize);
-//Google STT servicie
+// Google STT servicie
 app.post('/transcribe', transcribe);
 
 // WebSocket server

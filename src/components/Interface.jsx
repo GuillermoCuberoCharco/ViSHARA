@@ -50,7 +50,7 @@ const Interface = () => {
     });
   };
 
-//Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
+// Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
   const handleTranscribe = async () => {
     try {
       const audio = await blobToBase64(recordedBlob.blob);
@@ -62,14 +62,14 @@ const Interface = () => {
     }
   };
 
-//Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
+// Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
   const handleSynthesize = async (message) => {
     const response = await axios.post("http://localhost:8082/synthesize", { text: message });
     const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
     setAudioSrc(audioSrc);
   };
 
-  //Conexión con el servidor WebSocket
+// Conexión con el servidor WebSocket
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 

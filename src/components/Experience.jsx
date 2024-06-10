@@ -1,6 +1,7 @@
-import React from "react";
 import { OrbitControls, Stars } from "@react-three/drei";
-import Woman from "./Woman";
+import React from "react";
+//import Woman from "./Woman";
+import Shara from "./SharaModel";
 
 const Experience = () => {
   return (
@@ -14,7 +15,7 @@ const Experience = () => {
         shadow-mapSize-height={1024}
       />
       <group position={[0, -1, 0]}>
-        <Woman />
+        <Shara />
       </group>
       <mesh
         rotation={[-0.5 * Math.PI, 0, 0]}

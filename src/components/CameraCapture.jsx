@@ -53,9 +53,9 @@ const CameraCapture = () => {
 
     const intervalId = setInterval(() => {
         captureAndSendVideo();
-    }, 200); // Captura video cada 5 segundos
+    }, 200);
 
-    return () => clearInterval(intervalId); // Limpia el intervalo cuando el componente se desmonte
+    return () => clearInterval(intervalId);
   }, []);
 
   return <video ref={videoRef} autoPlay style={{display: 'none'}}/>;
