@@ -2,7 +2,7 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import React from "react";
 //import Woman from "./Woman";
 //import Shara from "./SharaModel";
-import GltfViewer from "./LoadModelTest";
+import GltfViewer from "./LoadModel";
 
 const Experience = () => {
   return (
