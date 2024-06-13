@@ -4,7 +4,7 @@ import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 
 const Shara = (props) => {
   const group = useRef();
-  const { nodes, materials, animations } = useGLTF("./models/SHARA_Animations.glb");
+  const { nodes, materials, animations } = useGLTF("./models/SHARA3.gltf");
   const { setAnimations, animationIndex } = useCharacterAnimations();
   const { actions, names } = useAnimations(animations, group);
 
@@ -24,37 +24,74 @@ const Shara = (props) => {
     <group ref={group} {...props} dispose={null}>
       <group name="Scene">
         <group name="Armature" rotation={[Math.PI / 2, 0, 0]} scale={0.01}>
-          <primitive object={nodes.mixamorigHips} />
-          <group name="SHARA_Model">
-            <skinnedMesh
-              castShadow
-              name="Mesh001"
-              geometry={nodes.Mesh001.geometry}
-              material={materials.Material1}
-              skeleton={nodes.Mesh001.skeleton}
-            />
-            <skinnedMesh
-              castShadow
-              name="Mesh002"
-              geometry={nodes.Mesh002.geometry}
-              material={materials.Material2}
-              skeleton={nodes.Mesh002.skeleton}
-            />
-            <skinnedMesh
-              castShadow
-              name="Mesh003"
-              geometry={nodes.Mesh003.geometry}
-              material={materials.Material3}
-              skeleton={nodes.Mesh003.skeleton}
-            />
-            <skinnedMesh
-              castShadow
-              name="Mesh004"
-              geometry={nodes.Mesh004.geometry}
-              material={materials.Material4}
-              skeleton={nodes.Mesh004.skeleton}
-            />
-          </group>
+          <primitive object={nodes.Armature} />
+          <skinnedMesh
+            castShadow
+            name="cuerpo_brazo_i"
+            geometry={nodes.cuerpo_brazo_i.geometry}
+            material={materials.Body_parts}
+            skeleton={nodes.cuerpo_brazo_i.skeleton}
+          />
+        </group>
+        <group name="cuerpo_base">
+          <mesh
+            castShadow
+            geometry={nodes.cuerpo_base.geometry}
+            material={materials.Face_Mask}
+          />
+        </group>
+        <group name="Cylinder">
+          <mesh
+            castShadow
+            geometry={nodes.Cylinder.geometry}
+            material={materials.Body}
+          />
+        </group>
+        <group name="Empty">
+          <primitive object={nodes.Empty} />
+        </group>
+        <group name="Empty.001">
+          <primitive object={nodes.Empty_001} />
+        </group>
+        <group name="Empty.002">
+          <primitive object={nodes.Empty_002} />
+        </group>
+        <group name="Eyes">
+          <primitive object={nodes.Eyes} />
+        </group>
+        <group name="Head">
+          <skinnedMesh
+            castShadow
+            geometry={nodes.Head.geometry}
+            material={materials.Screen}
+            skeleton={nodes.Head.skeleton}
+          />
+          <skinnedMesh
+            castShadow
+            geometry={nodes.Head.geometry}
+            material={materials.Body}
+            skeleton={nodes.Head.skeleton}
+          />
+          <skinnedMesh
+            castShadow
+            geometry={nodes.Head.geometry}
+            material={materials.Face_Mask}
+            skeleton={nodes.Head.skeleton}
+          />
+        </group>
+        <group name="SHARA3.035">
+          <mesh
+            castShadow
+            geometry={nodes.SHARA3_035.geometry}
+            material={materials.Body_parts}
+          />
+        </group>
+        <group name="SHARA3.115">
+          <mesh
+            castShadow
+            geometry={nodes.SHARA3_115.geometry}
+            material={materials.Body_parts}
+          />
         </group>
       </group>
     </group>
@@ -63,4 +100,4 @@ const Shara = (props) => {
 
 export default Shara;
 
-useGLTF.preload("./models/SHARA_Animations.glb");
+useGLTF.preload("./models/SHARA3.gltf");
