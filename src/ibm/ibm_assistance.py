@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 api_key = os.getenv('ASSISTANT_APIKEY')
-assistant_id = os.getenv('ASSISTANT_ID')
+assistant_id = os.getenv('ASSISTANT_LIVE_ENV_ID')
 service_url = os.getenv('ASSISTANT_URL')
 nlu_api_key = os.getenv('NLU_APIKEY')
 nlu_url = os.getenv('NLU_URL')
@@ -23,6 +23,12 @@ assistant = AssistantV2(
 )
 assistant.set_service_url(service_url)
 
+try:
+    response = assistant.create_session(assistant_id=assistant_id).get_result()
+    print("Session created successfully:", response)
+except Exception as e:
+    print("Failed to create session:", e)
+
 nlu_authenticator = IAMAuthenticator(nlu_api_key)
 nlu = NaturalLanguageUnderstandingV1(
     version='2021-06-14',
@@ -32,7 +38,7 @@ nlu.set_service_url(nlu_url)
 
 SESSION_TIME = 20
 last_query_time = None
-session_id = ''
+session_id = response['session_id']
 
 
 def create_session():
@@ -55,42 +61,18 @@ def is_session_active():
     return last_query_time is not None and (datetime.now() - last_query_time).total_seconds() < SESSION_TIME
 
 
-def generate_response(input_text, context_data={}):
-    global session_id, assistant_id, last_query_time
-
-    if not input_text:
-        return None
-
-    if not is_session_active():
-        create_session()
-
+def generate_response(input_text):
     response = assistant.message(
         assistant_id=assistant_id,
         session_id=session_id,
         input={
             'message_type': 'text',
-            'text': input_text,
-            'options': {
-                'return_context': True  # For returning the context variables
-            }
-        },
-        context={
-            "skills": {
-                "main skill": {
-                    "user_defined": context_data
-                }
-            }
+            'text': input_text
         }
     ).get_result()
-
-    last_query_time = datetime.now()
-
-    response_text = '. '.join([resp['text']
-                              for resp in response['output']['generic']])
-
-    user_skills = response['context']['skills']['main skill']['user_defined']
-
-    return response_text, user_skills
+    print("Response from Watson Assistant:", response)
+    context = response['context']
+    return response, context
 
 
 def analyze_mood(text):
@@ -113,9 +95,15 @@ def analyze_mood(text):
 if __name__ == "__main__":
     print("Starting IBM Watson API...")
     create_session()
-    test_input = "Hola ¿Cómo estás?"
-    response, context = generate_response(test_input)
-    print("Response: ", response)
-    print("Context: ", context)
+    try:
+        test_input = "Hola, estoy triste"
+        response, context = generate_response(test_input)
+        print("Response: ", response)
+        print("Context: ", context)
+    except KeyError as e:
+        print(f"KeyError: {e}")
+    except Exception as e:
+        print(f"Failed to generate respond: {e}")
+
     mood = analyze_mood(test_input)
     print("Mood: ", mood)
