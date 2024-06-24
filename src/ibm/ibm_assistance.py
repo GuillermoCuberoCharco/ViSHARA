@@ -71,8 +71,12 @@ def generate_response(input_text):
         }
     ).get_result()
     print("Response from Watson Assistant:", response)
-    context = response['context']
-    return response, context
+    context = response.get('context', {})
+    skill = context.get('skill', {})
+    main_skill = skill.get('main skill', {})
+    user_defined = main_skill.get('user_defined', {})
+
+    return response, user_defined
 
 
 def analyze_mood(text):
@@ -96,10 +100,10 @@ if __name__ == "__main__":
     print("Starting IBM Watson API...")
     create_session()
     try:
-        test_input = "Hola, estoy triste"
-        response, context = generate_response(test_input)
+        test_input = "Me llamo Guille."
+        response, user_defined_context = generate_response(test_input)
         print("Response: ", response)
-        print("Context: ", context)
+        print("User Defined Context: ", user_defined_context)
     except KeyError as e:
         print(f"KeyError: {e}")
     except Exception as e:
