@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
-from PyQt5.QtCore import Qt
 import subprocess
 import threading
+from ibm.ibm_assistance import assistant, assistant_id, session_id, get_watson_response
 
 
 class ChatApplication(QWidget):
@@ -69,6 +69,18 @@ class ChatApplication(QWidget):
             self.process.stdin.write(message)
             self.process.stdin.flush()
             self.message_input.clear()
+
+            response, user_defined_contex, mood = get_watson_response(
+                message.strip(), assistant, assistant_id, session_id)
+            if response:
+                watson_text = response['output']['generic'][0]['text']
+                emotion_analysis = user_defined_contex.get('emotion', {})
+                mood = user_defined_contex.get('mood', {})
+                self.display_message(f"WATSON: {watson_text}")
+                self.display_message(f"Emotion: {emotion_analysis}")
+                self.display_message(f"Mood: {mood}")
+            else:
+                self.display_message("WATSON: No response")
 
     def display_message(self, message):
         self.chat_display.append(message)

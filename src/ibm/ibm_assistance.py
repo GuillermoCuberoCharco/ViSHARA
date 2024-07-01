@@ -74,24 +74,6 @@ def is_session_active():
     return last_query_time is not None and (datetime.now() - last_query_time).total_seconds() < SESSION_TIME
 
 
-def generate_response(input_text):
-    response = assistant.message(
-        assistant_id=assistant_id,
-        session_id=session_id,
-        input={
-            'message_type': 'text',
-            'text': input_text
-        }
-    ).get_result()
-    print("Response from Watson Assistant:", response)
-    context = response.get('context', {})
-    skill = context.get('skill', {})
-    main_skill = skill.get('main skill', {})
-    user_defined = main_skill.get('user_defined', {})
-
-    return response, user_defined
-
-
 def analyze_mood(text):
     translated_text = translate_text(text, target='en')
     nlu_options = {
@@ -110,18 +92,25 @@ def analyze_mood(text):
         return response['emotion']['document']['emotion']
 
 
-if __name__ == "__main__":
-    print("Starting IBM Watson API...")
-    create_session()
+def get_watson_response(input_text, assistant, assistant_id, session_id):
     try:
-        test_input = "Estoy triste."
-        response, user_defined_context = generate_response(test_input)
-        print("Response: ", response)
-        print("User Defined Context: ", user_defined_context)
-    except KeyError as e:
-        print(f"KeyError: {e}")
-    except Exception as e:
-        print(f"Failed to generate respond: {e}")
+        response = assistant.message(
+            assistant_id=assistant_id,
+            session_id=session_id,
+            input={
+                'message_type': 'text',
+                'text': input_text
+            }
+        ).get_result()
+        print("Response from Watson Assistant:", response)
+        context = response.get('context', {})
+        skill = context.get('skill', {})
+        main_skill = skill.get('main skill', {})
+        user_defined = main_skill.get('user_defined', {})
 
-    mood = analyze_mood(test_input)
-    print("Mood: ", mood)
+        mood = analyze_mood(input_text)
+
+        return response, user_defined, mood
+    except Exception as e:
+        print("Failed to get response from Watson Assistant:", e)
+        return None, None, None
