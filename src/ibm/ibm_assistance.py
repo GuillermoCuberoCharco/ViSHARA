@@ -4,17 +4,24 @@
 # (Watson Assistant, NLU Emotion Analysis)
 import os
 from datetime import datetime
+from google.cloud import translate_v2 as translate
 from ibm_watson import AssistantV2, NaturalLanguageUnderstandingV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from dotenv import load_dotenv
 
 load_dotenv()
+current_dir = os.path.dirname(os.path.abspath(__file__))
+credentials_path = os.path.join(
+    current_dir, "vishara-415010-002552ca9ca0.json")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 
 api_key = os.getenv('ASSISTANT_APIKEY')
 assistant_id = os.getenv('ASSISTANT_LIVE_ENV_ID')
 service_url = os.getenv('ASSISTANT_URL')
 nlu_api_key = os.getenv('NLU_APIKEY')
 nlu_url = os.getenv('NLU_URL')
+
+translate_client = translate.Client()
 
 assistant_authenticator = IAMAuthenticator(api_key)
 assistant = AssistantV2(
@@ -39,6 +46,12 @@ nlu.set_service_url(nlu_url)
 SESSION_TIME = 20
 last_query_time = None
 session_id = response['session_id']
+
+
+def translate_text(text, target='en'):
+
+    result = translate_client.translate(text, target_language=target)
+    return result['translatedText']
 
 
 def create_session():
@@ -80,8 +93,9 @@ def generate_response(input_text):
 
 
 def analyze_mood(text):
+    translated_text = translate_text(text, target='en')
     nlu_options = {
-        'text': text,
+        'text': translated_text,
         'features': {
             'emotion': {}
         },
@@ -100,7 +114,7 @@ if __name__ == "__main__":
     print("Starting IBM Watson API...")
     create_session()
     try:
-        test_input = "Me llamo Guille."
+        test_input = "Estoy triste."
         response, user_defined_context = generate_response(test_input)
         print("Response: ", response)
         print("User Defined Context: ", user_defined_context)
