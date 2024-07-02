@@ -19,11 +19,11 @@ const Interface = () => {
   const startRecording = () => {
     setIsRecording(true);
   };
-  
+
   const stopRecording = () => {
     setIsRecording(false);
   };
-  
+
   const onData = (recordedBlob) => {
     console.log('chunk of real-time data is: ', recordedBlob);
   }
@@ -33,7 +33,7 @@ const Interface = () => {
       handleTranscribe();
     }
   }, [recordedBlob]);
-  
+
   const onStop = (recordedBlob) => {
     setRecordedBlob(recordedBlob);
     handleTranscribe();
@@ -50,7 +50,7 @@ const Interface = () => {
     });
   };
 
-// Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
+  // Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
   const handleTranscribe = async () => {
     try {
       const audio = await blobToBase64(recordedBlob.blob);
@@ -62,14 +62,14 @@ const Interface = () => {
     }
   };
 
-// Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
+  // Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
   const handleSynthesize = async (message) => {
     const response = await axios.post("http://localhost:8082/synthesize", { text: message });
     const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
     setAudioSrc(audioSrc);
   };
 
-// Conexión con el servidor WebSocket
+  // Conexión con el servidor WebSocket
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 
@@ -78,32 +78,31 @@ const Interface = () => {
       console.log("Mensaje recibido", command);
 
       if (command.startsWith("/")) {
-        const message = command.slice(1);
-        setMessages((prevMessages) => [...prevMessages, { text: message, sender: "them" }]);
-        handleSynthesize(message);
-      } else {
         const index = animations.findIndex((anim) => anim === animation);
         if (index !== -1) {
           setAnimationIndex(index);
         }
+      } else {
+        setMessages((prevMessages) => [...prevMessages, { text: command, sender: "them" }]);
+        handleSynthesize(command);
       }
     });
 
     setSocket(socket);
-    return () =>{
+    return () => {
       socket.close();
     }
 
   }, []);
 
   useEffect(() => {
-    if (lastMessageRef.current){
+    if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
   const sendMessage = () => {
-    if (socket && newMessage){
+    if (socket && newMessage) {
       setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
       socket.send(newMessage);
       setNewMessage("");

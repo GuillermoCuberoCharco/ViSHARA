@@ -76,6 +76,7 @@ def is_session_active():
 
 def analyze_mood(text):
     translated_text = translate_text(text, target='en')
+    print("Translated text:", translated_text)
     nlu_options = {
         'text': translated_text,
         'features': {
@@ -86,6 +87,7 @@ def analyze_mood(text):
 
     try:
         response = nlu.analyze(**nlu_options).get_result()
+        print("Response from NLU:", response)
     except Exception:
         return {}
     else:
@@ -109,6 +111,7 @@ def get_watson_response(input_text, assistant, assistant_id, session_id):
         user_defined = main_skill.get('user_defined', {})
 
         mood = analyze_mood(input_text)
+        print("Mood: ", mood)
 
         return response, user_defined, mood
     except Exception as e:

@@ -1,7 +1,11 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
-import subprocess
+import os
+import sys
 import threading
-from ibm.ibm_assistance import assistant, assistant_id, session_id, get_watson_response
+import subprocess
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ibm'))
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
+from ibm_assistance import assistant, assistant_id, session_id, get_watson_response
+
 
 
 class ChatApplication(QWidget):
@@ -10,10 +14,6 @@ class ChatApplication(QWidget):
         self.create_widgets()
 
         threading.Thread(target=self.start_wscat, daemon=True).start()
-
-        self.predefined_responses = [
-            "/Holi!!", "/Hola, ¿cómo estás?", "/¿En qué puedo ayudarte?"]
-        self.predefined_response_buttons = []
 
     def quit(self):
         self.event_service_process.terminate()
@@ -45,22 +45,18 @@ class ChatApplication(QWidget):
         for line in iter(self.process.stdout.readline, ''):
             self.chat_display.append(line.strip())
 
-            if not self.predefined_response_buttons:
-                self.display_predefined_response()
-
-    def display_predefined_response(self):
-        for response in self.predefined_responses:
-            button = QPushButton(response)
-            button.clicked.connect(
-                lambda response=response: self.send_predefined_response(response))
-            self.layout.addWidget(button)
-            self.predefined_response_buttons.append(button)
-
-    def send_predefined_response(self, response):
-        self.send_message(response)
-        for button in self.predefined_response_buttons:
-            button.deleteLater()
-        self.predefined_response_buttons = []
+            response, user_defined_contex, mood = get_watson_response(
+                line.strip(), assistant, assistant_id, session_id)
+            if response:
+                watson_text = response['output']['generic'][0]['text']
+                emotion_analysis = user_defined_contex.get('emotion', {})
+                mood = user_defined_contex.get('mood', {})
+                
+                self.send_message(watson_text)
+                self.display_message(f"Emotion: {emotion_analysis}")
+                self.display_message(f"Mood: {mood}")
+            else:
+                self.display_message("WATSON: No response")
 
     def send_message(self, message):
         if message.strip() != "":
@@ -69,18 +65,6 @@ class ChatApplication(QWidget):
             self.process.stdin.write(message)
             self.process.stdin.flush()
             self.message_input.clear()
-
-            response, user_defined_contex, mood = get_watson_response(
-                message.strip(), assistant, assistant_id, session_id)
-            if response:
-                watson_text = response['output']['generic'][0]['text']
-                emotion_analysis = user_defined_contex.get('emotion', {})
-                mood = user_defined_contex.get('mood', {})
-                self.display_message(f"WATSON: {watson_text}")
-                self.display_message(f"Emotion: {emotion_analysis}")
-                self.display_message(f"Mood: {mood}")
-            else:
-                self.display_message("WATSON: No response")
 
     def display_message(self, message):
         self.chat_display.append(message)
