@@ -50,7 +50,6 @@ class ChatApplication(QWidget):
             if response:
                 watson_text = response['output']['generic'][0]['text']
                 emotion_analysis = user_defined_contex.get('emotion', {})
-                mood = user_defined_contex.get('mood', {})
                 
                 self.send_message(watson_text)
                 self.display_message(f"Emotion: {emotion_analysis}")

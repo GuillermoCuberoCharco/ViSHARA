@@ -78,7 +78,8 @@ const Interface = () => {
       console.log("Mensaje recibido", command);
 
       if (command.startsWith("/")) {
-        const index = animations.findIndex((anim) => anim === animation);
+        const animationName = command.slice(1);
+        const index = animations.findIndex((anim) => anim === animationName);
         if (index !== -1) {
           setAnimationIndex(index);
         }
