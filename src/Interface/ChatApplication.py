@@ -46,18 +46,23 @@ class ChatApplication(QWidget):
         try:
             if isinstance(message, bytes):
                 message = message.decode('utf-8')
-                
+
             data = json.loads(message)
-            if isinstance(data, dict) and data.get('type') == 'watson_response':
-                self.display_message("WATSON: " + data['text'])
-                if 'emotion' in data:
-                    self.display_message(f"Emotion: {data['emotion']}")
-                if 'mood' in data:
-                    self.display_message(f"Mood: {data['mood']}")
+            if isinstance(data, dict):
+                if data.get('type') == 'client_message':
+                    self.display_message(f"CLIENT: {data.get('message')}")
+                elif data.get('type') == 'watson_response':
+                    self.display_message(f"WATSON: {data['text']}")
+                    if 'emotion' in data:
+                        self.display_message(f"Emotion: {data['emotion']}")
+                    if 'mood' in data:
+                        self.display_message(f"Mood: {data['mood']}")
             else:
-                self.display_message('SHARA: ' + message)
+                self.display_message('SHARA: ' + str(message))
         except json.JSONDecodeError:
             self.display_message('SHARA: ' + message)
+        except Exception as e:
+            self.display_message('ERROR: ' + str(e))
 
     def on_error(self, ws, error):
         self.display_message('ERROR: ' + str(error))
@@ -71,9 +76,12 @@ class ChatApplication(QWidget):
     def send_message(self):
         message = self.message_input.text()
         if message.strip() != '':
-            self.display_message('SHARA: ' + message)
             if self.ws and self.ws.sock and self.ws.sock.connected:
-                self.ws.send(message)
+                self.ws.send(json.dumps({
+                    'type': 'wizard_message',
+                    'message': message
+                }))
+            self.display_message(f"Wizzard: {message}")
             self.message_input.clear()
 
     def display_message(self, message):
@@ -87,7 +95,7 @@ class ChatApplication(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     chat_app = ChatApplication()
-    chat_app.setWindowTitle('Chat Application')
+    chat_app.setWindowTitle('Wizard Chat Application')
     chat_app.setGeometry(100, 100, 400, 500)
     chat_app.show()
     sys.exit(app.exec_())

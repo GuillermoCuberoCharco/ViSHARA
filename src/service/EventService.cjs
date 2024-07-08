@@ -45,32 +45,46 @@ ws_server.on('connection', (socket) => {
     connections.add(socket);
 
     socket.on('message', async (message) => {
-        console.log('Message: ', message.toLocaleString());
-
-        const { response, userDefined, mood } = await watsonService.getWatsonResponse(message);
-
-        if (response) {
-            const watsonText = response.output.generic[0].text;
-            const emotionAnalysis = userDefined?.emotion || mood;
-
-            socket.send(JSON.stringify({
-                type: 'watson_response',
-                text: watsonText,
-                emotion: emotionAnalysis,
-                mood: mood
-            }));
-        } else {
-            socket.send(JSON.stringify({
-                type: 'watson_response',
-                text: 'WATSON: No response'
-            }));
+        let parsedMessage;
+        try {
+            parsedMessage = JSON.parse(message);
+        } catch (error) {
+            console.error('Invalid JSON. ERROR:', error);
+            return;
         }
 
-        connections.forEach((client) => {
-            if (client !== socket && client.readyState === WebSocket.OPEN) {
-                client.send(message);
+        if (parsedMessage.type === 'client_message') {
+            console.log('Client message:', parsedMessage.text);
+
+            const { response, userDefined, mood } = await watsonService.getWatsonResponse(message);
+
+            if (response) {
+                const watsonText = response.output.generic[0].text;
+                const emotionAnalysis = userDefined?.emotion || mood;
+
+                socket.send(JSON.stringify({
+                    type: 'watson_response',
+                    text: watsonText,
+                    emotion: emotionAnalysis,
+                    mood: mood
+                }));
+            } else {
+                socket.send(JSON.stringify({
+                    type: 'watson_response',
+                    text: 'WATSON: No response'
+                }));
             }
-        });
+        } else if (parsedMessage.type === 'wizard_message') {
+            console.log('Wizard message:', parsedMessage.text);
+            connections.forEach((client) => {
+                if (client !== socket && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        type: 'wizard_message',
+                        text: parsedMessage.text
+                    }));
+                }
+            });
+        }
     });
 
     socket.on('close', () => {
