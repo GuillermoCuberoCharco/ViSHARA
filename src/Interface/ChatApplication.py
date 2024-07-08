@@ -1,10 +1,8 @@
-import os
 import sys
 import threading
-import subprocess
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ibm'))
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton
-from ibm_assistance import assistant, assistant_id, session_id, get_watson_response
+import json
+import websocket
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication
 
 
 
@@ -12,8 +10,8 @@ class ChatApplication(QWidget):
     def __init__(self, parent=None):
         super(ChatApplication, self).__init__(parent)
         self.create_widgets()
-
-        threading.Thread(target=self.start_wscat, daemon=True).start()
+        self.ws = None
+        threading.Thread(target=self.start_websocket, daemon=True).start()
 
     def quit(self):
         self.event_service_process.terminate()
@@ -28,42 +26,68 @@ class ChatApplication(QWidget):
         self.layout.addWidget(self.chat_display)
 
         self.message_input = QLineEdit()
-        self.message_input.returnPressed.connect(
-            lambda: self.send_message(self.message_input.text()))
+        self.message_input.returnPressed.connect(self.send_message)
         self.layout.addWidget(self.message_input)
 
         self.send_button = QPushButton('Send')
-        self.send_button.clicked.connect(
-            lambda: self.send_message(self.message_input.text()))
+        self.send_button.clicked.connect(self.send_message)
         self.layout.addWidget(self.send_button)
 
-    def start_wscat(self):
-        wscat_path = "wscat"
-        self.process = subprocess.Popen([wscat_path, "-c", "ws://localhost:8081"], stdin=subprocess.PIPE,
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
+    def start_websocket(self):
+        websocket.enableTrace(True)
+        self.ws = websocket.WebSocketApp('ws://localhost:8081',
+                                         on_message=self.on_message,
+                                         on_error=self.on_error,
+                                         on_close=self.on_close)
+        self.ws.on_open = self.on_open
+        self.ws.run_forever()
 
-        for line in iter(self.process.stdout.readline, ''):
-            self.chat_display.append(line.strip())
-
-            response, user_defined_contex, mood = get_watson_response(
-                line.strip(), assistant, assistant_id, session_id)
-            if response:
-                watson_text = response['output']['generic'][0]['text']
-                emotion_analysis = user_defined_contex.get('emotion', {})
+    def on_message(self, ws, message):
+        try:
+            if isinstance(message, bytes):
+                message = message.decode('utf-8')
                 
-                self.send_message(watson_text)
-                self.display_message(f"Emotion: {emotion_analysis}")
-                self.display_message(f"Mood: {mood}")
+            data = json.loads(message)
+            if isinstance(data, dict) and data.get('type') == 'watson_response':
+                self.display_message("WATSON: " + data['text'])
+                if 'emotion' in data:
+                    self.display_message(f"Emotion: {data['emotion']}")
+                if 'mood' in data:
+                    self.display_message(f"Mood: {data['mood']}")
             else:
-                self.display_message("WATSON: No response")
+                self.display_message('SHARA: ' + message)
+        except json.JSONDecodeError:
+            self.display_message('SHARA: ' + message)
 
-    def send_message(self, message):
-        if message.strip() != "":
-            self.display_message("SHARA: " + message)
-            message += "\n"
-            self.process.stdin.write(message)
-            self.process.stdin.flush()
+    def on_error(self, ws, error):
+        self.display_message('ERROR: ' + str(error))
+
+    def on_close(self, ws):
+        self.display_message('CONNECTION CLOSED')
+
+    def on_open(self, ws):
+        self.display_message('CONNECTION OPENED')        
+
+    def send_message(self):
+        message = self.message_input.text()
+        if message.strip() != '':
+            self.display_message('SHARA: ' + message)
+            if self.ws and self.ws.sock and self.ws.sock.connected:
+                self.ws.send(message)
             self.message_input.clear()
 
     def display_message(self, message):
         self.chat_display.append(message)
+
+    def close_event(self, event):
+        if self.ws:
+            self.ws.close()
+        event.accept()
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    chat_app = ChatApplication()
+    chat_app.setWindowTitle('Chat Application')
+    chat_app.setGeometry(100, 100, 400, 500)
+    chat_app.show()
+    sys.exit(app.exec_())
