@@ -11,13 +11,13 @@ export const CharacterAnimationsProvider = (props) => {
     const socket = new WebSocket("ws://localhost:8081");
 
     socket.onopen = () => console.log("Me he conectado al WebSocket");
-    socket.onmessage = async (event) => {
-      const message = await event.data.text();
+    socket.onmessage = (event) => {
+      const message = event.data;
       console.log("Mensaje recibido", message);
 
       if (animations.includes(message)) {
         const index = animations.findIndex(
-           (animation) => animation === message
+          (animation) => animation === message
         );
         if (index !== -1) {
           setAnimationIndex(index);

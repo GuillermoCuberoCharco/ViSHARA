@@ -50,9 +50,14 @@ class ChatApplication(QWidget):
             data = json.loads(message)
             if isinstance(data, dict):
                 if data.get('type') == 'client_message':
-                    self.display_message(f"CLIENT: {data.get('message')}")
+                    self.display_message(f"CLIENT: {data['text']}")
                 elif data.get('type') == 'watson_response':
                     self.display_message(f"WATSON: {data['text']}")
+                    if self.ws and self.ws.sock and self.ws.sock.connected:
+                        self.ws.send(json.dumps({
+                            'type': 'wizard_message',
+                            'text': data['text']
+                        }))
                     if 'emotion' in data:
                         self.display_message(f"Emotion: {data['emotion']}")
                     if 'mood' in data:
@@ -79,7 +84,7 @@ class ChatApplication(QWidget):
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
-                    'message': message
+                    'text': message
                 }))
             self.display_message(f"Wizzard: {message}")
             self.message_input.clear()

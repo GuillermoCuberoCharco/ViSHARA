@@ -85,6 +85,10 @@ async function analyzedMood(text) {
 }
 
 async function getWatsonResponse(inputText) {
+    if (!sessionId) {
+        await createSession();
+    }
+
     try {
         const response = await assistant.message({
             assistantId: assistantId,

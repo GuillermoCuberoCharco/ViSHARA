@@ -73,19 +73,33 @@ const Interface = () => {
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 
-    socket.addEventListener("message", async (event) => {
-      const command = await event.data.text();
-      console.log("Mensaje recibido", command);
+    socket.addEventListener("message", (event) => {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (error) {
+        console.error("Invalid JSON", error);
+        return;
+      }
 
-      if (command.startsWith("/")) {
-        const animationName = command.slice(1);
-        const index = animations.findIndex((anim) => anim === animationName);
+      console.log("Message received", data);
+
+      if (data.type === "watson_response" || data.type === "wizard_message") {
+        setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "them" }]);
+        handleSynthesize(data.text);
+
+        if (data.emotion) {
+          console.log("Emotion detected", data.emotion);
+        }
+        if (data.mood) {
+          console.log("Mood detected", data.mood);
+        }
+      } else if (data.text && data.text.startsWith("/")) {
+        const animationName = data.text.slice(1);
+        const index = animations.findIndex((animation) => animation.name === animationName);
         if (index !== -1) {
           setAnimationIndex(index);
         }
-      } else {
-        setMessages((prevMessages) => [...prevMessages, { text: command, sender: "them" }]);
-        handleSynthesize(command);
       }
     });
 
@@ -103,9 +117,13 @@ const Interface = () => {
   }, [messages]);
 
   const sendMessage = () => {
-    if (socket && newMessage) {
+    if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
+      const messageObject = {
+        type: "client_message",
+        text: newMessage,
+      };
       setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
-      socket.send(newMessage);
+      socket.send(JSON.stringify(messageObject));
       setNewMessage("");
     }
   };

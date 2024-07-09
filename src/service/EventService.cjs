@@ -56,26 +56,65 @@ ws_server.on('connection', (socket) => {
         if (parsedMessage.type === 'client_message') {
             console.log('Client message:', parsedMessage.text);
 
-            const { response, userDefined, mood } = await watsonService.getWatsonResponse(message);
+            // Forward message to the Wizard of Oz
+            connections.forEach((client) => {
+                if (client !== socket && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        type: 'client_message',
+                        text: parsedMessage.text
+                    }));
+                }
+            });
 
-            if (response) {
-                const watsonText = response.output.generic[0].text;
-                const emotionAnalysis = userDefined?.emotion || mood;
+            // Process the message with Watson
+            try {
+                const { response, userDefined, mood } = await watsonService.getWatsonResponse(parsedMessage.text);
 
-                socket.send(JSON.stringify({
-                    type: 'watson_response',
-                    text: watsonText,
-                    emotion: emotionAnalysis,
-                    mood: mood
-                }));
-            } else {
-                socket.send(JSON.stringify({
-                    type: 'watson_response',
-                    text: 'WATSON: No response'
-                }));
+                if (response) {
+                    const watsonText = response.output.generic[0].text;
+                    const emotionAnalysis = userDefined?.emotion || mood;
+
+                    // Send Watson response to all connections (including the Wizard of Oz)
+                    connections.forEach((client) => {
+                        if (client !== socket && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'watson_response',
+                                text: watsonText,
+                                emotion: emotionAnalysis,
+                                mood: mood
+                            }));
+
+                        }
+                    });
+
+                } else {
+
+                    // Send a 'No response' message if Watson did not understand the input
+                    connections.forEach((client) => {
+                        if (client !== socket && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'watson_response',
+                                text: 'Sorry, I did not understand that',
+                                emotion: 'confused'
+                            }));
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error processing message with Watson:', error);
+                connections.forEach((client) => {
+                    if (client !== socket && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                            type: 'watson_response',
+                            text: 'Error processing message with Watson'
+                        }));
+                    }
+                });
             }
         } else if (parsedMessage.type === 'wizard_message') {
             console.log('Wizard message:', parsedMessage.text);
+
+            // Broadcast the Wizard message to other clients
             connections.forEach((client) => {
                 if (client !== socket && client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
