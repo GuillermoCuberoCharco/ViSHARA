@@ -94,12 +94,6 @@ const Interface = () => {
         if (data.mood) {
           console.log("Mood detected", data.mood);
         }
-      } else if (data.text && data.text.startsWith("/")) {
-        const animationName = data.text.slice(1);
-        const index = animations.findIndex((animation) => animation.name === animationName);
-        if (index !== -1) {
-          setAnimationIndex(index);
-        }
       }
     });
 
