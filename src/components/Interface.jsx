@@ -10,6 +10,8 @@ const Interface = () => {
   const [isChatVisible, setChatVisible] = useState(true);
   const [socket, setSocket] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+  const waitTimer = useRef(null);
   const [recordedBlob, setRecordedBlob] = useState(null);
   const lastMessageRef = useRef(null);
   const [audioSrc, setAudioSrc] = useState(null);
@@ -20,13 +22,21 @@ const Interface = () => {
   const [faceDetected, setFaceDetected] = useState(false);
 
   const startRecording = () => {
-    setIsRecording(true);
-    silenceCounter.current = 0;
+    if (!isWaiting) {
+      setIsRecording(true);
+      silenceCounter.current = 0;
+    }
   };
 
   const stopRecording = () => {
     setIsRecording(false);
     setFaceDetected(false);
+    setIsWaiting(true);
+
+    // Wait 2 seconds after stopping the recording
+    waitTimer.current = setTimeout(() => {
+      setIsWaiting(false);
+    }, 2000);
   };
 
   // Create audio context and analyser for volume detection
@@ -167,10 +177,19 @@ const Interface = () => {
   // Logic to detect face and start recording
   const handleFaceDetected = (imageDataUrl) => {
     setFaceDetected(true);
-    if (!isRecording) {
+    if (!isRecording && !isWaiting) {
       startRecording();
     }
   };
+
+  // Cleanup the timer when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (waitTimer.current) {
+        clearTimeout(waitTimer.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="chat-wrapper">

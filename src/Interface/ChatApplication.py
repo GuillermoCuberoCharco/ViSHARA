@@ -55,7 +55,7 @@ class ChatApplication(QWidget):
                     self.display_message(f"WATSON: {data['text']}")
                     if self.ws and self.ws.sock and self.ws.sock.connected:
                         self.ws.send(json.dumps({
-                            'type': 'wizard_message',
+                            'type': 'watson_message',
                             'text': data['text']
                         }))
                     if 'emotion' in data:
