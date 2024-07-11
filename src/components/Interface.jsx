@@ -1,12 +1,10 @@
 import axios from "axios";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
 import '../InterfaceStyle.css';
-import { CharacterAnimationsContext } from "../contexts/CharacterAnimations";
 import CameraCapture from "./CameraCapture";
 
 const Interface = () => {
-  const { animations, setAnimationIndex } = useContext(CharacterAnimationsContext);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isChatVisible, setChatVisible] = useState(true);
@@ -15,18 +13,59 @@ const Interface = () => {
   const [recordedBlob, setRecordedBlob] = useState(null);
   const lastMessageRef = useRef(null);
   const [audioSrc, setAudioSrc] = useState(null);
+  const audioContext = useRef(null);
+  const analyser = useRef(null);
+  const dataArray = useRef(null);
+  const silenceCounter = useRef(0);
+  const [faceDetected, setFaceDetected] = useState(false);
 
   const startRecording = () => {
     setIsRecording(true);
+    silenceCounter.current = 0;
   };
 
   const stopRecording = () => {
     setIsRecording(false);
+    setFaceDetected(false);
   };
+
+  // Create audio context and analyser for volume detection
+  useEffect(() => {
+    audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+    analyser.current = audioContext.current.createAnalyser();
+    analyser.current.fftSize = 256;
+    dataArray.current = new Uint8Array(analyser.current.frequencyBinCount);
+  }, []);
 
   const onData = (recordedBlob) => {
     console.log('chunk of real-time data is: ', recordedBlob);
+    analyzeAudio(recordedBlob);
   }
+
+  // Analyze audio volume in order to stop recording when silent
+  const analyzeAudio = (recordedBlob) => {
+    if (!audioContext.current || !analyser.current || !dataArray.current) return;
+
+    analyser.current.getByteFrequencyData(dataArray.current);
+    const volume = dataArray.current.reduce((sum, value) => sum + value, 0) / dataArray.current.length;
+
+    const silenceThreshold = 20;
+    const silenceDuration = 2000;
+
+    if (volume < silenceThreshold) {
+      silenceCounter.current += 1;
+      if (silenceCounter.current > (silenceDuration / 50)) {
+        stopRecording();
+        silenceCounter.current = 0;
+      }
+    } else {
+      silenceCounter.current = 0;
+    }
+
+    if (isRecording) {
+      requestAnimationFrame(() => analyzeAudio(recordedBlob));
+    }
+  };
 
   useEffect(() => {
     if (recordedBlob) {
@@ -50,26 +89,27 @@ const Interface = () => {
     });
   };
 
-  // Llamada a la API de transcripción de voz de Google Cloud Speech-to-Text
+  // Endpoint call to the Google Cloud Speech-to-Text API
   const handleTranscribe = async () => {
     try {
       const audio = await blobToBase64(recordedBlob.blob);
       const response = await axios.post("http://localhost:8082/transcribe", { audio });
       const transcript = response.data.transcript;
       setNewMessage(transcript);
+      sendMessage();
     } catch (error) {
       console.error("Error transcribing", error);
     }
   };
 
-  // Llamada a la API de síntesis de voz de Google Cloud Text-to-Speech
+  // Endpoint call to the Google Cloud Text-to-Speech API
   const handleSynthesize = async (message) => {
     const response = await axios.post("http://localhost:8082/synthesize", { text: message });
     const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
     setAudioSrc(audioSrc);
   };
 
-  // Conexión con el servidor WebSocket
+  // Connection to the WebSocket server
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 
@@ -104,12 +144,14 @@ const Interface = () => {
 
   }, []);
 
+  // Effect to send message to the server
   useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
+  // Send message to the server
   const sendMessage = () => {
     if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
       const messageObject = {
@@ -119,6 +161,14 @@ const Interface = () => {
       setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
       socket.send(JSON.stringify(messageObject));
       setNewMessage("");
+    }
+  };
+
+  // Logic to detect face and start recording
+  const handleFaceDetected = (imageDataUrl) => {
+    setFaceDetected(true);
+    if (!isRecording) {
+      startRecording();
     }
   };
 
@@ -155,18 +205,21 @@ const Interface = () => {
             className="input-field"
           />
         </div>
-        <CameraCapture />
+        <CameraCapture onFaceDetected={handleFaceDetected} />
         <audio src={audioSrc} autoPlay />
-        <button onClick={isRecording ? stopRecording : startRecording}>
-          {isRecording ? "Stop Recording" : "Start Recording"}
-        </button>
         <ReactMic
           record={isRecording}
           className="sound-wave"
           onStop={onStop}
           onData={onData}
           strokeColor="#000000"
-          backgroundColor="#FF4081" />
+          backgroundColor="#FF4081"
+          mimeType="audio/webm"
+          bufferSize={2048}
+          sampleRate={44100} />
+        <button onClick={isRecording ? stopRecording : startRecording}>
+          {isRecording ? "Stop Recording" : "Start Recording"}
+        </button>
       </div>
     </div>
   );

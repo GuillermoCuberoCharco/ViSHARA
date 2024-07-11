@@ -2,10 +2,9 @@
 import * as faceapi from 'face-api.js';
 import React, { useEffect, useRef, useState } from 'react';
 
-const CameraCapture = () => {
+const CameraCapture = ({ onFaceDetected }) => {
   const videoRef = useRef(null);
   const [modelIsLoaded, setModelIsLoaded] = useState(false);
-  const [faceDetected, setFaceDetected] = useState(false);
 
   useEffect(() => {
     const loadModel = async () => {
@@ -26,18 +25,21 @@ const CameraCapture = () => {
     const getVideo = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoRef.current.srcObject = stream;
-        console.log('Webcam access granted');
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
       } catch (err) {
         console.error('Error accessing webcam: ', err);
       }
     };
 
     getVideo();
-  }, [videoRef]);
+  }, []);
 
   useEffect(() => {
-    const captureAndSendVideo = async () => {
+    if (!modelIsLoaded) return;
+
+    const detectFace = async () => {
       if (videoRef.current) {
         const video = videoRef.current;
         const canvas = document.createElement('canvas');
@@ -48,55 +50,45 @@ const CameraCapture = () => {
 
         // Detect face
         try {
-          if (faceapi.nets.tinyFaceDetector.isLoaded) {
-            const detection = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions());
-            const isFaceDetected = !!detection;
-            setFaceDetected(isFaceDetected);
-
-            // Send images to server
-            canvas.toBlob(async (blob) => {
-              const formData = new FormData();
-              formData.append('file', blob, 'capture.png');
-
-              try {
-                const response = await fetch('http://localhost:3000/upload', {
-                  method: 'POST',
-                  body: formData
-                });
-                if (response.ok) {
-                  const responseText = await response.text();
-                  console.log('Server response:', responseText);
-                } else {
-                  console.log('Server error:', response.status);
-                }
-              } catch (error) {
-                console.error('Error uploading the video segment:', error);
-              }
-            }, 'image/jpeg');
-          } else {
-            console.log('Model not loaded');
+          const detection = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions());
+          if (detection) {
+            const iamgeDataUrl = canvas.toDataURL('image/jpeg');
+            onFaceDetected(iamgeDataUrl);
           }
+
+          // Send images to server
+          canvas.toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append('file', blob, 'capture.png');
+
+            try {
+              const response = await fetch('http://localhost:3000/upload', {
+                method: 'POST',
+                body: formData
+              });
+              if (response.ok) {
+                const responseText = await response.text();
+                console.log('Server response:', responseText);
+              } else {
+                console.log('Server error:', response.status);
+              }
+            } catch (error) {
+              console.error('Error uploading the video segment:', error);
+            }
+          }, 'image/jpeg');
         } catch (error) {
           console.error('Error detecting faces:', error);
         }
       }
     };
 
-    const intervalId = setInterval(() => {
-      captureAndSendVideo();
-    }, 200);
+    const intervalId = setInterval(detectFace, 200);
 
     return () => {
       clearInterval(intervalId);
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
     };
 
-  }, [modelIsLoaded]);
-
-  console.log('Face detected:', faceDetected);
+  }, [modelIsLoaded, onFaceDetected]);
 
   return <video ref={videoRef} autoPlay style={{ display: 'none' }} />;
 };
