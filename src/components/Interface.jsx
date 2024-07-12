@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
+import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 import '../InterfaceStyle.css';
 import CameraCapture from "./CameraCapture";
 
@@ -20,6 +21,7 @@ const Interface = () => {
   const dataArray = useRef(null);
   const silenceCounter = useRef(0);
   const [faceDetected, setFaceDetected] = useState(false);
+  const { setAnimationIndex, animations } = useCharacterAnimations();
 
   const startRecording = () => {
     if (!isWaiting) {
@@ -119,7 +121,7 @@ const Interface = () => {
     setAudioSrc(audioSrc);
   };
 
-  // Connection to the WebSocket server
+  // Connection to the WebSocket server for messages exchange
   useEffect(() => {
     const socket = new WebSocket("ws://localhost:8081");
 
@@ -154,14 +156,14 @@ const Interface = () => {
 
   }, []);
 
-  // Effect to send message to the server
+  // Effect to scroll to the last message when a new message is added
   useEffect(() => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Send message to the server
+  // Send message to the server as a client message
   const sendMessage = () => {
     if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
       const messageObject = {
@@ -179,6 +181,11 @@ const Interface = () => {
     setFaceDetected(true);
     if (!isRecording && !isWaiting) {
       startRecording();
+
+      const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
+      if (helloAnimationIndex !== -1) {
+        setAnimationIndex(helloAnimationIndex);
+      }
     }
   };
 

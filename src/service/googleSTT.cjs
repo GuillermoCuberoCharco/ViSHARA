@@ -20,8 +20,8 @@ async function transcribeAudio(audioContent) {
     };
 
     const request = {
-    config: config,
-    audio: audio,
+        config: config,
+        audio: audio,
     };
 
     const [response] = await client.recognize(request);
@@ -32,9 +32,8 @@ const transcribe = async (req, res) => {
     try {
         const audio = req.body.audio;
         const response = await transcribeAudio(audio);
-        const transcription = response.results
-        .map(result => result.alternatives[0].transcript)
-        .join('\n');
+        const transcription = response.results.map(result => result.alternatives[0].transcript)
+            .join('\n');
         res.json({ transcript: transcription });
     } catch (error) {
         console.error('Error:', error);
