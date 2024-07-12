@@ -2,9 +2,8 @@ import sys
 import threading
 import json
 import websocket
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication
-
-
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog
+from WatsonResponseDialog import WatsonResponseDialog
 
 class ChatApplication(QWidget):
     def __init__(self, parent=None):
@@ -52,12 +51,7 @@ class ChatApplication(QWidget):
                 if data.get('type') == 'client_message':
                     self.display_message(f"CLIENT: {data['text']}")
                 elif data.get('type') == 'watson_response':
-                    self.display_message(f"WATSON: {data['text']}")
-                    if self.ws and self.ws.sock and self.ws.sock.connected:
-                        self.ws.send(json.dumps({
-                            'type': 'watson_message',
-                            'text': data['text']
-                        }))
+                    self.handle_watson_response(data)
                     if 'emotion' in data:
                         self.display_message(f"Emotion: {data['emotion']}")
                     if 'mood' in data:
@@ -68,6 +62,21 @@ class ChatApplication(QWidget):
             self.display_message('SHARA: ' + message)
         except Exception as e:
             self.display_message('ERROR: ' + str(e))
+
+    def handle_watson_response(self, data):
+        dialog = WatsonResponseDialog(data['text'], self)
+        if dialog.exec_() == QDialog.Accepted:
+            validated_response = dialog.get_response()
+            self.display_message(f"Watson: {validated_response}")
+            if self.ws and self.ws.sock and self.ws.sock.connected:
+                self.ws.send(json.dumps({
+                    'type': 'watson_message',
+                    'text': validated_response
+                }))
+            if 'emotion' in data:
+                self.display_message(f"Emotion: {data['emotion']}")
+            if 'mood' in data:
+                self.display_message(f"Mood: {data['mood']}")
 
     def on_error(self, ws, error):
         self.display_message('ERROR: ' + str(error))
