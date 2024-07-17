@@ -3,13 +3,15 @@ import threading
 import json
 import websocket
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog
-from WatsonResponseDialog import WatsonResponseDialog
+from PyQt5.QtCore import pyqtSignal
 
 class ChatApplication(QWidget):
+    watson_response_received = pyqtSignal(dict)
     def __init__(self, parent=None):
         super(ChatApplication, self).__init__(parent)
         self.create_widgets()
         self.ws = None
+        self.watson_response_received.connect(self.handle_watson_response)
         threading.Thread(target=self.start_websocket, daemon=True).start()
 
     def quit(self):
@@ -51,7 +53,7 @@ class ChatApplication(QWidget):
                 if data.get('type') == 'client_message':
                     self.display_message(f"CLIENT: {data['text']}")
                 elif data.get('type') == 'watson_response':
-                    self.handle_watson_response(data)
+                    self.watson_response_received.emit(data)
                     if 'emotion' in data:
                         self.display_message(f"Emotion: {data['emotion']}")
                     if 'mood' in data:
@@ -64,13 +66,14 @@ class ChatApplication(QWidget):
             self.display_message('ERROR: ' + str(e))
 
     def handle_watson_response(self, data):
+        from WatsonResponseDialog import WatsonResponseDialog
         dialog = WatsonResponseDialog(data['text'], self)
         if dialog.exec_() == QDialog.Accepted:
             validated_response = dialog.get_response()
             self.display_message(f"Watson: {validated_response}")
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
-                    'type': 'watson_message',
+                    'type': 'wizard_message',
                     'text': validated_response
                 }))
             if 'emotion' in data:
