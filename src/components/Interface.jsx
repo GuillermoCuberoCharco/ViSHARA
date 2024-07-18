@@ -50,7 +50,6 @@ const Interface = () => {
   }, []);
 
   const onData = (recordedBlob) => {
-    console.log('chunk of real-time data is: ', recordedBlob);
     analyzeAudio(recordedBlob);
   }
 
@@ -169,6 +168,7 @@ const Interface = () => {
       const messageObject = {
         type: "client_message",
         text: newMessage,
+        state: animations[0]
       };
       setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
       socket.send(JSON.stringify(messageObject));

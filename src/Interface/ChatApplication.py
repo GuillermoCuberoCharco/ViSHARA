@@ -74,7 +74,8 @@ class ChatApplication(QWidget):
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
-                    'text': validated_response
+                    'text': validated_response,
+                    'state' : 'Attention'
                 }))
             if 'emotion' in data:
                 self.display_message(f"Emotion: {data['emotion']}")
@@ -96,7 +97,8 @@ class ChatApplication(QWidget):
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
-                    'text': message
+                    'text': message,
+                    'state' : 'Attention'
                 }))
             self.display_message(f"Wizzard: {message}")
             self.message_input.clear()

@@ -61,7 +61,8 @@ ws_server.on('connection', (socket) => {
                 if (client !== socket && client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
                         type: 'client_message',
-                        text: parsedMessage.text
+                        text: parsedMessage.text,
+                        state: parsedMessage.state
                     }));
                 }
             });
@@ -83,10 +84,8 @@ ws_server.on('connection', (socket) => {
                                 emotion: emotionAnalysis,
                                 mood: mood
                             }));
-
                         }
                     });
-
                 } else {
 
                     // Send a 'No response' message if Watson did not understand the input
@@ -119,7 +118,8 @@ ws_server.on('connection', (socket) => {
                 if (client !== socket && client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
                         type: 'wizard_message',
-                        text: parsedMessage.text
+                        text: parsedMessage.text,
+                        state: parsedMessage.state
                     }));
                 }
             });
