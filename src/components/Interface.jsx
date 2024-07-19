@@ -21,10 +21,11 @@ const Interface = () => {
   const dataArray = useRef(null);
   const silenceCounter = useRef(0);
   const [faceDetected, setFaceDetected] = useState(false);
+  const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const { setAnimationIndex, animations } = useCharacterAnimations();
 
   const startRecording = () => {
-    if (!isWaiting) {
+    if (!isWaiting && !isWaitingResponse) {
       setIsRecording(true);
       silenceCounter.current = 0;
     }
@@ -34,11 +35,35 @@ const Interface = () => {
     setIsRecording(false);
     setFaceDetected(false);
     setIsWaiting(true);
+    setIsWaitingResponse(true);
 
     // Wait 2 seconds after stopping the recording
     waitTimer.current = setTimeout(() => {
       setIsWaiting(false);
     }, 2000);
+  };
+
+  // Effect to scroll to the last message when a new message is added
+  useEffect(() => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  // Send message to the server as a client message
+  const sendMessage = () => {
+    if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
+      const currentAnimation = animations[setAnimationIndex];
+      const messageObject = {
+        type: "client_message",
+        text: newMessage,
+        state: currentAnimation
+      };
+      setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
+      socket.send(JSON.stringify(messageObject));
+      setNewMessage("");
+      setIsWaitingResponse(true);
+    }
   };
 
   // Create audio context and analyser for volume detection
@@ -138,6 +163,7 @@ const Interface = () => {
       if (data.type === "watson_response" || data.type === "wizard_message") {
         setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "them" }]);
         handleSynthesize(data.text);
+        setIsWaitingResponse(false);
 
         if (data.emotion) {
           console.log("Emotion detected", data.emotion);
@@ -155,31 +181,10 @@ const Interface = () => {
 
   }, []);
 
-  // Effect to scroll to the last message when a new message is added
-  useEffect(() => {
-    if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
-  // Send message to the server as a client message
-  const sendMessage = () => {
-    if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
-      const messageObject = {
-        type: "client_message",
-        text: newMessage,
-        state: animations[0]
-      };
-      setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
-      socket.send(JSON.stringify(messageObject));
-      setNewMessage("");
-    }
-  };
-
   // Logic to detect face and start recording
   const handleFaceDetected = (imageDataUrl) => {
     setFaceDetected(true);
-    if (!isRecording && !isWaiting) {
+    if (!isRecording && !isWaiting && !isWaitingResponse) {
       startRecording();
 
       const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
@@ -243,7 +248,10 @@ const Interface = () => {
           mimeType="audio/webm"
           bufferSize={2048}
           sampleRate={44100} />
-        <button onClick={isRecording ? stopRecording : startRecording}>
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isWaitingResponse}
+        >
           {isRecording ? "Stop Recording" : "Start Recording"}
         </button>
       </div>

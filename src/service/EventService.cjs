@@ -69,11 +69,10 @@ ws_server.on('connection', (socket) => {
 
             // Process the message with Watson
             try {
-                const { response, userDefined, mood } = await watsonService.getWatsonResponse(parsedMessage.text);
+                const { response, userDefined, emotions, strongestEmotion } = await watsonService.getWatsonResponse(parsedMessage.text);
 
                 if (response) {
                     const watsonText = response.output.generic[0].text;
-                    const emotionAnalysis = userDefined?.emotion || mood;
 
                     // Send Watson response to all connections (including the Wizard of Oz)
                     connections.forEach((client) => {
@@ -81,8 +80,8 @@ ws_server.on('connection', (socket) => {
                             client.send(JSON.stringify({
                                 type: 'watson_response',
                                 text: watsonText,
-                                emotion: emotionAnalysis,
-                                mood: mood
+                                emotions: emotions,
+                                state: strongestEmotion
                             }));
                         }
                     });
@@ -94,7 +93,7 @@ ws_server.on('connection', (socket) => {
                             client.send(JSON.stringify({
                                 type: 'watson_response',
                                 text: 'Sorry, I did not understand that',
-                                emotion: 'confused'
+                                state: 'confused'
                             }));
                         }
                     });
@@ -105,7 +104,8 @@ ws_server.on('connection', (socket) => {
                     if (client !== socket && client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify({
                             type: 'watson_response',
-                            text: 'Error processing message with Watson'
+                            text: 'Error processing message with Watson',
+                            state: 'confused'
                         }));
                     }
                 });

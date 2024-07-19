@@ -1,13 +1,20 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QLineEdit
 
 class WatsonResponseDialog(QDialog):
-    def __init__(self, watson_response, parent=None):
+    def __init__(self, watson_response, current_state, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Watson Response")
         self.layout = QVBoxLayout()
 
+        # Response text area
         self.response_text = QTextEdit(watson_response)
+        self.layout.addWidget(QLabel("Watson Response:"))
         self.layout.addWidget(self.response_text)
+
+        # Robot state/animation input
+        self.state_input = QLineEdit(current_state)
+        self.layout.addWidget(QLabel("Robot State:"))
+        self.layout.addWidget(self.state_input)
 
         button_layout = QHBoxLayout()
         self.approve_button = QPushButton("Approve")
@@ -20,3 +27,6 @@ class WatsonResponseDialog(QDialog):
 
     def get_response(self):
         return self.response_text.toPlainText()
+    
+    def get_state(self):
+        return self.state_input.text()

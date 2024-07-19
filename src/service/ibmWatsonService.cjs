@@ -76,11 +76,12 @@ async function analyzedMood(text) {
 
 
         const response = await nlu.analyze(nluOptions);
-        console.log('NLU response:', response.result);
+        const emotions = response.result.emotion.document.emotion;
+        const strongestEmotion = getStrongestEmotion(emotions);
         return response.result.emotion.document.emotion;
     } catch (error) {
         console.error('Error analyzing mood:', error);
-        return [];
+        return { emotion: nuñl, strongestEmotion: null };
     }
 }
 
@@ -104,18 +105,32 @@ async function getWatsonResponse(inputText) {
         const skill = context.skills || {};
         const mainSkill = skill['main skill'] || {};
         const userDefined = mainSkill.user_defined || {};
-        const mood = await analyzedMood(inputText);
-        console.log('Mood:', mood);
+        const { emotions, strongestEmotion } = await analyzedMood(inputText);
+        console.log('Emotions: ', emotions);
+        console.log('Strongest emotion:', strongestEmotion);
 
-        return { response: response.result, userDefined, mood };
+        return { response: response.result, userDefined, emotions, strongestEmotion };
     } catch (error) {
         console.error('Error getting Watson response:', error);
-        return { response: null, userDefined: null, mood: null };
+        return { response: null, userDefined: null, emotions: null, strongestEmotion: null };
     }
+}
+
+function getStrongestEmotion(emotions) {
+    if (!emotions || Object.keys(emotions).length === 0) {
+        return null;
+    }
+
+    return Object.entries(emotions).reduce((strongest, [emotion, value]) => {
+        return Math.abs(1 - value) < Math.abs(1 - strongest.value)
+            ? { emotion, value }
+            : strongest;
+    }, { emotion: '', value: -Infinity }).emotion;
 }
 
 module.exports = {
     createSession,
     isSessionActive,
-    getWatsonResponse
+    getWatsonResponse,
+    getStrongestEmotion
 };

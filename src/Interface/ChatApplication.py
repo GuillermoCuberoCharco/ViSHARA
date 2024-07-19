@@ -66,16 +66,21 @@ class ChatApplication(QWidget):
             self.display_message('ERROR: ' + str(e))
 
     def handle_watson_response(self, data):
+        # Importing the WatsonResponseDialog class here to avoid circular imports
         from WatsonResponseDialog import WatsonResponseDialog
-        dialog = WatsonResponseDialog(data['text'], self)
+
+        current_state = data.get('state', 'Attention')
+        dialog = WatsonResponseDialog(data['text'], current_state, self)
         if dialog.exec_() == QDialog.Accepted:
             validated_response = dialog.get_response()
+            validated_state = dialog.get_state()
             self.display_message(f"Watson: {validated_response}")
+            self.display_message(f"Robot State: {validated_state}")
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
                     'text': validated_response,
-                    'state' : 'Attention'
+                    'state' : validated_state
                 }))
             if 'emotion' in data:
                 self.display_message(f"Emotion: {data['emotion']}")
