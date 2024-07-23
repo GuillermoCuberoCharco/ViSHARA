@@ -2,8 +2,8 @@ import sys
 import threading
 import json
 import websocket
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
+from PyQt5.QtCore import pyqtSignal, Qt
 
 class ChatApplication(QWidget):
     watson_response_received = pyqtSignal(dict)
@@ -13,6 +13,7 @@ class ChatApplication(QWidget):
         self.ws = None
         self.watson_response_received.connect(self.handle_watson_response)
         threading.Thread(target=self.start_websocket, daemon=True).start()
+        self.auto_mode = False
 
     def quit(self):
         self.event_service_process.terminate()
@@ -30,9 +31,33 @@ class ChatApplication(QWidget):
         self.message_input.returnPressed.connect(self.send_message)
         self.layout.addWidget(self.message_input)
 
+        button_layout = QVBoxLayout()
         self.send_button = QPushButton('Send')
         self.send_button.clicked.connect(self.send_message)
         self.layout.addWidget(self.send_button)
+
+        self.mode_button = QPushButton('Auto Mode')
+        self.mode_button.clicked.connect(self.toggle_mode)
+        self.layout.addWidget(self.mode_button)
+
+        self.layout.addLayout(button_layout)
+
+        self.mode_label = QLabel('Auto Mode: OFF')
+        self.mode_label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.mode_label)
+
+    def toggle_mode(self):
+        self.auto_mode = not self.auto_mode
+        if self.auto_mode:
+            self.mode_button.setText('Switch to Manual Mode')
+            self.mode_label.setText('Auto Mode: ON')
+            self.message_input.setEnabled(False)
+            self.send_button.setEnabled(False)
+        else:
+            self.mode_button.setText('Switch to Auto Mode')
+            self.mode_label.setText('Auto Mode: OFF')
+            self.message_input.setEnabled(True)
+            self.send_button.setEnabled(True)
 
     def start_websocket(self):
         websocket.enableTrace(True)
@@ -66,14 +91,9 @@ class ChatApplication(QWidget):
             self.display_message('ERROR: ' + str(e))
 
     def handle_watson_response(self, data):
-        # Importing the WatsonResponseDialog class here to avoid circular imports
-        from WatsonResponseDialog import WatsonResponseDialog
-
-        current_state = data.get('state', 'Attention')
-        dialog = WatsonResponseDialog(data['text'], current_state, self)
-        if dialog.exec_() == QDialog.Accepted:
-            validated_response = dialog.get_response()
-            validated_state = dialog.get_state()
+        if self.auto_mode:
+            validated_response = data['text']
+            validated_state = data.get('state', 'Attention')
             self.display_message(f"Watson: {validated_response}")
             self.display_message(f"Robot State: {validated_state}")
             if self.ws and self.ws.sock and self.ws.sock.connected:
@@ -82,10 +102,26 @@ class ChatApplication(QWidget):
                     'text': validated_response,
                     'state' : validated_state
                 }))
-            if 'emotion' in data:
-                self.display_message(f"Emotion: {data['emotion']}")
-            if 'mood' in data:
-                self.display_message(f"Mood: {data['mood']}")
+        else:
+            # Importing the WatsonResponseDialog class here to avoid circular imports
+            from WatsonResponseDialog import WatsonResponseDialog
+            current_state = data.get('state', 'Attention')
+            dialog = WatsonResponseDialog(data['text'], current_state, self)
+            if dialog.exec_() == QDialog.Accepted:
+                validated_response = dialog.get_response()
+                validated_state = dialog.get_state()
+                self.display_message(f"Watson: {validated_response}")
+                self.display_message(f"Robot State: {validated_state}")
+                if self.ws and self.ws.sock and self.ws.sock.connected:
+                    self.ws.send(json.dumps({
+                        'type': 'wizard_message',
+                        'text': validated_response,
+                        'state' : validated_state
+                    }))
+                if 'emotion' in data:
+                    self.display_message(f"Emotion: {data['emotion']}")
+                if 'mood' in data:
+                    self.display_message(f"Mood: {data['mood']}")
 
     def on_error(self, ws, error):
         self.display_message('ERROR: ' + str(error))
