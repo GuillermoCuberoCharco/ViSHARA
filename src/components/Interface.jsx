@@ -25,7 +25,7 @@ const Interface = () => {
   const { setAnimationIndex, animations } = useCharacterAnimations();
 
   const startRecording = () => {
-    if (!isWaiting && !isWaitingResponse) {
+    if (!isWaiting) {
       setIsRecording(true);
       silenceCounter.current = 0;
     }
@@ -92,6 +92,7 @@ const Interface = () => {
       silenceCounter.current += 1;
       if (silenceCounter.current > (silenceDuration / 50)) {
         stopRecording();
+        setIsWaitingResponse(false);
         silenceCounter.current = 0;
       }
     } else {
