@@ -7,7 +7,7 @@ import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
 function App() {
   return (
     <CharacterAnimationsProvider>
-      <Canvas camera={{ position: [150, 150, 0.5], fov: 50 }} shadows>
+      <Canvas camera={{ position: [1.5, 1.5, 0.5], fov: 50 }} shadows>
         <Sky sunPosition={[100, -50, 100]} />
         <Experience >
         </Experience>
