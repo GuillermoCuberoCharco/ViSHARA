@@ -2,7 +2,7 @@ import sys
 import base64
 import cv2
 import numpy as np
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget, QGridLayout
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import QUrl
@@ -17,10 +17,10 @@ class MainWindow(QMainWindow):
         self.label = QLabel(self)
         self.layout = QVBoxLayout()
 
-        self.websocket_client = WebSocketClient()
-        self.websocket_client.message_received.connect(
-            self.on_binary_message_received)
-        self.websocket_client.start()
+        #self.websocket_client = WebSocketClient()
+        #self.websocket_client.message_received.connect(
+            #self.on_binary_message_received)
+        #self.websocket_client.start()
 
         self.chat_app = ChatApplication()
 

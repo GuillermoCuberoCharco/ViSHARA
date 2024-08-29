@@ -56,6 +56,13 @@ ws_server.on('connection', (socket) => {
         if (parsedMessage.type === 'client_message') {
             console.log('Client message:', parsedMessage.text);
 
+            // Send the client message back to the client
+            socket.send(JSON.stringify({
+                type: 'client_message',
+                text: parsedMessage.text,
+                state: parsedMessage.state
+            }));
+
             // Forward message to the Wizard of Oz
             connections.forEach((client) => {
                 if (client !== socket && client.readyState === WebSocket.OPEN) {

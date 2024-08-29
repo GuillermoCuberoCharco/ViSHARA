@@ -59,7 +59,6 @@ const Interface = () => {
         text: newMessage,
         state: currentAnimation
       };
-      setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
       socket.send(JSON.stringify(messageObject));
       setNewMessage("");
       setIsWaitingResponse(true);
@@ -172,6 +171,8 @@ const Interface = () => {
         if (data.mood) {
           console.log("Mood detected", data.mood);
         }
+      } else if (data.type === "client_message") {
+        setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "me" }]);
       }
     });
 
