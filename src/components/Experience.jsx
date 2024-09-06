@@ -1,6 +1,6 @@
 import { OrbitControls, Stars } from "@react-three/drei";
 import React from "react";
-import GltfViewer from "./LoadModel";
+import GlbViewer from "./LoadModel";
 
 const Experience = () => {
   return (
@@ -14,7 +14,7 @@ const Experience = () => {
         shadow-mapSize-height={1024}
       />
       <group position={[0, -1, 0]}>
-        <GltfViewer />
+        <GlbViewer />
       </group>
       <mesh
         rotation={[-0.5 * Math.PI, 0, 0]}

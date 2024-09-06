@@ -1,11 +1,10 @@
-// GltfViewer.js
 import { useAnimations, useGLTF } from "@react-three/drei";
 import React, { useRef } from "react";
 import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 
-const GltfViewer = () => {
+const GlbViewer = () => {
   const group = useRef();
-  const { nodes, materials, animations } = useGLTF('./models/SHARA_2.gltf');
+  const { nodes, materials, animations } = useGLTF('./models/Shara_test.glb');
   const { actions } = useAnimations(animations, group);
   const { animationIndex, setAnimations } = useCharacterAnimations();
 
@@ -32,8 +31,8 @@ const GltfViewer = () => {
   );
 };
 
-useGLTF.preload('./SHARA_2.gltf');
+useGLTF.preload('./Shara_test.glb');
 
-export default GltfViewer;
+export default GlbViewer;
 
 
