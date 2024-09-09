@@ -4,7 +4,7 @@ import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 
 const GlbViewer = () => {
   const group = useRef();
-  const { nodes, materials, animations } = useGLTF('./models/Shara_test.glb');
+  const { nodes, materials, animations } = useGLTF('./models/SHARA3.gltf');
   const { actions } = useAnimations(animations, group);
   const { animationIndex, setAnimations } = useCharacterAnimations();
 
@@ -31,7 +31,7 @@ const GlbViewer = () => {
   );
 };
 
-useGLTF.preload('./Shara_test.glb');
+useGLTF.preload('./SHARA3.gltf');
 
 export default GlbViewer;
 
