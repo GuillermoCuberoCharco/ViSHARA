@@ -2,7 +2,7 @@ import sys
 import threading
 import json
 import websocket
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
 from PyQt5.QtCore import pyqtSignal, Qt
 
 class ChatApplication(QWidget):
@@ -27,36 +27,47 @@ class ChatApplication(QWidget):
         self.chat_display.setReadOnly(True)
         self.layout.addWidget(self.chat_display)
 
+        input_layout = QHBoxLayout()
+        
         self.message_input = QLineEdit()
+        self.message_input.setPlaceholderText("Message")
         self.message_input.returnPressed.connect(self.send_message)
-        self.layout.addWidget(self.message_input)
+        input_layout.addWidget(self.message_input)
 
-        button_layout = QVBoxLayout()
+        self.state_input = QLineEdit()
+        self.state_input.setPlaceholderText("Robot state")
+        input_layout.addWidget(self.state_input)
+
+        self.layout.addLayout(input_layout)
+
+        button_layout = QHBoxLayout()
         self.send_button = QPushButton('Send')
         self.send_button.clicked.connect(self.send_message)
-        self.layout.addWidget(self.send_button)
+        button_layout.addWidget(self.send_button)
 
-        self.mode_button = QPushButton('Auto Mode')
+        self.mode_button = QPushButton('Auto mode')
         self.mode_button.clicked.connect(self.toggle_mode)
-        self.layout.addWidget(self.mode_button)
+        button_layout.addWidget(self.mode_button)
 
         self.layout.addLayout(button_layout)
 
-        self.mode_label = QLabel('Auto Mode: OFF')
+        self.mode_label = QLabel('Auto mode: OFF')
         self.mode_label.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.mode_label)
 
     def toggle_mode(self):
         self.auto_mode = not self.auto_mode
         if self.auto_mode:
-            self.mode_button.setText('Switch to Manual Mode')
-            self.mode_label.setText('Auto Mode: ON')
+            self.mode_button.setText('Auto mode: OFF')
+            self.mode_label.setText('Auto mode: ON')
             self.message_input.setEnabled(False)
+            self.state_input.setEnabled(False)
             self.send_button.setEnabled(False)
         else:
-            self.mode_button.setText('Switch to Auto Mode')
-            self.mode_label.setText('Auto Mode: OFF')
+            self.mode_button.setText('Auto mode: ON')
+            self.mode_label.setText('Auto mode: OFF')
             self.message_input.setEnabled(True)
+            self.state_input.setEnabled(True)
             self.send_button.setEnabled(True)
 
     def start_websocket(self):
@@ -95,12 +106,12 @@ class ChatApplication(QWidget):
             validated_response = data['text']
             validated_state = data.get('state', 'Attention')
             self.display_message(f"Watson: {validated_response}")
-            self.display_message(f"Robot State: {validated_state}")
+            self.display_message(f"Robot state: {validated_state}")
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
                     'text': validated_response,
-                    'state' : validated_state
+                    'state': validated_state
                 }))
         else:
             # Importing the WatsonResponseDialog class here to avoid circular imports
@@ -111,38 +122,41 @@ class ChatApplication(QWidget):
                 validated_response = dialog.get_response()
                 validated_state = dialog.get_state()
                 self.display_message(f"Watson: {validated_response}")
-                self.display_message(f"Robot State: {validated_state}")
+                self.display_message(f"Robot state: {validated_state}")
                 if self.ws and self.ws.sock and self.ws.sock.connected:
                     self.ws.send(json.dumps({
                         'type': 'wizard_message',
                         'text': validated_response,
-                        'state' : validated_state
+                        'state': validated_state
                     }))
                 if 'emotion' in data:
                     self.display_message(f"Emotion: {data['emotion']}")
                 if 'mood' in data:
                     self.display_message(f"Mood: {data['mood']}")
-
+                    
     def on_error(self, ws, error):
         self.display_message('ERROR: ' + str(error))
 
     def on_close(self, ws):
-        self.display_message('CONNECTION CLOSED')
+        self.display_message('Close connection')
 
     def on_open(self, ws):
-        self.display_message('CONNECTION OPENED')        
+        self.display_message('Open connection')        
 
     def send_message(self):
         message = self.message_input.text()
+        state = self.state_input.text() or 'Attention'
         if message.strip() != '':
             if self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({
                     'type': 'wizard_message',
                     'text': message,
-                    'state' : 'Attention'
+                    'state': state
                 }))
-            self.display_message(f"Wizzard: {message}")
+            self.display_message(f"Wizard: {message}")
+            self.display_message(f"Robot state: {state}")
             self.message_input.clear()
+            self.state_input.clear()
 
     def display_message(self, message):
         self.chat_display.append(message)
@@ -155,7 +169,7 @@ class ChatApplication(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     chat_app = ChatApplication()
-    chat_app.setWindowTitle('Wizard Chat Application')
-    chat_app.setGeometry(100, 100, 400, 500)
+    chat_app.setWindowTitle('Wizard of Oz Chat App')
+    chat_app.setGeometry(100, 100, 500, 600)
     chat_app.show()
     sys.exit(app.exec_())

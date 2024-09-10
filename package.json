@@ -39,7 +39,7 @@
     "@types/react-dom": "^18.0.8",
     "@vitejs/plugin-react": "^2.2.0",
     "concurrently": "^8.2.2",
-    "vite": "^3.2.3"
+    "vite": "^3.2.10"
   },
   "description": "<img width=\"1263\" alt=\"image\" src=\"https://user-images.githubusercontent.com/6551176/204001329-2be3eeb3-b243-4a04-a8fe-cb8c3c3f6dc5.png\">",
   "main": "vite.config.js",
