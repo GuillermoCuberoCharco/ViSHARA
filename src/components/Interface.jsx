@@ -33,7 +33,6 @@ const Interface = () => {
 
   const stopRecording = () => {
     setIsRecording(false);
-    setFaceDetected(false);
     setIsWaiting(true);
     setIsWaitingResponse(true);
 
@@ -185,13 +184,16 @@ const Interface = () => {
 
   // Logic to detect face and start recording
   const handleFaceDetected = (imageDataUrl) => {
-    setFaceDetected(true);
+
     if (!isRecording && !isWaiting && !isWaitingResponse) {
       startRecording();
 
-      const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
-      if (helloAnimationIndex !== -1) {
-        setAnimationIndex(helloAnimationIndex);
+      if (!faceDetected) {
+        const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
+        if (helloAnimationIndex !== -1) {
+          setAnimationIndex(helloAnimationIndex);
+          setFaceDetected(true);
+        }
       }
     }
   };
