@@ -4,8 +4,9 @@ function setupWebRTC(server) {
   const io = socketIo(server, {
     path: '/webrtc',
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
+      origin: 'http://localhost:5173',
+      methods: ['GET', 'POST'],
+      credentials: true
     }
   });
 

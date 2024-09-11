@@ -10,11 +10,23 @@ const { setupWebRTC } = require('./webrtcService.cjs');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
-const io = socketIo(server);
 
-app.use(cors());
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+const io = socketIo(server, {
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
 
 // Watson service
 watsonService.createSession().catch(console.error);
