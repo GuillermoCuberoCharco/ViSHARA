@@ -2,10 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
-const cameraService = require('./cameraService.cjs');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
 const watsonService = require('./ibmWatsonService.cjs');
+const cameraService = require('./cameraService.cjs');
+const { setupWebRTC } = require('./webrtcService.cjs');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
@@ -18,7 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Watson service
 watsonService.createSession().catch(console.error);
 
-// Camera service
+// General configuration for socket.io
 io.on('connection', (socket) => {
     console.log('A user connected');
     socket.on('disconnect', () => {
@@ -26,10 +27,12 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(4000, () => {
-    console.log('Server running on port 4000');
-    cameraService.startCameraService();
-});
+// WebRTC service
+const webrtcIo = setupWebRTC(server);
+
+// Camera service for face detection
+cameraService.startCameraService();
+
 
 // Google TTS service
 app.post("/synthesize", synthesize);
@@ -139,9 +142,14 @@ ws_server.on('connection', (socket) => {
     });
 });
 
+server.listen(4000, () => {
+    console.log('Main server running on port 4000');
+    console.log('Face recognition server available at /upload');
+    console.log('WebRTC server available at /webrtc');
+});
 
 app.listen(8082, () => {
-    console.log('Enpoints server 8082');
-    console.log('Message server 8081');
+    console.log('Express endpoints server running on port 8082');
+    console.log('Websocket message server running on port 8081');
 })
 
