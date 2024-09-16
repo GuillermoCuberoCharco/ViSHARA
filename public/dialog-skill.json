@@ -1,0 +1,2306 @@
+{
+  "intents": [
+    {
+      "intent": "AboutMe",
+      "examples": [
+        {
+          "text": "cómo me llamo?"
+        },
+        {
+          "text": "cuál es mi nombre?"
+        },
+        {
+          "text": "dime quién soy"
+        },
+        {
+          "text": "quién soy?"
+        },
+        {
+          "text": "sabrías decirme quién soy?"
+        }
+      ],
+      "description": "For asking information about me (the user)"
+    },
+    {
+      "intent": "collect_username",
+      "examples": [
+        {
+          "text": "Alberto"
+        },
+        {
+          "text": "Eva"
+        },
+        {
+          "text": "hola me llamo Laura"
+        },
+        {
+          "text": "Manolo"
+        },
+        {
+          "text": "me llaman Manolo"
+        },
+        {
+          "text": "me llamo Ángel"
+        },
+        {
+          "text": "me llamo luis"
+        },
+        {
+          "text": "me llamo Manolo"
+        },
+        {
+          "text": "mi nombre es manolo"
+        },
+        {
+          "text": "soy manolo"
+        },
+        {
+          "text": "soy Paca"
+        },
+        {
+          "text": "yo Manolo"
+        },
+        {
+          "text": "yo me llamo Manolo"
+        },
+        {
+          "text": "yo soy Manolo"
+        }
+      ],
+      "description": "take user name"
+    },
+    {
+      "intent": "General_About_You",
+      "examples": [
+        {
+          "text": "cómo te llamas"
+        },
+        {
+          "text": "¿Con qué tipo de robot estoy interactuando?"
+        },
+        {
+          "text": "¿Cuál es su versión?"
+        },
+        {
+          "text": "Cuántos idiomas hablas?"
+        },
+        {
+          "text": "De qué país eres?"
+        },
+        {
+          "text": "Dime tu nombre completo."
+        },
+        {
+          "text": "Dónde estás ahora mismo?"
+        },
+        {
+          "text": "¿Eres un representante oficial de conversación?"
+        },
+        {
+          "text": "Estoy buscando una solución para mejorar mi compromiso con los clientes"
+        },
+        {
+          "text": "¿Hablas alemán?"
+        },
+        {
+          "text": "Me gustaría configurar el bot de conversación para mi negocio."
+        },
+        {
+          "text": "Me puedes decir como se llama la aplicación?"
+        },
+        {
+          "text": "¿Puede darme información general sobre usted?"
+        },
+        {
+          "text": "¿Puede explicarme la diferencia entre este sistema y cualquier otro?"
+        },
+        {
+          "text": "Puedo hacerle algunas preguntas de validación de las ventas"
+        },
+        {
+          "text": "¿Puedo hacer mis preguntas usando Siri en lugar de esta aplicación?"
+        },
+        {
+          "text": "Qué color tienen tus ojos?"
+        },
+        {
+          "text": "Qué te gusta hacer en tu tiempo libre?"
+        },
+        {
+          "text": "quién eres"
+        },
+        {
+          "text": "Quiero crear un agente virtual que hable portugués"
+        },
+        {
+          "text": "Quiero entender cómo funcionas"
+        },
+        {
+          "text": "Tienes algún interés?"
+        }
+      ],
+      "description": "Solicitar atributos personales genéricos."
+    },
+    {
+      "intent": "General_Agent_Capabilities",
+      "examples": [
+        {
+          "text": "¿Cómo funciona el filtro en la pantalla de capacidades?"
+        },
+        {
+          "text": "¿Con qué categorías de problemas están capaz de ayudarme?"
+        },
+        {
+          "text": "¿Con qué categorías de problemas me puedes ayudar?"
+        },
+        {
+          "text": "¿Cuáles son las opciones disponibles si estoy usando agente virtual?"
+        },
+        {
+          "text": "¿Podría darme una lista de temas con las que puede ayudarme?"
+        },
+        {
+          "text": "¿Podría esperar un momento por favor?"
+        },
+        {
+          "text": "¿Podría esperar un segundo por favor?"
+        },
+        {
+          "text": "¿Puedes ayudarme en cómo iniciar sesión en Virtual Agent?"
+        },
+        {
+          "text": "¿Puedes darme una lista de temas de cosas con las que puedes ayudarme?"
+        },
+        {
+          "text": "¿Puedes esperar un poquito?"
+        },
+        {
+          "text": "¿Puedo tener una lista de temas disponibles, con los que puedes ayudarme?"
+        },
+        {
+          "text": "¿Qué clase de cosas haces?"
+        },
+        {
+          "text": "¿Qué hace un agente digital? ¿Para qué te uso?"
+        },
+        {
+          "text": "¿Qué pasa si quiero cambiar la respuesta de texto para una intención?"
+        },
+        {
+          "text": "¿Qué tipo de cosas puede hacer por mí?"
+        },
+        {
+          "text": "¿Qué tipo de información y problemas puedes resolver para mí?"
+        },
+        {
+          "text": "¿Qué tipo de preguntas puedes contestar? ¿Y cuáles son tus limitaciones de respuestas?"
+        },
+        {
+          "text": "Tengo algunas preguntas y necesito ayuda, ¿puedo recibir ayuda?"
+        },
+        {
+          "text": "Tengo algunos problemas y quiero algo de información sobre cómo conseguir ayuda."
+        },
+        {
+          "text": "Tengo varios problemas y necesito saber con qué me puede ayudar."
+        }
+      ],
+      "description": "Solicitar capacidades del bot."
+    },
+    {
+      "intent": "General_Connect_to_Agent",
+      "examples": [
+        {
+          "text": "Ayudame a ponerme en contacto con una persona."
+        },
+        {
+          "text": "Buenos días podría hablar por teléfono contigo?"
+        },
+        {
+          "text": "Cómo puedo contactar un ser vivo?"
+        },
+        {
+          "text": "Creo que es mejor hablar con una persona."
+        },
+        {
+          "text": "Dejame hablar con un agente."
+        },
+        {
+          "text": "Deseo hablar con un agente."
+        },
+        {
+          "text": "Esto es muy frustrante, quiero hablar con una persona viva y real."
+        },
+        {
+          "text": "Hay algún ser vivo con cuál podría hablar?"
+        },
+        {
+          "text": "¿Hay un número de servicio al cliente que pueda usar para contactar a la compañía telefónica y hablar directamente con un agente?"
+        },
+        {
+          "text": "Hola! Estaba hablando con un agente y se me ha quedado colgado el chat y he perdido la conexión."
+        },
+        {
+          "text": "Hola, me conectas con el soporte tecnico?"
+        },
+        {
+          "text": "Hola, ¿podría transferirme al agente vivo, por favor?"
+        },
+        {
+          "text": "Hola, ¿puedes transferir mi llamada a un agente humano? Deseo hablar directamente con un ser humano."
+        },
+        {
+          "text": "Llama a un representante."
+        },
+        {
+          "text": "Mi factura está incorrecta, quiero hablar con un representante."
+        },
+        {
+          "text": "Nada contra maquinas, pero ponme con un operador."
+        },
+        {
+          "text": "Necesito hablar con alquien vivo."
+        },
+        {
+          "text": "Necesito hablar con una persona real, en lugar de un sistema automatizado de respuestas, por favor."
+        },
+        {
+          "text": "Necesito hablar directamente con un agente."
+        },
+        {
+          "text": "No quiero hablar con el agente virtual."
+        },
+        {
+          "text": "Pasame con un agente experto!"
+        },
+        {
+          "text": "Perfecto. Ahora, me gustaría hablar con un agente sobre algunos cargos."
+        },
+        {
+          "text": "Podrías ponerme en contacto con un operador?"
+        },
+        {
+          "text": "Por favor ayudame a contactar a un agente."
+        },
+        {
+          "text": "¿Puede enviarme un número telefónico para que hable con un representante humano de ventas?"
+        },
+        {
+          "text": "¿Puedes ayudarme a conectar con un agente?"
+        },
+        {
+          "text": "Puedes transferirme a un agente real?"
+        },
+        {
+          "text": "Puedo hablar con una persona?"
+        },
+        {
+          "text": "Puedo hablar con una persona real?"
+        },
+        {
+          "text": "¿Puedo tener información de contacto para hablar con un agente real?"
+        },
+        {
+          "text": "Quiero hablar con una persona."
+        },
+        {
+          "text": "Quiero que me pongan en contacto con un número diferente para las cosas relacionadas con esta cuenta."
+        },
+        {
+          "text": "Sería posible hablar con una persona?"
+        },
+        {
+          "text": "Transferirme a un agente por favor."
+        }
+      ],
+      "description": "Solicitar un agente humano"
+    },
+    {
+      "intent": "General_Ending",
+      "examples": [
+        {
+          "text": "Buenas tardes."
+        },
+        {
+          "text": "chao"
+        },
+        {
+          "text": "Cuídate!"
+        },
+        {
+          "text": "Eso ha sido todo lo que me hacía falta."
+        },
+        {
+          "text": "Fue agradable hablar contigo."
+        },
+        {
+          "text": "Gracias no necesito más ayuda."
+        },
+        {
+          "text": "Gracias, podemos cerrar esta conversación."
+        },
+        {
+          "text": "Gracias por tu ayuda, hasta luego."
+        },
+        {
+          "text": "Hablamos luego."
+        },
+        {
+          "text": "Hablaremos más tarde."
+        },
+        {
+          "text": "hasta pronto"
+        },
+        {
+          "text": "me marcho"
+        },
+        {
+          "text": "¡Muchas gracias, adiós!"
+        },
+        {
+          "text": "Nos vemos."
+        },
+        {
+          "text": "No tengo más dudas, gracias por tu ayuda."
+        },
+        {
+          "text": "OK, eso es todo lo que necesito saber."
+        },
+        {
+          "text": "Qué te lo pases bien."
+        },
+        {
+          "text": "Qué tengas una buena tarde."
+        },
+        {
+          "text": "¡Salud!"
+        },
+        {
+          "text": "Un saludo."
+        },
+        {
+          "text": "Usted es maravilloso. Gracias por su ayuda."
+        },
+        {
+          "text": "Vaya usted con Diós!"
+        },
+        {
+          "text": "Ya me voy."
+        }
+      ],
+      "description": "Fin de la conversacion."
+    },
+    {
+      "intent": "General_Greetings",
+      "examples": [
+        {
+          "text": "buenas, eva"
+        },
+        {
+          "text": "Buenas noches."
+        },
+        {
+          "text": "buenas noches eva"
+        },
+        {
+          "text": "buenas tardes"
+        },
+        {
+          "text": "buenos dias eva"
+        },
+        {
+          "text": "Buenos días, podemos empezar la conversación?"
+        },
+        {
+          "text": "¿Cómo está? / Oye, ¿Qué tal?"
+        },
+        {
+          "text": "¿Estás ahí?"
+        },
+        {
+          "text": "¡Estoy feliz de poder hablar contigo por primera vez!"
+        },
+        {
+          "text": "ey"
+        },
+        {
+          "text": "Hey, ¿cómo te va?"
+        },
+        {
+          "text": "Hola, amigo mío."
+        },
+        {
+          "text": "Hola, ¿Cómo estás?"
+        },
+        {
+          "text": "Hola, Cómo estás el día de hoy?"
+        },
+        {
+          "text": "Hola, ¿Cómo te sientes?"
+        },
+        {
+          "text": "Hola, Cómo va todo?"
+        },
+        {
+          "text": "hola Eva"
+        },
+        {
+          "text": "Hola, podrías responder mi pregunta?"
+        },
+        {
+          "text": "Hola ¿puedes ayudarme?"
+        },
+        {
+          "text": "Hola, quien me puede atender?"
+        },
+        {
+          "text": "Hola, Señor."
+        },
+        {
+          "text": "Quién eres?"
+        },
+        {
+          "text": "Sigues aquí?"
+        },
+        {
+          "text": "Tienes un momento, por favor?"
+        }
+      ],
+      "description": "Saluda al bot."
+    },
+    {
+      "intent": "General_HowAreU",
+      "examples": [
+        {
+          "text": "Cómo está"
+        },
+        {
+          "text": "Cómo estás"
+        },
+        {
+          "text": "Cómo está usted"
+        },
+        {
+          "text": "Cómo se encuentra"
+        },
+        {
+          "text": "Cómo te encuentras"
+        },
+        {
+          "text": "Cómo vas"
+        },
+        {
+          "text": "Cómo va todo"
+        },
+        {
+          "text": "está bien?"
+        },
+        {
+          "text": "Estás bien?"
+        },
+        {
+          "text": "qué pasa"
+        },
+        {
+          "text": "Qué tal"
+        },
+        {
+          "text": "Qué tal todo"
+        }
+      ],
+      "description": "Preguntar al bot cómo está"
+    },
+    {
+      "intent": "General_Human_or_Bot",
+      "examples": [
+        {
+          "text": "Eres un agente virtual?"
+        },
+        {
+          "text": "Eres una máquina o una persona real?"
+        },
+        {
+          "text": "Eres un operador virtual o vivo?"
+        },
+        {
+          "text": "Hablo con una máquina?"
+        },
+        {
+          "text": "Hablo con una persona?"
+        },
+        {
+          "text": "Me confirmas si hablo con un agente virtual o con un agente real?"
+        },
+        {
+          "text": "Podría hablar con un agente virtual?"
+        },
+        {
+          "text": "PPuedes decirme, si eres vivo o virtual?"
+        },
+        {
+          "text": "Preferiría hablar con un agente virutal."
+        },
+        {
+          "text": "Quiero saber si eres real o no"
+        },
+        {
+          "text": "Tu eres un agente virtual o real?"
+        }
+      ],
+      "description": "Preguntar si habla con un humano o un bot."
+    },
+    {
+      "intent": "General_Jokes",
+      "examples": [
+        {
+          "text": "Cuál es tu chiste favorito?"
+        },
+        {
+          "text": "Cuéntame un chiste"
+        },
+        {
+          "text": "Cuéntame un chiste."
+        },
+        {
+          "text": "Dime algo divertido."
+        },
+        {
+          "text": "Dime otro chiste!"
+        },
+        {
+          "text": "Dime un chiste."
+        },
+        {
+          "text": "Dime un chiste sarcástico."
+        },
+        {
+          "text": "Divierteme!"
+        },
+        {
+          "text": "Estoy aburrido."
+        },
+        {
+          "text": "Me aburro."
+        },
+        {
+          "text": "Me gustan los chistes, cuéntame uno."
+        },
+        {
+          "text": "Me gustaría que me diviertas."
+        },
+        {
+          "text": "Puedes entretenerme?"
+        },
+        {
+          "text": "Puedo jugar juegos aquí?"
+        },
+        {
+          "text": "Qué sueles hacer para divertirte?"
+        },
+        {
+          "text": "Quiero reírme un poco, cuéntame algo divertido."
+        },
+        {
+          "text": "Sabes contar chistes?"
+        },
+        {
+          "text": "Sorpréndeme con algo chistoso."
+        },
+        {
+          "text": "Te gusta hacer chistes?"
+        },
+        {
+          "text": "Te gustan los chistes?"
+        },
+        {
+          "text": "Te ha pasado algo chistoso hoy?"
+        }
+      ],
+      "description": "Solicito una broma"
+    },
+    {
+      "intent": "General_Negative_Feedback",
+      "examples": [
+        {
+          "text": "Cómo te atreves a tratarme de este modo?"
+        },
+        {
+          "text": "El agente era maldispuesto."
+        },
+        {
+          "text": "El comportamiento del agente era inapropiado."
+        },
+        {
+          "text": "Eres un inútil."
+        },
+        {
+          "text": "Espero no necesitar tu ayada más."
+        },
+        {
+          "text": "Este servicio no sirve para nada."
+        },
+        {
+          "text": "Estoy muy decepcionado."
+        },
+        {
+          "text": "Increíble, mi problema sigue sin resolverse un mes."
+        },
+        {
+          "text": "La peor experiencia que he tenido en mi vida con un agente."
+        },
+        {
+          "text": "Lo que me estás diciendo es muy frustrante."
+        },
+        {
+          "text": "Me has proporcionado la información errónea."
+        },
+        {
+          "text": "No estoy de acuerdo."
+        },
+        {
+          "text": "No me has dicho la verdad."
+        },
+        {
+          "text": "No me lo creo."
+        },
+        {
+          "text": "No me trates así."
+        },
+        {
+          "text": "No puede ser!"
+        },
+        {
+          "text": "No te mereces este trabajo."
+        },
+        {
+          "text": "Nunca me has ayudado."
+        },
+        {
+          "text": "Tu comportamiento es inexcusable."
+        },
+        {
+          "text": "Voy a quejarme."
+        }
+      ],
+      "description": "Expresar comentarios desfavorables."
+    },
+    {
+      "intent": "General_Positive_Feedback",
+      "examples": [
+        {
+          "text": "Eres el mejor."
+        },
+        {
+          "text": "Eres muy profesional."
+        },
+        {
+          "text": "Es un placer trabajar contingo."
+        },
+        {
+          "text": "Excelente!"
+        },
+        {
+          "text": "Gracias."
+        },
+        {
+          "text": "Gracias por todo!"
+        },
+        {
+          "text": "Me salvaste!"
+        },
+        {
+          "text": "muchas gracias"
+        },
+        {
+          "text": "muchísimas gracias"
+        },
+        {
+          "text": "Muchísimas gracias por tu ayuda!"
+        },
+        {
+          "text": "Muy amable!"
+        },
+        {
+          "text": "Siempre puedo contar con tu ayuda"
+        },
+        {
+          "text": "Siempre resuelves mis problemas, gracias."
+        }
+      ],
+      "description": "Expresar un sentimiento positivo o gratitud."
+    },
+    {
+      "intent": "General_Security_Assurance",
+      "examples": [
+        {
+          "text": "¿Cómo puede asegurar que nuestra conversación por chat es confidencial?"
+        },
+        {
+          "text": "¿Cómo puedo garantizar la protección de la información de los consumidores?"
+        },
+        {
+          "text": "¿Cómo reconzco si su página web es confiable?"
+        },
+        {
+          "text": "¿Cómo saber que puedo confiar en la información obtenida en esta chat sesión?"
+        },
+        {
+          "text": "Cómo sé que este chat no es una estafa?"
+        },
+        {
+          "text": "¿Dónde puedo encontrar su certificado de seguridad?"
+        },
+        {
+          "text": "Es esto un chat oficial?"
+        },
+        {
+          "text": "¿Hay alguna razón para desconfiar de este chat?"
+        },
+        {
+          "text": "Hay algunas precauciones contra los hackers?"
+        },
+        {
+          "text": "Hola El usuario desea garantías de que cualquier información que proporciona en la conversación está protegida y segura."
+        },
+        {
+          "text": "¿Mi informacion personal de pago es manejada seguramente?"
+        },
+        {
+          "text": "¿Puede confirmarme si esa red es segura?"
+        },
+        {
+          "text": "Puede demostrarme que esta conversación es segura?"
+        },
+        {
+          "text": "¿Pueden asegurarme que toda la información de mi cuenta está protegida?"
+        },
+        {
+          "text": "¿Puedo confiar en todo lo que leo en este chat?"
+        },
+        {
+          "text": "¿Puedo estar seguro que mi información de tarjeta guardada está cifrada y asegurada?"
+        },
+        {
+          "text": "¿Qué medidas de seguridad están usadas para asegurar que este chat es seguro?"
+        },
+        {
+          "text": "Qué sistemas de protección usan contra los hackers?"
+        },
+        {
+          "text": "Qué tipos de medidas se han tomado para proteger esta conversación?"
+        },
+        {
+          "text": "Quisiera asegurarme que mis detalles de tarjeta están seguros, ¿puedes hacerlo?"
+        }
+      ],
+      "description": "Expresar preocupaciones sobre la seguridad del bot."
+    },
+    {
+      "intent": "SendAMessage",
+      "examples": [
+        {
+          "text": "Envíale un mensaje a Alberto"
+        },
+        {
+          "text": "escríbele un mensaje a mamá"
+        },
+        {
+          "text": "escribe un mensaje a Laura"
+        },
+        {
+          "text": "escribe un mensaje para Celia"
+        },
+        {
+          "text": "Eva mándale un mensaje a papá"
+        },
+        {
+          "text": "mándale un telegram a Pepi"
+        }
+      ],
+      "description": "Request sending a telegram message"
+    },
+    {
+      "intent": "tell_mood",
+      "examples": [
+        {
+          "text": "ahora estoy algo mal"
+        },
+        {
+          "text": "ahora me encuentro mejor"
+        },
+        {
+          "text": "bien"
+        },
+        {
+          "text": "estoy bien"
+        },
+        {
+          "text": "estoy muy bien"
+        },
+        {
+          "text": "estoy perfecta"
+        },
+        {
+          "text": "estoy perfecto"
+        },
+        {
+          "text": "hoy estoy de maravilla"
+        },
+        {
+          "text": "hoy estoy fenomenal"
+        },
+        {
+          "text": "mal"
+        },
+        {
+          "text": "me encuentro bien"
+        },
+        {
+          "text": "me encuentro regular"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "intent": "yes",
+      "examples": [
+        {
+          "text": "así es"
+        },
+        {
+          "text": "bueno"
+        },
+        {
+          "text": "bueno vale"
+        },
+        {
+          "text": "claro"
+        },
+        {
+          "text": "correcto"
+        },
+        {
+          "text": "es correcto"
+        },
+        {
+          "text": "eso es"
+        },
+        {
+          "text": "perfecto"
+        },
+        {
+          "text": "por favor hazlo"
+        },
+        {
+          "text": "sí"
+        },
+        {
+          "text": "sip"
+        },
+        {
+          "text": "vamos"
+        },
+        {
+          "text": "venga"
+        },
+        {
+          "text": "venga vale"
+        },
+        {
+          "text": "yeah"
+        }
+      ],
+      "description": ""
+    }
+  ],
+  "entities": [
+    {
+      "entity": "mood",
+      "values": [
+        {
+          "type": "synonyms",
+          "value": "asqueado",
+          "synonyms": [
+            "asqueada"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "bien",
+          "synonyms": [
+            "asombroso",
+            "contenta",
+            "contento",
+            "emocionado",
+            "excepcional",
+            "feliz",
+            "fenomenal",
+            "genial",
+            "ilusionada",
+            "ilusionado",
+            "impecable",
+            "increíble",
+            "mejor",
+            "perfecto",
+            "satisfactorio"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "enfadado",
+          "synonyms": [
+            "alterado",
+            "colérico",
+            "enojado",
+            "furiosa",
+            "furioso",
+            "histérico",
+            "indignado",
+            "irritado",
+            "molesto",
+            "rabioso"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "mal",
+          "synonyms": [
+            "afligido",
+            "amargado",
+            "angustiado",
+            "apagado",
+            "disgustado",
+            "dolido",
+            "extraña",
+            "frustrado",
+            "horrible",
+            "horrorosa",
+            "inútil",
+            "mediocre",
+            "peor",
+            "sombría",
+            "terrible",
+            "torpe",
+            "triste"
+          ]
+        },
+        {
+          "type": "synonyms",
+          "value": "temeroso",
+          "synonyms": [
+            "abrumado",
+            "agobiado",
+            "angustiado",
+            "atemorizado",
+            "aterrado",
+            "aterrorizado",
+            "estresado",
+            "mortificado",
+            "preocupado",
+            "shockeado",
+            "traumado",
+            "traumatizado"
+          ]
+        }
+      ],
+      "fuzzy_match": true
+    },
+    {
+      "entity": "username",
+      "values": [
+        {
+          "type": "patterns",
+          "value": "username",
+          "patterns": [
+            "([A-DF-ZÀ-Ú][A-Za-zÀ-ú- ]*)|(E[a-uw-zÀ-ú- ][A-Za-zÀ-ú- ]*)",
+            "ángel",
+            "esperanza"
+          ]
+        }
+      ],
+      "fuzzy_match": true
+    }
+  ],
+  "metadata": {
+    "api_version": {
+      "major_version": "v2",
+      "minor_version": "2018-11-08"
+    },
+    "from-sample": true
+  },
+  "webhooks": [
+    {
+      "url": "",
+      "name": "main_webhook",
+      "headers": []
+    }
+  ],
+  "dialog_nodes": [
+    {
+      "type": "standard",
+      "title": "Welcome",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Hola! Creo que no nos conocemos. ¿Cómo te llamas?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "conditions": "welcome",
+      "dialog_node": "Bienvenido"
+    },
+    {
+      "type": "standard",
+      "title": "Anything else",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "No sé a qué te refieres"
+              },
+              {
+                "text": "¿Puedes expresarte con otras palabras? No te he entendido"
+              },
+              {
+                "text": "No lo he entendido. ¿Podrías repetirlo?"
+              },
+              {
+                "text": "¿Qué dices? No te entiendo"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "anything_else",
+      "dialog_node": "En otras cosas",
+      "previous_sibling": "node_9_1631700029268",
+      "disambiguation_opt_out": true
+    },
+    {
+      "type": "event_handler",
+      "output": {},
+      "parent": "slot_9_1645010254031",
+      "event_name": "focus",
+      "dialog_node": "handler_10_1645010254067",
+      "previous_sibling": "handler_3_1645010254067"
+    },
+    {
+      "type": "event_handler",
+      "parent": "slot_9_1645010254031",
+      "event_name": "input",
+      "dialog_node": "handler_3_1645010254067"
+    },
+    {
+      "type": "standard",
+      "title": "Ask EVA about its mood",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Estoy muy bien. ¡Gracias por preguntar! ¿Cómo estas tú?"
+              },
+              {
+                "text": "Estoy fenomenal, ¿y tú?"
+              },
+              {
+                "text": "Estoy genial. ¿Tú cómo estás?"
+              },
+              {
+                "text": "Pasándomelo bomba contigo, ¿y tú qué tal?"
+              },
+              {
+                "text": "Estoy dabuti, ¿y tú?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "context": {
+        "continue": "True"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "#General_HowAreU",
+      "dialog_node": "node_10_1630657745558",
+      "previous_sibling": "node_8_1631701530583"
+    },
+    {
+      "type": "standard",
+      "title": "Joy",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Me alegro un montón! Te propongo ponerte un poco de música para mantener esos ánimos arriba. ¿quieres?"
+              },
+              {
+                "text": "¡Qué bien! Así me gusta. ¿Te pongo musicote para seguir motivado?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_9_1631700029268",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "$joy> 0.4 || @mood:bien",
+      "dialog_node": "node_1_1631700085734",
+      "previous_sibling": "node_8_1631617353707"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Perfecto. Reproduciendo música motivadora"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_1_1631700085734",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "conditions": "#yes",
+      "dialog_node": "node_1_1631785000145"
+    },
+    {
+      "type": "standard",
+      "title": "Anger",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Siento que estás enfadado, así que voy a ponerte música relajante para que te calmes"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_9_1631700029268",
+      "context": {
+        "continue": "True"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "$anger> 0.4 || @mood:enfadado",
+      "dialog_node": "node_13_1631787633075",
+      "previous_sibling": "node_9_1631787622960"
+    },
+    {
+      "type": "standard",
+      "title": "About the assistant",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "#General_About_You",
+      "dialog_node": "node_2_1631526599591",
+      "previous_sibling": "node_7_1651335224300"
+    },
+    {
+      "type": "standard",
+      "title": "About the user",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "#AboutMe",
+      "dialog_node": "node_2_1647511561049",
+      "previous_sibling": "node_5_1631528086601"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Quieres que te cuente un chiste?"
+              },
+              {
+                "text": "¿Te cuento un chistecito?"
+              },
+              {
+                "text": "Voy a contarte un buen chiste, ¿vale?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_8_1631617353707",
+      "context": {
+        "continue": "True",
+        "eva_mood": "sad"
+      },
+      "conditions": "#yes",
+      "dialog_node": "node_3_1631693129040",
+      "previous_sibling": "response_10_1631703123137"
+    },
+    {
+      "type": "standard",
+      "parent": "node_3_1631693129040",
+      "context": {
+        "continue": "True"
+      },
+      "next_step": {
+        "behavior": "jump_to",
+        "selector": "body",
+        "dialog_node": "node_4_1631695682550"
+      },
+      "conditions": "true",
+      "dialog_node": "node_3_1631699396189",
+      "previous_sibling": "node_9_1631695510562"
+    },
+    {
+      "type": "standard",
+      "title": "Hello there",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "#General_Greetings",
+      "digress_in": "does_not_return",
+      "dialog_node": "node_4_1626255538669",
+      "previous_sibling": "node_10_1630657745558"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Como quieras. Ya sabes que si me necesitas estoy aquí"
+              },
+              {
+                "text": "De acuerdo. Mucho ánimo, y si me necesitas, aquí estoy"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_8_1631617353707",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "true",
+      "dialog_node": "node_4_1631695682550",
+      "previous_sibling": "node_3_1631693129040"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Vale! Como quieras."
+              },
+              {
+                "text": "¡Oki!"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_1_1631700085734",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "true",
+      "dialog_node": "node_4_1631785008333",
+      "previous_sibling": "node_1_1631785000145"
+    },
+    {
+      "type": "standard",
+      "title": "Tell username",
+      "output": {
+        "generic": []
+      },
+      "context": {},
+      "next_step": {
+        "behavior": "skip_user_input"
+      },
+      "conditions": "($proactive_question == \"who_are_you\") || (!$username AND (@username:username OR #collect_username))",
+      "digress_in": "does_not_return",
+      "dialog_node": "node_5_1631528086601",
+      "previous_sibling": "node_2_1631526599591"
+    },
+    {
+      "type": "standard",
+      "title": "Fear",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Oye, tranquilo... Todo va a salir bien. No tengas miedo, seguro que se soluciona muy pronto."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_9_1631700029268",
+      "context": {
+        "continue": "True",
+        "eva_mood": "sad"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "$fear> 0.4 || @mood:temeroso",
+      "dialog_node": "node_5_1631787618278",
+      "previous_sibling": "node_1_1631700085734"
+    },
+    {
+      "type": "standard",
+      "title": "Tell tg message content",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Ya se lo he enviado"
+              },
+              {
+                "text": "¡Hecho!"
+              },
+              {
+                "text": "Ya le he escrito el mensaje"
+              },
+              {
+                "text": "¡Vale! Ya se lo he mandado"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_7_1651335224300",
+      "context": {
+        "action": "send_message",
+        "continue": "True"
+      },
+      "conditions": "true",
+      "dialog_node": "node_5_1651479155510"
+    },
+    {
+      "type": "standard",
+      "title": "Recognized name",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡$username! Perfecto. Encantada de conocerte. ¿Puedo hacer algo por ti?"
+              },
+              {
+                "text": "¡$username! Qué nombre más bonito. ¿Qué puedo hacer por ti?"
+              },
+              {
+                "text": "Muy bien, ¡$username!, Encantada."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_5_1631528086601",
+      "context": {
+        "action": "record_face",
+        "continue": "True",
+        "eva_mood": "joy",
+        "username": "<? @username.literal ?>"
+      },
+      "conditions": "@username:username",
+      "dialog_node": "node_6_1651075376733"
+    },
+    {
+      "type": "standard",
+      "title": "No name recognized",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Lo siento, no sé cuál es tu nombre"
+              },
+              {
+                "text": "Perdona, no identifico tu nombre"
+              },
+              {
+                "text": "Perdona, no reconozco tu nombre"
+              },
+              {
+                "text": "Lo siento, no he podido reconocer tu nombre"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_5_1631528086601",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "!@username:username",
+      "dialog_node": "node_6_1651075393085",
+      "previous_sibling": "node_6_1651075376733"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_10_1630657745558",
+      "context": {
+        "continue": "True"
+      },
+      "next_step": {
+        "behavior": "jump_to",
+        "selector": "condition",
+        "dialog_node": "node_9_1631700029268"
+      },
+      "conditions": "true",
+      "dialog_node": "node_7_1631528854375",
+      "previous_sibling": "response_5_1631703267511"
+    },
+    {
+      "type": "standard",
+      "title": "Send Telegram Message",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Qué quieres que le diga?"
+              },
+              {
+                "text": "¿Qué le pongo?"
+              },
+              {
+                "text": "¿Qué le digo?"
+              },
+              {
+                "text": "¿Qué le escribo?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "context": {
+        "action": "update_target_name",
+        "continue": "True"
+      },
+      "conditions": "#SendAMessage",
+      "dialog_node": "node_7_1651335224300",
+      "previous_sibling": "Bienvenido"
+    },
+    {
+      "type": "standard",
+      "title": "Say goodbye",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "#General_Ending",
+      "digress_in": "does_not_return",
+      "dialog_node": "node_8_1626255601729",
+      "previous_sibling": "node_8_1630656720510"
+    },
+    {
+      "type": "standard",
+      "title": "Tell jokes",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Cuál es el café más peligroso del mundo? El expreso"
+              },
+              {
+                "text": "Mamá, mamá, los spaghetti se están pegando. Déjalos que se maten"
+              },
+              {
+                "text": "¿Por qué las focas del circo miran siempre hacia arriba? Porque es donde están los focos."
+              },
+              {
+                "text": "¿Qué le dice una iguana a su hermana gemela? Somos iguanitas"
+              },
+              {
+                "text": "¿Qué le dice un techo a otro? Techo de menos"
+              },
+              {
+                "text": "¿Qué le dice un espagueti a otro? ¡El cuerpo me pide salsa!"
+              },
+              {
+                "text": "¿Qué es un pez en el cine? Pues un mero espectador"
+              },
+              {
+                "text": "El libro de matemáticas es un inmaduro, ya va siendo hora de que resuelva el solo sus problemas"
+              },
+              {
+                "text": "Si se muere una pulga, ¿a dónde va? Al pulgatorio"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "conditions": "#General_Jokes",
+      "digress_in": "does_not_return",
+      "dialog_node": "node_8_1630656720510",
+      "previous_sibling": "node_4_1626255538669"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡$username! Qué nombre más bonito. Encantada de conocerte. ¿Cómo puedo ayudarte hoy?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "Bienvenido",
+      "context": {
+        "username": "<? @username.literal ?>"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "#collect_username || @username:username",
+      "dialog_node": "node_8_1631527531017"
+    },
+    {
+      "type": "standard",
+      "title": "Sadness",
+      "parent": "node_9_1631700029268",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "$sadness > 0.4 || @mood:mal",
+      "dialog_node": "node_8_1631617353707"
+    },
+    {
+      "type": "standard",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Okey, no he podido captar emociones con esa respuesta"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_9_1631700029268",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "true",
+      "dialog_node": "node_8_1631701034021",
+      "previous_sibling": "node_13_1631787633075"
+    },
+    {
+      "type": "standard",
+      "title": "Positive feedback",
+      "metadata": {
+        "_customization": {
+          "mcr": true
+        }
+      },
+      "conditions": "#General_Positive_Feedback",
+      "dialog_node": "node_8_1631701530583",
+      "previous_sibling": "node_2_1647511561049"
+    },
+    {
+      "type": "standard",
+      "parent": "node_3_1631693129040",
+      "context": {
+        "continue": "True"
+      },
+      "next_step": {
+        "behavior": "jump_to",
+        "selector": "body",
+        "dialog_node": "node_8_1630656720510"
+      },
+      "conditions": "#yes",
+      "dialog_node": "node_9_1631695510562"
+    },
+    {
+      "type": "standard",
+      "title": "Moods",
+      "output": {
+        "generic": []
+      },
+      "next_step": {
+        "behavior": "skip_user_input"
+      },
+      "conditions": "($joy > 0.4 OR $sadness > 0.4 OR $anger> 0.4 OR $disgust> 0.4 OR $fear > 0.4 OR(#tell_mood AND @mood) OR ($proactive_question == \"how_are_you\"))",
+      "dialog_node": "node_9_1631700029268",
+      "previous_sibling": "node_8_1626255601729"
+    },
+    {
+      "type": "standard",
+      "title": "Disgust",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Estás asqueado? Piensa en algodón de azúcar, a mí eso siempre hace que se me pase."
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_9_1631700029268",
+      "context": {
+        "continue": "True"
+      },
+      "metadata": {
+        "_customization": {
+          "mcr": false
+        }
+      },
+      "conditions": "$disgust> 0.4 || @mood:asqueado",
+      "dialog_node": "node_9_1631787622960",
+      "previous_sibling": "node_5_1631787618278"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Estás triste? Creo que puedo ayudarte. ¿Te parece?"
+              },
+              {
+                "text": "Siento oír eso. ¿Puedo intentar ayudarte?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_8_1631617353707",
+      "context": {
+        "continue": "True",
+        "eva_mood": "sad"
+      },
+      "dialog_node": "response_10_1631703123137",
+      "previous_sibling": "response_3_1631703090899"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Estoy muy bien. ¡Gracias por preguntar! ¿Cómo estas tú, $username?"
+              },
+              {
+                "text": "Estoy fenomenal, ¿y tú?"
+              },
+              {
+                "text": "Estoy genial. ¿Tú cómo estás, $username?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_10_1630657745558",
+      "disabled": true,
+      "conditions": "$username",
+      "dialog_node": "response_1_1631703231801"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Me alegro un montón!"
+              },
+              {
+                "text": "¡Qué bien! Así me gusta"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_9_1631787622960",
+      "disabled": true,
+      "dialog_node": "response_12_1631787622962"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Me alegro un montón!"
+              },
+              {
+                "text": "¡Qué bien! Así me gusta"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_13_1631787633075",
+      "disabled": true,
+      "dialog_node": "response_16_1631787633076"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Buenas!"
+              },
+              {
+                "text": "¡Hola!"
+              },
+              {
+                "text": "¡Hey!"
+              },
+              {
+                "text": "¡Qué pasa, tronco!"
+              },
+              {
+                "text": "¡Hola holita!"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_4_1626255538669",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "dialog_node": "response_2_1631526796270",
+      "previous_sibling": "response_4_1631526792565"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Me alegro un montón!"
+              },
+              {
+                "text": "¡Qué bien! Así me gusta"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_1_1631700085734",
+      "disabled": true,
+      "dialog_node": "response_2_1631703142528",
+      "previous_sibling": "node_4_1631785008333"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "No sé quién eres, lo siento. ¿Cómo te llamas?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_2_1647511561049",
+      "context": {
+        "continue": "True"
+      },
+      "next_step": {
+        "behavior": "jump_to",
+        "selector": "user_input",
+        "dialog_node": "node_5_1631528086601"
+      },
+      "conditions": "!$username",
+      "dialog_node": "response_2_1647511614156",
+      "previous_sibling": "response_7_1647511582487"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Me llamo Eva, y estoy aquí para ayudarte y hacerte compañía"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_2_1631526599591",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "$username",
+      "dialog_node": "response_3_1631528035775"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¿Estás triste, $username? Creo que puedo ayudarte. ¿Te parece?"
+              },
+              {
+                "text": "Ay, jopé. ¿Quieres que te anime?"
+              },
+              {
+                "text": "Siento oír eso. ¿Puedo intentar ayudarte?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_8_1631617353707",
+      "context": {
+        "continue": "True",
+        "eva_mood": "sad"
+      },
+      "conditions": "$username",
+      "dialog_node": "response_3_1631703090899"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Hola, $username!"
+              },
+              {
+                "text": "¡Buenas!"
+              },
+              {
+                "text": "¡Hey, $username!"
+              },
+              {
+                "text": "¡Qué pasa, tronco!"
+              },
+              {
+                "text": "¡Hola holita!"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_4_1626255538669",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "conditions": "$username",
+      "dialog_node": "response_4_1631526792565"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Gracias a ti, $username!"
+              },
+              {
+                "text": "No me lo agradezcas $username, para eso estoy"
+              },
+              {
+                "text": "Vaya, para eso estamos $username"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_8_1631701530583",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "conditions": "$username",
+      "dialog_node": "response_5_1631703170331",
+      "previous_sibling": "slot_9_1645010254031"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Estoy muy bien. ¿Cómo estas tú?"
+              },
+              {
+                "text": "Estoy fenomenal, ¿y tú?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_10_1630657745558",
+      "disabled": true,
+      "dialog_node": "response_5_1631703267511",
+      "previous_sibling": "response_1_1631703231801"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡$username! Qué nombre más bonito. Encantada de conocerte. ¿Cómo puedo ayudarte hoy?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_8_1631527531017",
+      "context": {
+        "username": "<? input.text ?>"
+      },
+      "disabled": true,
+      "dialog_node": "response_6_1647859015749"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "text": {
+          "values": [
+            "Eres $username, mi compi de casa",
+            "¡$username! mi compi"
+          ],
+          "selection_policy": "sequential"
+        }
+      },
+      "parent": "node_2_1647511561049",
+      "context": {
+        "continue": "True"
+      },
+      "conditions": "$username",
+      "dialog_node": "response_7_1647511582487"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Nos vemos luego, $username!"
+              },
+              {
+                "text": "¡Hasta luego, $username!"
+              },
+              {
+                "text": "¡Hasta pronto, $username!"
+              },
+              {
+                "text": "¡Adiós!"
+              },
+              {
+                "text": "Nos vemos"
+              },
+              {
+                "text": "¡Talué!"
+              },
+              {
+                "text": "Adiosito"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_8_1626255601729",
+      "conditions": "$username",
+      "dialog_node": "response_8_1631527297945"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Hasta pronto!"
+              },
+              {
+                "text": "Nos vemos"
+              },
+              {
+                "text": "¡Adiós!"
+              },
+              {
+                "text": "Adiosito"
+              },
+              {
+                "text": "Hasta luego"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "random"
+          }
+        ]
+      },
+      "parent": "node_8_1626255601729",
+      "dialog_node": "response_8_1631527467428",
+      "previous_sibling": "response_8_1631527297945"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "Me llamo Eva, y estoy aquí para ayudarte y hacerte compañía. ¿Cómo te llamas tú?"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_2_1631526599591",
+      "context": {
+        "continue": "True"
+      },
+      "next_step": {
+        "behavior": "jump_to",
+        "selector": "user_input",
+        "dialog_node": "node_5_1631528086601"
+      },
+      "dialog_node": "response_8_1631528046111",
+      "previous_sibling": "response_3_1631528035775"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Gracias a ti!"
+              },
+              {
+                "text": "No tienes que agradecerme nada"
+              },
+              {
+                "text": "Para eso estamos"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_8_1631701530583",
+      "context": {
+        "continue": "True",
+        "eva_mood": "joy"
+      },
+      "dialog_node": "response_8_1631703191638",
+      "previous_sibling": "response_5_1631703170331"
+    },
+    {
+      "type": "response_condition",
+      "output": {
+        "generic": [
+          {
+            "values": [
+              {
+                "text": "¡Me alegro un montón!"
+              },
+              {
+                "text": "¡Qué bien! Así me gusta"
+              }
+            ],
+            "response_type": "text",
+            "selection_policy": "sequential"
+          }
+        ]
+      },
+      "parent": "node_5_1631787618278",
+      "disabled": true,
+      "dialog_node": "response_8_1631787618279"
+    },
+    {
+      "type": "slot",
+      "parent": "node_8_1631701530583",
+      "dialog_node": "slot_9_1645010254031"
+    }
+  ],
+  "counterexamples": [
+    {
+      "text": "el deporte estuvo bien"
+    },
+    {
+      "text": "la comida me ha salido muy bien"
+    },
+    {
+      "text": "me gusta el pollo frito"
+    },
+    {
+      "text": "mesa"
+    }
+  ],
+  "system_settings": {
+    "nlp": {
+      "model": "baseline"
+    },
+    "disambiguation": {
+      "prompt": "Querías decir:",
+      "enabled": false,
+      "randomize": true,
+      "max_suggestions": 5,
+      "suggestion_text_policy": "title",
+      "none_of_the_above_prompt": "Ninguna de las anteriores"
+    },
+    "human_agent_assist": {
+      "prompt": "Querías decir:"
+    },
+    "intent_classification": {
+      "training_backend_version": "v1"
+    }
+  },
+  "learning_opt_out": false,
+  "language": "es",
+  "description": "",
+  "name": "My first"
+}

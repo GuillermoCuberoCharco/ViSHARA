@@ -154,14 +154,12 @@ ws_server.on('connection', (socket) => {
     });
 });
 
-server.listen(4000, () => {
-    console.log('Main server running on port 4000');
-    console.log('Face recognition server available at /upload');
-    console.log('WebRTC server available at /webrtc');
-});
 
 app.listen(8082, () => {
     console.log('Express endpoints server running on port 8082');
     console.log('Websocket message server running on port 8081');
+    console.log('Main server running on port 4000');
+    console.log('Face recognition server available at /upload');
+    console.log('WebRTC server available at /webrtc');
 })
 

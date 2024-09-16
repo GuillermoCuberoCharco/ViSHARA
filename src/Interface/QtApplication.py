@@ -16,23 +16,25 @@ class MainWindow(QMainWindow):
 
         self.chat_app = ChatApplication()
 
-        self.web_view = QWebEngineView()
-        self.web_view.load(QUrl("http://localhost:5173"))
+        #self.web_view = QWebEngineView()
+        #self.web_view.load(QUrl("http://localhost:5173"))
+
+        self.webrtc_client = WebRTCClient()
+        self.webrtc_client.frame_received.connect(self.on_frame_recived)
+        self.webrtc_thread = WebRTCThread(self.webrtc_client)
+        self.webrtc_thread.start()
 
         self.layout = QGridLayout()
 
         self.layout.addWidget(self.label, 0, 0)
-        self.layout.addWidget(self.web_view, 0, 1)
+        #self.layout.addWidget(self.web_view, 0, 1)
         self.layout.addWidget(self.chat_app, 1, 0, 1, 2)
 
         container = QWidget()
         container.setLayout(self.layout)
         self.setCentralWidget(container)
 
-        self.webrtc_client = WebRTCClient()
-        self.webrtc_client.frame_received.connect(self.on_frame_recived)
-        self.webrtc_thread = WebRTCThread(self.webrtc_client)
-        self.webrtc_thread.start()
+        
 
     @pyqtSlot(bytes)
     def on_frame_recived(self, frame_data):
