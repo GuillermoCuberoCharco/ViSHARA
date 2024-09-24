@@ -1,10 +1,13 @@
 import asyncio
 import json
 import logging
-from PyQt5.QtCore import pyqtSignal, QObject, QThread
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration, RTCIceServer
+import cv2
+import numpy as np
+from PyQt6.QtCore import pyqtSignal, QObject, QThread
+from aiortc import RTCPeerConnection, VideoStreamTrack, RTCConfiguration, RTCIceServer
 from aiortc.contrib.signaling import TcpSocketSignaling
-from aiortc.mediastreams import MediaStreamTrack
+from aiortc.mediastreams import MediaStreamError
+from av import VideoFrame
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("WebRTCClient")
@@ -34,8 +37,21 @@ class CustomTcpSocketSignaling(TcpSocketSignaling):
         self.writer.write(json.dumps(mesaage).encode() + b"\n")
         await self.writer.drain()
 
+class OpenCvVideoStreamTrack(VideoStreamTrack):
+    def __init__(self):
+        super().__init__()
+        self.cap = cv2.VideoCapture(0)
+
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+        ret, frame = self.cap.read()
+        if not ret:
+            raise ConnectionError("Error reading frame")
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        return VideoFrame.from_ndarray(frame, format="bgr24")
+
 class WebRTCClient(QObject):
-    frame_received = pyqtSignal(bytes)
+    frame_received = pyqtSignal(np.ndarray)
 
     def __init__(self):
         super().__init__()
@@ -47,13 +63,21 @@ class WebRTCClient(QObject):
         await self.signaling.connect()
 
         @self.pc.on("track")
-        async def on_track(track):
+        def on_track(self, track):
             logger.info("Track received")
             if track.kind == "video":
-                while True:
-                    frame = await track.recv()
-                    logger.debug("Frame received")
-                    self.frame_received.emit(frame.to_rgb().to_bytes())
+               asyncio.ensure_future(self.process_video(track))
+    
+    async def process_video(self, track):
+        while True:
+            try:
+                frame = await track.recv()
+                if frame:
+                    img = frame.to_ndarray(format="bgr24")
+                    self.frame_received.emit(img)
+            except MediaStreamError as e:
+                logger.error("Error receiving frame: %s" % e)
+                break
         
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -91,7 +115,8 @@ class WebRTCClient(QObject):
             loop.run_forever()
         except Exception as e:
             logger.error("Error in WebRTCClient: %s" % e)
-            raise
+        finally:
+            loop.close()
 
 class WebRTCThread(QThread):
     def __init__(self, webrtc_client):
@@ -99,8 +124,6 @@ class WebRTCThread(QThread):
         self.webrtc_client = webrtc_client
     
     def run(self):
-        try:
-            self.webrtc_client.run()
-        except Exception as e:
-            logger.error("Error in WebRTCThread: %s" % e)
-            raise
+        self.webrtc_client.run()
+  
+  

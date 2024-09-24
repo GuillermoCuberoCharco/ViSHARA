@@ -1,9 +1,10 @@
 import sys
 import threading
 import json
+import ssl
 import websocket
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
+from PyQt6.QtCore import pyqtSignal, Qt
 
 class ChatApplication(QWidget):
     watson_response_received = pyqtSignal(dict)
@@ -52,7 +53,7 @@ class ChatApplication(QWidget):
         self.layout.addLayout(button_layout)
 
         self.mode_label = QLabel('Auto mode: OFF')
-        self.mode_label.setAlignment(Qt.AlignCenter)
+        self.mode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.mode_label)
 
     def toggle_mode(self):
@@ -77,7 +78,13 @@ class ChatApplication(QWidget):
                                          on_error=self.on_error,
                                          on_close=self.on_close)
         self.ws.on_open = self.on_open
-        self.ws.run_forever()
+
+        # Disable SSL certificate verification
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+        self.ws.run_forever(sslopt={'cert_reqs': ssl.CERT_NONE})
 
     def on_message(self, ws, message):
         try:
@@ -118,7 +125,7 @@ class ChatApplication(QWidget):
             from WatsonResponseDialog import WatsonResponseDialog
             current_state = data.get('state', 'Attention')
             dialog = WatsonResponseDialog(data['text'], current_state, self)
-            if dialog.exec_() == QDialog.Accepted:
+            if dialog.exec() == QDialog.accepted:
                 validated_response = dialog.get_response()
                 validated_state = dialog.get_state()
                 self.display_message(f"Watson: {validated_response}")
@@ -172,4 +179,4 @@ if __name__ == '__main__':
     chat_app.setWindowTitle('Wizard of Oz Chat App')
     chat_app.setGeometry(100, 100, 500, 600)
     chat_app.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

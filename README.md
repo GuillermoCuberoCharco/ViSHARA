@@ -8,4 +8,4 @@ yarn dev
 
 node src/service/EventService.cjs
 
-wscat -c ws://localhost:8081
+QT_QPA_PLATFORM=xcb python3 src/Interface/QtApplication.py

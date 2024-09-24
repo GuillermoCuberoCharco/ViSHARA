@@ -1,9 +1,12 @@
 import sys
 import numpy as np
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget, QGridLayout
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import QUrl, pyqtSlot
+import cv2
+import asyncio
+import qasync
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QGridLayout
+from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtCore import pyqtSlot, QUrl
 from ChatApplication import ChatApplication
 from WebRTCClient import WebRTCClient, WebRTCThread
 
@@ -36,17 +39,25 @@ class MainWindow(QMainWindow):
 
         
 
-    @pyqtSlot(bytes)
+    @pyqtSlot(np.ndarray)
     def on_frame_recived(self, frame_data):
-        img_np = np.frombuffer(frame_data, dtype=np.uint8).reshape((480, 640, 3))
-        height, width, channel = img_np.shape
+        rgb_frame = cv2.cvtColor(frame_data, cv2.COLOR_BGR2RGB)
+
+        height, width, channel = rgb_frame.shape
         bytes_per_line = 3 * width
-        q_img = QImage(img_np.data, width, height, bytes_per_line, QImage.Format_RGB888)
-        self.label.setPixmap(QPixmap.fromImage(q_img))
+        q_image = QImage(frame_data.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+        self.label.setPixmap(QPixmap.fromImage(q_image))
 
-
-if __name__ == "__main__":
+async def main():
     app = QApplication(sys.argv)
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+
+    with loop:
+        await loop.run_forever()
+
+if __name__ == "__main__":
+    asyncio.run(main())

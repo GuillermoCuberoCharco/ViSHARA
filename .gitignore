@@ -4,6 +4,7 @@ node_modules
 __pycache__
 .venv
 .venvp8
+.venv11
 webrtc_event_logs
 # Logs
 logs
