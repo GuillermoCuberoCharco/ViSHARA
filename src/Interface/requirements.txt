@@ -2,7 +2,8 @@ numpy
 PyQt6
 PyQt6-WebEngine
 aiortc
-websocket
+websockets
 websocket-client
 opencv-python
 qasync
+av

@@ -7,7 +7,7 @@ function setupWebRTC(server) {
   const io = socketIo(server, {
     path: '/webrtc',
     cors: {
-      origin: 'http://localhost:5173',
+      origin: 'http://localhost',
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -40,7 +40,7 @@ function setupWebRTC(server) {
     socket.on('offer', (offer) => {
       console.log('Offer received:', offer);
       if (pythonClient) {
-        pythonClient.write(offer + '\n');
+        pythonClient.write(JSON.stringify({ type: 'offer', offer: JSON.parse(offer) }) + '\n');
         console.log('Offer sent to TCP client');
       } else {
         console.log('No TCP client connected');
@@ -50,11 +50,20 @@ function setupWebRTC(server) {
     socket.on('ice-candidate', (candidate) => {
       console.log('Ice candidate received:', candidate);
       if (pythonClient) {
-        pythonClient.write(JSON.stringify({ type: 'ice-candidate', candidate: candidate }) + '\n');
+        pythonClient.write(JSON.stringify({ type: 'ice-candidate', candidate: JSON.parse(candidate) }) + '\n');
         console.log('Ice candidate sent to TCP client');
       }
       console.log('No TCP client connected');
     });
+
+    if (pythonClient) {
+      pythonClient.on('data', (data) => {
+        const message = JSON.parse(data.toString());
+        if (message.type === 'answer') {
+          socket.emit('answer', message.answer);
+        }
+      });
+    }
 
     socket.on('disconnect', () => {
       console.log('WebRTC connection disconnected');
