@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
+import io from "socket.io-client";
 export const CharacterAnimationsContext = createContext();
 
 
@@ -9,7 +9,7 @@ export const CharacterAnimationsProvider = (props) => {
   const [currentMessage, setCurrentMessage] = useState("");
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8081");
+    const socket = io("ws://localhost:8081");
 
     socket.onopen = () => console.log("Me he conectado al WebSocket");
     socket.onmessage = (event) => {

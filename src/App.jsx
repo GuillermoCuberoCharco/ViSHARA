@@ -2,7 +2,7 @@ import { Sky } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import Experience from "./components/Experience";
 import Interface from "./components/Interface";
-import WebRTCComponent from "./components/WebRTCService";
+//import WebRTCComponent from "./components/WebRTCService";
 import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
 
 function App() {
@@ -15,9 +15,12 @@ function App() {
         </Experience>
       </Canvas>
       <Interface />
-      <WebRTCComponent />
     </CharacterAnimationsProvider>
   );
+
+  // return (
+  //   <WebRTCComponent />
+  // );
 }
 
 export default App;

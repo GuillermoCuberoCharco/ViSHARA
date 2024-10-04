@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
+import io from "socket.io-client";
 import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 import '../InterfaceStyle.css';
 import CameraCapture from "./CameraCapture";
@@ -128,7 +129,7 @@ const Interface = () => {
   const handleTranscribe = async () => {
     try {
       const audio = await blobToBase64(recordedBlob.blob);
-      const response = await axios.post("http://localhost:8082/transcribe", { audio });
+      const response = await axios.post("http://localhost:8081/transcribe", { audio });
       const transcript = response.data.transcript;
       setNewMessage(transcript);
       sendMessage();
@@ -139,14 +140,14 @@ const Interface = () => {
 
   // Endpoint call to the Google Cloud Text-to-Speech API
   const handleSynthesize = async (message) => {
-    const response = await axios.post("http://localhost:8082/synthesize", { text: message });
+    const response = await axios.post("http://localhost:8081/synthesize", { text: message });
     const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
     setAudioSrc(audioSrc);
   };
 
   // Connection to the WebSocket server for messages exchange
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8081");
+    const socket = io("http://localhost:8081");
 
     socket.addEventListener("message", (event) => {
       let data;

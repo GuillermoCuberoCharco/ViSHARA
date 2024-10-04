@@ -62,7 +62,7 @@ const CameraCapture = ({ onFaceDetected }) => {
             formData.append('file', blob, 'capture.png');
 
             try {
-              const response = await fetch('http://localhost:3000/upload', {
+              const response = await fetch('http://localhost:8081/upload', {
                 method: 'POST',
                 body: formData
               });

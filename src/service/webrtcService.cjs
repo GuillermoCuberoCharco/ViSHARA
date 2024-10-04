@@ -1,76 +1,70 @@
+function setupWebRTC(io) {
+  const webrtcNamespace = io.of('/webrtc');
 
-const socketIo = require('socket.io');
-const net = require('net');
+  let pythonClients = new Set();
+  let webClients = new Set();
+  let pendingOffers = [];
 
+  webrtcNamespace.on('connection', (socket) => {
+    console.log('New WebRTC connection: ', socket.id);
 
-function setupWebRTC(server) {
-  const io = socketIo(server, {
-    path: '/webrtc',
-    cors: {
-      origin: 'http://localhost',
-      methods: ['GET', 'POST'],
-      credentials: true
-    }
-  });
-
-  let pythonClient = null;
-
-  const tcpServer = net.createServer((socket) => {
-    console.log('TCP client connected');
-    pythonClient = socket;
-
-    socket.on('data', (data) => {
-      console.log('Data received:', data.toString());
-      io.emit('data', data.toString());
+    // Identify clients
+    socket.on('register', (clientType) => {
+      console.log(`Client registered as ${clientType}:`, socket.id);
+      if (clientType === 'python') {
+        pythonClients.add(socket);
+        if (pendingOffers.length > 0) {
+          pendingOffers.forEach((offer) => {
+            socket.emit('offer', offer);
+          });
+          pendingOffers = [];
+        }
+      } else if (clientType === 'web') {
+        webClients.add(socket);
+      }
     });
-
-    socket.on('end', () => {
-      console.log('TCP client disconnected');
-      pythonClient = null;
-    });
-  });
-
-  tcpServer.listen(4000, () => {
-    console.log('TCP server listening on port 4000');
-  });
-
-  io.on('connection', (socket) => {
-    console.log('New WebRTC connection');
 
     socket.on('offer', (offer) => {
       console.log('Offer received:', offer);
-      if (pythonClient) {
-        pythonClient.write(JSON.stringify({ type: 'offer', offer: JSON.parse(offer) }) + '\n');
-        console.log('Offer sent to TCP client');
+      if (pythonClients.size > 0) {
+        console.log('Forwarding offer to Python client');
+        pythonClients.forEach((client) => client.emit('offer', offer));
       } else {
-        console.log('No TCP client connected');
+        console.log('No Python client connected to receive offer');
+        pendingOffers.push(offer);
+      }
+    });
+
+    socket.on('answer', (answer) => {
+      console.log('Answer received from: ', socket.id);
+      if (webClients.size > 0) {
+        console.log('Forwarding answer to Web client');
+        webClients.forEach((client) => client.emit('answer', answer));
+      } else {
+        console.log('No Web client connected to receive answer');
       }
     });
 
     socket.on('ice-candidate', (candidate) => {
-      console.log('Ice candidate received:', candidate);
-      if (pythonClient) {
-        pythonClient.write(JSON.stringify({ type: 'ice-candidate', candidate: JSON.parse(candidate) }) + '\n');
-        console.log('Ice candidate sent to TCP client');
+      console.log('ICE candidate received: ', candidate);
+      if (pythonClients.has(socket)) {
+        webClients.forEach((client) => client.emit('ice-candidate', candidate));
+      } else if (webClients.has(socket)) {
+        pythonClients.forEach((client) => client.emit('ice-candidate', candidate));
       }
-      console.log('No TCP client connected');
+      console.log('ICE candidate forwarded');
     });
 
-    if (pythonClient) {
-      pythonClient.on('data', (data) => {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'answer') {
-          socket.emit('answer', message.answer);
-        }
-      });
-    }
-
-    socket.on('disconnect', () => {
-      console.log('WebRTC connection disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log(`Client ${socket.id} disconnected. Reason: ${reason}`);
+      pythonClients.delete(socket);
+      webClients.delete(socket);
     });
+
+
   });
 
-  return io;
+  return webrtcNamespace;
 }
 
 module.exports = { setupWebRTC };
