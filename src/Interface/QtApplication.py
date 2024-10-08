@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import qasync
+from qasync import QEventLoop
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QGridLayout
 from ChatApplication import ChatApplication
@@ -10,8 +11,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Wizard of Oz")
-        self.label = QLabel(self)
-        self.layout = QVBoxLayout()
 
         self.chat_app = ChatApplication()
 
@@ -25,7 +24,7 @@ class MainWindow(QMainWindow):
 
         self.layout = QGridLayout()
         # self.layout.addWidget(self.web_view, 0, 1)
-        self.layout.addWidget(self.chat_app, 1, 0, 1, 2)
+        self.layout.addWidget(self.chat_app, 0, 0, 1, 1)
 
         container = QWidget()
         container.setLayout(self.layout)
@@ -33,7 +32,7 @@ class MainWindow(QMainWindow):
 
 async def main():
     app = QApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
     window = MainWindow()

@@ -3,112 +3,81 @@ import threading
 import json
 import asyncio
 import qasync
-from qasync import QEventLoop, asyncSlot
-import socketio
+from qasync import QEventLoop, asyncSlot, QApplication
 import logging
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
-from PyQt6.QtCore import pyqtSignal, Qt, QObject, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt
+from SockeIOtHandle import SockeIOtHandle
+from WatsonResponseDialog import WatsonResponseDialog
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class SockeIOtHandle(QObject):
-    message_received = pyqtSignal(str)
-    connection_opened = pyqtSignal()
-    connection_closed = pyqtSignal(str)
-    connection_error = pyqtSignal(str)
-
-    def __init__(self, url):
-        super().__init__()
-        self.url = url
-        self.sio = socketio.AsyncClient(logger=True, engineio_logger=True)
-        self.setup_events()
-
-    def setup_events(self):
-        @self.sio.event
-        async def connect():
-            logger.info('Connected to server')
-            self.connection_opened.emit()
-
-        @self.sio.event
-        async def disconnect():
-            logger.info('Disconnected from server')
-            self.connection_closed.emit('Disconnected')
-
-        @self.sio.event
-        async def message(data):
-            logger.info(f'Message received: {data}')
-            self.message_received.emit(json.dumps(data))
-
-        @self.sio.on('*')
-        def catch_all_event(event, data):
-            logger.info(f'Catch all event: {event} - {data}')
-            self.message_received.emit(json.dumps({'event': event, 'data': data}))
-
-    async def connect(self):
-        try:
-            await self.sio.connect(self.url)
-        except Exception as e:
-            logger.error(f'Error connecting to server: {str(e)}')
-            self.connection_error.emit(str(e))
-
-    async def disconnect(self):
-        await self.sio.disconnect()
-
-    async def send_message(self, message):
-        try:
-            await self.sio.emit('message', message)
-        except Exception as e:
-            logger.error(f'Error sending message: {str(e)}')
-            self.connection_error.emit(str(e))
+logging.getLogger('socketio').setLevel(logging.WARNING)
+logging.getLogger('engineio').setLevel(logging.WARNING)
 
 class ChatApplication(QWidget):
     watson_response_received = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super(ChatApplication, self).__init__(parent)
+        logger.info('Initializing ChatApplication')
         self.socket_client = SockeIOtHandle('http://localhost:8081')
         self.socket_client.message_received.connect(self.handle_message)
         self.socket_client.connection_opened.connect(self.handle_connection_opened)
         self.socket_client.connection_closed.connect(self.handle_connection_closed)
         self.socket_client.connection_error.connect(self.handle_connection_error)
-        self.socket_client.connect()
         self.create_widgets()
-        self.watson_response_received.connect(self.handle_watson_response)
         self.auto_mode = False
 
-        asyncio.get_event_loop().create_task(self.connect_scoket())
+    async def initialize(self):
+        try:
+            await self.socket_client.connect()
+            logger.info('WebSocket connection initialized')
+        except Exception as e:
+            logger.error(f'Error initializing WebSocket connection: {str(e)}')
+            self.display_message(f'Error initializing WebSocket connection: {str(e)}')
 
-    async def connect_scoket(self):
-        await self.socket_client.connect()
+    async def cleanup(self):
+        logger.info('Cleaning up WebSocket connection')
+        try:
+            await self.socket_client.disconnect()
+            logger.info('WebSocket connection cleaned up')
+        except Exception as e:
+            logger.error(f'Error cleaning up WebSocket connection: {str(e)}')
+            self.display_message(f'Error cleaning up WebSocket connection: {str(e)}')
 
     def handle_message(self, message):
         try:
             data = json.loads(message)
+            logger.info(f'Message received: {data}')
             if isinstance(data, dict):
-                if data.get('type') == 'client_message':
-                    self.display_message(f"CLIENT: {data['text']}")
-                elif data.get('type') == 'watson_response':
-                    self.watson_response_received.emit(data)
-                    if 'emotion' in data:
-                        self.display_message(f"Emotion: {data['emotion']}")
-                    if 'mood' in data:
-                        self.display_message(f"Mood: {data['mood']}")
+                event = data.get('event')
+                event_data = data.get('data')
+                if event == 'client_message':
+                    self.display_message(f"CLIENT: {event_data['text']}")
+                elif event == 'watson_message':
+                    self.handle_watson_response(event_data)
+                else:
+                    self.display_message(f'EVENT: {event}, DATA: {event_data}')
             else:
                 self.display_message(f'SHARA: {message}')
         except json.JSONDecodeError:
-            self.display_message(f'SHARA: {message}')
+            self.display_message(f'SHARA Non JSON: {message}')
         except Exception as e:
             logger.error(f'ERROR processing message: {str(e)}')
             self.display_message(f'ERROR processing message: {str(e)}')
 
     def handle_connection_opened(self):
+        logger.info('WebSocket connection established')
         self.display_message('WebSocket connection established')
 
     def handle_connection_closed(self, close_info):
+        logger.info(f'WebSocket connection closed: {close_info}')
         self.display_message(f'WebSocket connection closed: {close_info}')
 
     def handle_connection_error(self, error):
+        logger.error(f'WebSocket connection error: {error}')
         self.display_message(f'WebSocket connection error: {error}')
 
     def quit(self):
@@ -166,37 +135,33 @@ class ChatApplication(QWidget):
             self.state_input.setEnabled(True)
             self.send_button.setEnabled(True)
 
+    @asyncSlot()
     async def handle_watson_response(self, data):
+        logger.info('Handling Watson response')
         if self.auto_mode:
             validated_response = data['text']
             validated_state = data.get('state', 'Attention')
             self.display_message(f"Watson: {validated_response}")
             self.display_message(f"Robot state: {validated_state}")
-            await self.socket_client.send(json.dumps({
+            await self.socket_client.send_message({
                 'type': 'wizard_message',
                 'text': validated_response,
                 'state': validated_state
-            }))
+            })
         else:
-            # Importing the WatsonResponseDialog class here to avoid circular imports
-            from WatsonResponseDialog import WatsonResponseDialog
             current_state = data.get('state', 'Attention')
             dialog = WatsonResponseDialog(data['text'], current_state, self)
-            if dialog.exec() == QDialog.accepted:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
                 validated_response = dialog.get_response()
                 validated_state = dialog.get_state()
                 self.display_message(f"Watson: {validated_response}")
                 self.display_message(f"Robot state: {validated_state}")
-                await self.socket_client.send(json.dumps({
+                await self.socket_client.send_message({
                     'type': 'wizard_message',
                     'text': validated_response,
                     'state': validated_state
-                }))
-                if 'emotion' in data:
-                    self.display_message(f"Emotion: {data['emotion']}")
-                if 'mood' in data:
-                    self.display_message(f"Mood: {data['mood']}")
-                    
+                })
+                
     def on_error(self, ws, error):
         self.display_message(f'WebSocket error: {str(error)}')
 
@@ -215,7 +180,7 @@ class ChatApplication(QWidget):
         message = self.message_input.text()
         state = self.state_input.text() or 'Attention'
         if message.strip() != '':
-            self.socket_client.send_message(json.dumps({
+            await self.socket_client.send_message(({
                 'type': 'wizard_message',
                 'text': message,
                 'state': state
@@ -229,24 +194,43 @@ class ChatApplication(QWidget):
         self.chat_display.append(message)
 
     def close_event(self, event):
-        asyncio.get_event_loop().create_task(self.close_application())
+        logger.info('Close event received')
+        asyncio.create_task(self.cleanup())
         event.accept()
 
     async def close_application(self): 
+        logger.info('Closing ChatApplication')
         await self.socket_client.disconnect()
 
 async def main():
+    logger.info('Starting ChatApplication')
     app = QApplication(sys.argv)
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
+    logger.info('Creating ChatApplication')
     chat_app = ChatApplication()
     chat_app.setWindowTitle('Wizard of Oz Chat App')
     chat_app.setGeometry(100, 100, 500, 600)
     chat_app.show()
 
-    with loop:
-        await loop.run_forever()
+    logger.info('Running ChatApplication')
+    await chat_app.initialize()
+
+    def close_future(future, loop):
+        loop.call_later(10, future.cancel)
+        future.cancel()
+
+    future = asyncio.Future()
+
+    app.lastWindowClosed.connect(lambda: close_future(future, loop))
+
+    try:
+        await future
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await chat_app.close_application()
 
 if __name__ == '__main__':
     qasync.run(main())

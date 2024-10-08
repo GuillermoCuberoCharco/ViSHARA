@@ -43,17 +43,29 @@ app.post("/synthesize", synthesize);
 // Google STT servicie
 app.post('/transcribe', transcribe);
 
+let pythonClient = null;
+
 // Unified WebSocket handling
 io.on('connection', (socket) => {
     console.log('New WebSocket connected');
 
+    socket.on('register_python_client', () => {
+        console.log('Python client registered:', socket.id);
+        pythonClient = socket.id;
+    });
+
     socket.on('disconnect', () => {
         console.log('WebSocket disconnected');
+        if (socket.id === pythonClient) {
+            console.log('Python client disconnected');
+            pythonClient = null;
+        }
     });
 
     socket.on('message', async (message) => {
         console.log('Received message:', message);
 
+        let parsedMessage = message;
         if (typeof message === 'string') {
             try {
                 parsedMessage = JSON.parse(message);
@@ -85,17 +97,25 @@ io.on('connection', (socket) => {
                     const watsonText = response.output.generic[0].text;
 
                     // Send the response to all connections
-                    io.emit('watson_message', {
-                        text: watsonText,
-                        emotions: emotions,
-                        state: strongestEmotion
-                    });
+                    if (pythonClient) {
+                        io.to(pythonClient).emit('watson_message', {
+                            text: watsonText,
+                            emotions: emotions,
+                            state: strongestEmotion
+                        });
+                    } else {
+                        console.log('No Python client connected');
+                    }
                 } else {
                     // Send a 'No response' message if Watson doesn't understand the input
-                    io.emit('watson_message', {
-                        text: 'Sorry, I did not understand that',
-                        state: 'Confused'
-                    });
+                    if (pythonClient) {
+                        io.to(pythonClient).emit('watson_message', {
+                            text: 'Sorry, I did not understand that',
+                            state: 'Confused'
+                        });
+                    } else {
+                        console.log('No Python client connected');
+                    }
                 }
             } catch (error) {
                 console.error('Error processing message:', error);

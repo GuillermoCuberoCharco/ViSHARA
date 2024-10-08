@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
 import io from "socket.io-client";
 import { useCharacterAnimations } from "../contexts/CharacterAnimations";
@@ -51,19 +51,15 @@ const Interface = () => {
   }, [messages]);
 
   // Send message to the server as a client message
-  const sendMessage = () => {
-    if (socket && socket.readyState === WebSocket.OPEN && newMessage) {
+  const sendMessage = useCallback(() => {
+    if (socket && newMessage) {
       const currentAnimation = animations[setAnimationIndex];
-      const messageObject = {
-        type: "client_message",
-        text: newMessage,
-        state: currentAnimation
-      };
-      socket.send(JSON.stringify(messageObject));
+      const messageObject = { type: "client_message", text: newMessage, state: currentAnimation };
+      socket.emit('message', messageObject);
       setNewMessage("");
       setIsWaitingResponse(true);
     }
-  };
+  }, [socket, newMessage, animations, setAnimationIndex]);
 
   // Create audio context and analyser for volume detection
   useEffect(() => {
@@ -125,6 +121,85 @@ const Interface = () => {
     });
   };
 
+  // Connection to the WebSocket server for messages exchange
+  useEffect(() => {
+    const newSocket = io("http://localhost:8081", {
+      transports: ["websocket"],
+      upgrade: false
+    });
+
+    newSocket.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("Disconnected from server");
+    });
+
+    newSocket.on("watson_message", (message) => {
+      console.log("Received Watson message:", message.text);
+      setMessages((messages) => [...messages, { text: message.text, sender: "watson" }]);
+      handleSynthesize(message.text);
+      setIsWaitingResponse(false);
+
+      if (message.state) {
+        const animationIndex = animations.findIndex((animation) => animation === message.state);
+        if (animationIndex !== -1) {
+          setAnimationIndex(animationIndex);
+          setFaceDetected(false);
+        }
+      }
+
+      if (message.emotions) {
+        console.log("Emotions detected:", message.emotions);
+      }
+    });
+
+    newSocket.on("wizard_message", (message) => {
+      console.log("Received Wizard message:", message.text);
+      setMessages((messages) => [...messages, { text: message.text, sender: "wizard" }]);
+
+      if (message.state) {
+        const animationIndex = animations.findIndex((animation) => animation === message.state);
+        if (animationIndex !== -1) {
+          setAnimationIndex(animationIndex);
+          setFaceDetected(false);
+        }
+      }
+
+      if (message.emotions) {
+        console.log("Emotions detected:", message.emotions);
+      }
+    });
+
+    newSocket.on('client_message', (data) => {
+      console.log("Client message received", data);
+      setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "me" }]);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+
+  // Logic to detect face and start recording
+  const handleFaceDetected = (imageDataUrl) => {
+
+    if (!isRecording && !isWaiting && !isWaitingResponse) {
+      startRecording();
+
+      if (!faceDetected) {
+        const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
+        if (helloAnimationIndex !== -1) {
+          setAnimationIndex(helloAnimationIndex);
+          setFaceDetected(true);
+        }
+      }
+    }
+  };
+
   // Endpoint call to the Google Cloud Speech-to-Text API
   const handleTranscribe = async () => {
     try {
@@ -143,60 +218,6 @@ const Interface = () => {
     const response = await axios.post("http://localhost:8081/synthesize", { text: message });
     const audioSrc = `data:audio/mp3;base64,${response.data.audioContent}`;
     setAudioSrc(audioSrc);
-  };
-
-  // Connection to the WebSocket server for messages exchange
-  useEffect(() => {
-    const socket = io("http://localhost:8081");
-
-    socket.addEventListener("message", (event) => {
-      let data;
-      try {
-        data = JSON.parse(event.data);
-      } catch (error) {
-        console.error("Invalid JSON", error);
-        return;
-      }
-
-      console.log("Message received", data);
-
-      if (data.type === "watson_response" || data.type === "wizard_message") {
-        setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "them" }]);
-        handleSynthesize(data.text);
-        setIsWaitingResponse(false);
-
-        if (data.emotion) {
-          console.log("Emotion detected", data.emotion);
-        }
-        if (data.mood) {
-          console.log("Mood detected", data.mood);
-        }
-      } else if (data.type === "client_message") {
-        setMessages((prevMessages) => [...prevMessages, { text: data.text, sender: "me" }]);
-      }
-    });
-
-    setSocket(socket);
-    return () => {
-      socket.close();
-    }
-
-  }, []);
-
-  // Logic to detect face and start recording
-  const handleFaceDetected = (imageDataUrl) => {
-
-    if (!isRecording && !isWaiting && !isWaitingResponse) {
-      startRecording();
-
-      if (!faceDetected) {
-        const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
-        if (helloAnimationIndex !== -1) {
-          setAnimationIndex(helloAnimationIndex);
-          setFaceDetected(true);
-        }
-      }
-    }
   };
 
   // Cleanup the timer when the component unmounts
@@ -233,7 +254,7 @@ const Interface = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 sendMessage();
                 e.preventDefault();
               }
