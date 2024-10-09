@@ -78,19 +78,72 @@ async function analyzedMood(text) {
         const response = await nlu.analyze(nluOptions);
         const emotions = response.result.emotion.document.emotion;
         const strongestEmotion = getStrongestEmotion(emotions);
-        return response.result.emotion.document.emotion;
+        console.log('Emotions: ', emotions);
+        console.log('Strongest emotion:', strongestEmotion);
+        return { emotions, strongestEmotion };
     } catch (error) {
         console.error('Error analyzing mood:', error);
-        return { emotion: nuñl, strongestEmotion: null };
+        return { emotions: null, strongestEmotion: null };
+    }
+}
+
+function getStrongestEmotion(emotions) {
+    if (!emotions || Object.keys(emotions).length === 0) {
+        return null;
+    }
+
+    const threshold = {
+        low: 0.1,
+        medium: 0.3,
+        high: 0.6,
+    };
+
+    const emotionToStateMap = {
+        sadness: 'Sad',
+        joy: 'Joy',
+        fear: 'Attention',
+        disgust: 'No',
+        anger: 'Angry'
+    };
+
+    let strongestEmotion = '';
+    let maxScore = -Infinity;
+
+    for (const [emotion, score] of Object.entries(emotions)) {
+        if (score > maxScore) {
+            maxScore = score;
+            strongestEmotion = emotion;
+        }
+    }
+
+    if (maxScore < threshold.low) {
+        return 'Attention';
+    } else if (maxScore < threshold.medium) {
+        if (strongestEmotion === 'joy') {
+            return 'Joy';
+        } else {
+            return emotionToStateMap[strongestEmotion] || 'Attention';
+        }
+    } else if (maxScore < threshold.high) {
+        return emotionToStateMap[strongestEmotion] || 'Attention';
+    } else {
+        if (strongestEmotion === 'joy') {
+            return 'Blush';
+        } else if (strongestEmotion === 'sadness' || strongestEmotion === 'fear') {
+            return 'Sad';
+        } else {
+            return emotionToStateMap[strongestEmotion] || 'Attention';
+        }
     }
 }
 
 async function getWatsonResponse(inputText) {
-    if (!sessionId) {
-        await createSession();
-    }
-
     try {
+        if (!sessionId || isSessionActive()) {
+            console.log('Creating new session');
+            await createSession();
+        }
+
         const response = await assistant.message({
             assistantId: assistantId,
             sessionId: sessionId,
@@ -106,27 +159,22 @@ async function getWatsonResponse(inputText) {
         const mainSkill = skill['main skill'] || {};
         const userDefined = mainSkill.user_defined || {};
         const { emotions, strongestEmotion } = await analyzedMood(inputText);
-        console.log('Emotions: ', emotions);
-        console.log('Strongest emotion:', strongestEmotion);
+
+        lastQueryTime = Date.now();
 
         return { response: response.result, userDefined, emotions, strongestEmotion };
     } catch (error) {
         console.error('Error getting Watson response:', error);
-        return { response: null, userDefined: null, emotions: null, strongestEmotion: null };
+        if (error.code === 404 && error.message.includes('session')) {
+            console.log('Session expired, creating new session');
+            await createSession();
+            return getWatsonResponse(inputText);
+        }
+        throw error;
     }
 }
 
-function getStrongestEmotion(emotions) {
-    if (!emotions || Object.keys(emotions).length === 0) {
-        return null;
-    }
 
-    return Object.entries(emotions).reduce((strongest, [emotion, value]) => {
-        return Math.abs(1 - value) < Math.abs(1 - strongest.value)
-            ? { emotion, value }
-            : strongest;
-    }, { emotion: '', value: -Infinity }).emotion;
-}
 
 module.exports = {
     createSession,

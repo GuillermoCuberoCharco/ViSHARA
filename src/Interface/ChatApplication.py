@@ -18,6 +18,7 @@ logging.getLogger('engineio').setLevel(logging.WARNING)
 
 class ChatApplication(QWidget):
     watson_response_received = pyqtSignal(dict)
+    close_signal = pyqtSignal()
 
     def __init__(self, parent=None):
         super(ChatApplication, self).__init__(parent)
@@ -29,6 +30,7 @@ class ChatApplication(QWidget):
         self.socket_client.connection_error.connect(self.handle_connection_error)
         self.create_widgets()
         self.auto_mode = False
+        self.close_signal.connect(self.close_application)
 
     async def initialize(self):
         try:
@@ -193,14 +195,16 @@ class ChatApplication(QWidget):
     def display_message(self, message):
         self.chat_display.append(message)
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         logger.info('Close event received')
-        asyncio.create_task(self.cleanup())
+        self.close_signal.emit()
         event.accept()
 
+    @asyncSlot()
     async def close_application(self): 
         logger.info('Closing ChatApplication')
-        await self.socket_client.disconnect()
+        await self.cleanup()
+        QApplication.instance().quit()
 
 async def main():
     logger.info('Starting ChatApplication')

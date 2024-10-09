@@ -13,7 +13,7 @@ class WatsonResponseDialog(QDialog):
         layout = QVBoxLayout()
 
         # Watson response
-        response_label = QLabel('Suggested response: ')
+        response_label = QLabel(f"[Emotion detected: {self.current_state}]\n\nSuggested response: ")
         self.response_edit = QTextEdit(self.response)
         layout.addWidget(response_label)
         layout.addWidget(self.response_edit)

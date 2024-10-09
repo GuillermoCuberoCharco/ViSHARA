@@ -2,38 +2,43 @@ import { createContext, useContext, useEffect, useState } from "react";
 import io from "socket.io-client";
 export const CharacterAnimationsContext = createContext();
 
-
 export const CharacterAnimationsProvider = (props) => {
   const [animationIndex, setAnimationIndex] = useState(0);
   const [animations, setAnimations] = useState([]);
-  const [currentMessage, setCurrentMessage] = useState("");
 
+  // Connect to the animation socket and control the animation interchanges
   useEffect(() => {
-    const socket = io("ws://localhost:8081");
+    const socket = io("ws://localhost:8081", {
+      transports: ["websocket"],
+      upgrade: false
+    });
 
-    socket.onopen = () => console.log("Me he conectado al WebSocket");
-    socket.onmessage = (event) => {
-      try {
-        const messageData = JSON.parse(event.data);
-        console.log("Message received", messageData);
-        if (messageData.type === "wizard_message") {
-          const newAnimation = messageData.state;
-          if (animations.includes(newAnimation)) {
-            const index = animations.findIndex(
-              (animation) => animation === newAnimation
-            );
-            if (index !== -1) {
-              setAnimationIndex(index);
-            }
-          }
+    socket.on("connect", () => {
+      console.log("Animation socket connected");
+    });
+
+    const handleAnimationChange = (message) => {
+      if (message.state) {
+        const animationIndex = animations.findIndex((animation) => animation === message.state);
+        if (animationIndex !== -1) {
+          setAnimationIndex(animationIndex);
         }
-      } catch (error) {
-        console.error("Invalid JSON", error);
+      }
+
+      if (message.emotions) {
+        console.log("Emotions detected:", message.emotions);
       }
     };
 
+    try {
+      socket.on("watson_message", handleAnimationChange);
+      socket.on("wizard_message", handleAnimationChange);
+    } catch (error) {
+      console.error("Invalid JSON", error);
+    }
+
     return () => socket.close();
-  }, [animations]);
+  }, [animations, setAnimationIndex]);
 
 
   return (

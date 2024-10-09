@@ -137,18 +137,10 @@ const Interface = () => {
     });
 
     newSocket.on("watson_message", (message) => {
-      console.log("Received Watson message:", message.text);
+      console.log("Received Watson message:", message);
       setMessages((messages) => [...messages, { text: message.text, sender: "watson" }]);
       handleSynthesize(message.text);
       setIsWaitingResponse(false);
-
-      if (message.state) {
-        const animationIndex = animations.findIndex((animation) => animation === message.state);
-        if (animationIndex !== -1) {
-          setAnimationIndex(animationIndex);
-          setFaceDetected(false);
-        }
-      }
 
       if (message.emotions) {
         console.log("Emotions detected:", message.emotions);
@@ -156,16 +148,8 @@ const Interface = () => {
     });
 
     newSocket.on("wizard_message", (message) => {
-      console.log("Received Wizard message:", message.text);
+      console.log("Received Wizard message:", message);
       setMessages((messages) => [...messages, { text: message.text, sender: "wizard" }]);
-
-      if (message.state) {
-        const animationIndex = animations.findIndex((animation) => animation === message.state);
-        if (animationIndex !== -1) {
-          setAnimationIndex(animationIndex);
-          setFaceDetected(false);
-        }
-      }
 
       if (message.emotions) {
         console.log("Emotions detected:", message.emotions);
