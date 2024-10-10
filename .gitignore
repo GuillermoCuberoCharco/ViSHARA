@@ -6,6 +6,8 @@ __pycache__
 .venvp8
 .venv11
 webrtc_event_logs
+vite.config.js.timestamp-*
+
 # Logs
 logs
 *.log

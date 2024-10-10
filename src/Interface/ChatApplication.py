@@ -206,35 +206,3 @@ class ChatApplication(QWidget):
         await self.cleanup()
         QApplication.instance().quit()
 
-async def main():
-    logger.info('Starting ChatApplication')
-    app = QApplication(sys.argv)
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
-
-    logger.info('Creating ChatApplication')
-    chat_app = ChatApplication()
-    chat_app.setWindowTitle('Wizard of Oz Chat App')
-    chat_app.setGeometry(100, 100, 500, 600)
-    chat_app.show()
-
-    logger.info('Running ChatApplication')
-    await chat_app.initialize()
-
-    def close_future(future, loop):
-        loop.call_later(10, future.cancel)
-        future.cancel()
-
-    future = asyncio.Future()
-
-    app.lastWindowClosed.connect(lambda: close_future(future, loop))
-
-    try:
-        await future
-    except asyncio.CancelledError:
-        pass
-    finally:
-        await chat_app.close_application()
-
-if __name__ == '__main__':
-    qasync.run(main())

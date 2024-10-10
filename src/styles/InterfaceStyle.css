@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
   }
+
   .chat-container {
     position: fixed;
     bottom: 0;
@@ -13,7 +14,8 @@
     height: 100vh;
     overflow: hidden;
     padding: 20px;
-    background-color: rgba(255, 255, 255, 0.1);;
+    background-color: rgba(255, 255, 255, 0.1);
+    ;
     border-radius: 10px 10px 0 0;
     transition: transform 0.3s ease-in-out;
   }
@@ -21,28 +23,28 @@
   .chat-container.visible {
     transform: translateX(0);
   }
-  
+
   .chat-container.hidden {
     transform: translateX(-100%);
   }
-  
+
   .messages-container {
     display: flex;
     flex-direction: column-reverse;
     height: 100%;
     overflow-y: auto;
   }
-  
+
   .messages-wrapper {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .messages-container::-webkit-scrollbar {
     display: none;
   }
-  
+
   .message {
     word-wrap: break-word;
     padding: 10px;
@@ -50,24 +52,26 @@
     border-radius: 10px;
     max-width: 80%;
   }
-  
+
   .message.me {
     background-color: #d0f0c0;
     align-self: flex-end;
+    color: #000;
   }
-  
+
   .message.them {
     background-color: #d0c0f0;
     align-self: flex-start;
+    color: #000;
   }
-  
+
   .input-container {
     display: flex;
     position: relative;
     gap: 10px;
     margin-top: 10px;
   }
-  
+
   .input-field {
     min-height: 20px;
     max-height: 100px;
@@ -101,7 +105,7 @@
     z-index: 1;
   }
 
-  .muc-button{
+  .muc-button {
     background-color: #f44336;
     color: white;
     border: none;
@@ -115,10 +119,8 @@
     border-radius: 50%;
   }
 
-  
+
 
   div::-webkit-scrollbar {
     display: none;
   }
-
- 

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ReactMic } from "react-mic";
 import io from "socket.io-client";
 import { useCharacterAnimations } from "../contexts/CharacterAnimations";
-import '../InterfaceStyle.css';
+import '../styles/InterfaceStyle.css';
 import CameraCapture from "./CameraCapture";
 
 const Interface = () => {
@@ -214,7 +214,7 @@ const Interface = () => {
   }, []);
 
   return (
-    <div className="chat-wrapper">
+    <div className={"chat-wrapper"}>
       <button className="toggle-chat-button" onClick={() => setChatVisible(!isChatVisible)}>
         {isChatVisible ? <i className="fas fa-arrow-left"></i> : <i className="fas fa-arrow-right"></i>}
       </button>
