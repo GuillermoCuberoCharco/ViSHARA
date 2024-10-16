@@ -2,11 +2,11 @@ import sys
 import asyncio
 import qasync
 from qasync import QEventLoop
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSplitter, QWidget
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSplitter
 from ChatApplication import ChatApplication
-from WebRTCClient import WebRTCClient, WebRTCThread
+# from WebRTCClient import WebRTCClient, WebRTCThread
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -14,21 +14,32 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
 
         self.chat_app = ChatApplication()
         splitter.addWidget(self.chat_app)
 
+        web_container = QWidget()
+        web_layout = QVBoxLayout(web_container)
+        web_layout.setContentsMargins(0, 0, 0, 0)
+
         self.web_view = QWebEngineView()
-        self.web_view.load(QUrl("http://localhost:5173"))
+        self.web_view.setUrl(QUrl("https://localhost:5173"))
         splitter.addWidget(self.web_view)
 
-        splitter.setSizes([300, 300])
+        splitter.addWidget(web_container)
+
+        splitter.setSizes([self.width() // 2, self.width() // 2])
 
         self.setWindowTitle('Wizard of Oz Chat App')
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1200, 800)
 
         # self.webrtc_client = WebRTCClient()
         # self.webrtc_client.frame_received.connect(self.on_frame_recived)

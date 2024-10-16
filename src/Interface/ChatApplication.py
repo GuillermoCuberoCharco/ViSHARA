@@ -1,9 +1,6 @@
-import sys
 import threading
 import json
-import asyncio
-import qasync
-from qasync import QEventLoop, asyncSlot, QApplication
+from qasync import asyncSlot
 import logging
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
 from PyQt6.QtCore import pyqtSignal, Qt

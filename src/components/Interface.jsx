@@ -150,6 +150,8 @@ const Interface = () => {
     newSocket.on("wizard_message", (message) => {
       console.log("Received Wizard message:", message);
       setMessages((messages) => [...messages, { text: message.text, sender: "wizard" }]);
+      handleSynthesize(message.text);
+      setIsWaitingResponse(false);
 
       if (message.emotions) {
         console.log("Emotions detected:", message.emotions);

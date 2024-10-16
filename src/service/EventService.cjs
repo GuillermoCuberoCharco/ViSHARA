@@ -119,10 +119,6 @@ io.on('connection', (socket) => {
                 }
             } catch (error) {
                 console.error('Error processing message:', error);
-                io.emit('watson_message', {
-                    text: 'Error processing message with Watson',
-                    state: 'Confused'
-                });
             }
         } else if (parsedMessage.type === 'wizard_message') {
             console.log('Received wizard message:', parsedMessage.text);
