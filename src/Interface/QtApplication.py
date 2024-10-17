@@ -3,9 +3,9 @@ import asyncio
 import qasync
 from qasync import QEventLoop
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSplitter, QWidget
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import Qt
 from ChatApplication import ChatApplication
+from WebView import WebViewWidget
 # from WebRTCClient import WebRTCClient, WebRTCThread
 
 class MainWindow(QMainWindow):
@@ -26,15 +26,12 @@ class MainWindow(QMainWindow):
         self.chat_app = ChatApplication()
         splitter.addWidget(self.chat_app)
 
+        self.web_view = WebViewWidget()
+        splitter.addWidget(self.web_view)
+
         web_container = QWidget()
         web_layout = QVBoxLayout(web_container)
         web_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.web_view = QWebEngineView()
-        self.web_view.setUrl(QUrl("https://localhost:5173"))
-        splitter.addWidget(self.web_view)
-
-        splitter.addWidget(web_container)
 
         splitter.setSizes([self.width() // 2, self.width() // 2])
 
