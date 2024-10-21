@@ -1,198 +1,89 @@
 import asyncio
+import cv2
+import numpy as np
+import websockets
+import json
+import base64
 import logging
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
-import numpy as np
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, MediaStreamTrack, RTCConfiguration, RTCIceServer
-from aiortc.contrib.media import MediaPlayer, MediaRecorder
-import socketio
-import av
-import json
-import cv2
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class VideoStreamTrack(MediaStreamTrack):
-    kind = "video"
-
-    def __init__(self, track):
-        super().__init__()
-        self.track = track
-
-    async def recv(self):
-        frame = await self.track.recv()
-        return frame
-
-class WebRTCThread(QThread):
+class WebSocketThread(QThread):
     connection_status = pyqtSignal(str)
     frame_received = pyqtSignal(np.ndarray)
 
     def __init__(self):
         super().__init__()
-        self.pc = None
         self.running = True
-        self.sio = None
+        self.websocket = None
+        self.frames_received = 0
 
-    @staticmethod
-    def parse_candidate(candidate_dic):
-        parts = candidate_dic.split()
-        return{
-            'foundation': parts[0].split(':')[1],
-            'component': int(parts[1]),
-            'protocol': parts[2],
-            'priority': int(parts[3]),
-            'ip': parts[4],
-            'port': int(parts[5]),
-            'type': parts[7]
-        }
-
-    async def create_connection(self):
-        if self.sio and self.sio.connected:
-            await self.sio.disconnect()
-
-        self.sio = socketio.AsyncClient(logger=True, engineio_logger=True)
-
-        config = RTCConfiguration( 
-            iceServers=[
-                #RTCIceServer(urls=["stun:stun.l.google.com:19302"])
-            ]
-        )
-        
-        self.pc = RTCPeerConnection(configuration=config)
-        logger.debug("RTCPeerConnection created")
-
-        @self.pc.on("connectionstatechange")
-        async def on_connectionstatechange():
-            logger.debug(f"Connection state changed to {self.pc.connectionState}")
-            self.connection_status.emit(f"Connection state: {self.pc.connectionState}")
-            if self.pc.connectionState == "failed":
-                logger.error("Connection failed. Attempting to reconnect...")
-                await self.recreate_connection()
-        
-        @self.pc.on("iceconnectionstatechange")
-        async def on_iceconnectionstatechange():
-            logger.debug(f"ICE connection state changed to {self.pc.iceConnectionState}")
-            self.connection_status.emit(f"ICE connection state: {self.pc.iceConnectionState}")
-
-        @self.pc.on("track")
-        def on_track(track):
-            logger.debug(f"Track received: {track.kind}")
-            if track.kind == "video":
-                logger.debug("Video track received")
-                video_track = VideoStreamTrack(track)
-                @video_track.on("frame")
-                def on_frame(frame):
-                    logger.debug("Frame received")
-                    img = frame.to_ndarray(format="bgr24")
-                    self.frame_received.emit(img)
-
+    async def connect(self):
         try:
-            await self.sio.connect('http://localhost:8081', namespaces=['/webrtc'])
-            logger.debug("Connected to WebRTC server")
-            await self.sio.emit('register', 'python', namespace='/webrtc')
-            logger.debug("Registered with server as 'python' client")
+            logging.debug("Attempting to connect to WebSocket server...")
+            self.websocket = await websockets.connect('ws://localhost:8081/socket', ping_interval=20, ping_timeout=20)
+            logging.info("Connected to server")
+            self.connection_status.emit("Connected to server")
+            await self.websocket.send(json.dumps({"type": "register", "client": "python"}))
+            logging.info("Registered as python client")
         except Exception as e:
-            logger.error(f"Failed to connect to server: {str(e)}")
+            logging.error(f"Connection failed: {str(e)}")
             self.connection_status.emit(f"Connection failed: {str(e)}")
-            return
+            self.websocket = None
 
-        @self.sio.on('offer', namespace='/webrtc')
-        async def on_offer(offer):
-            logger.debug("Received offer")
-            try:
-                await self.pc.setRemoteDescription(RTCSessionDescription(sdp=offer['sdp'], type=offer['type']))
-                logger.debug("Remote description set")
-
-                answer = await self.pc.createAnswer()
-                logger.debug("Answer created")
-                await self.pc.setLocalDescription(answer)
-                logger.debug("Local description set")
-                await self.sio.emit('answer', {'sdp': answer.sdp, 'type': answer.type}, namespace='/webrtc')
-                logger.debug("Answer sent")
-            except Exception as e:
-                logger.error(f"Error handling offer: {e}")
-
-        @self.sio.on('ice-candidate', namespace='/webrtc')
-        async def on_ice_candidate(candidate):
-            logger.debug(f"Received ICE candidate: {candidate}")
-            if candidate and 'candidate' in candidate:
-                try:
-                    candidate_str = candidate['candidate']
-                    parsed_candidate = self.parse_candidate(candidate_str)
-                    
-                    candidate_obj = RTCIceCandidate(
-                        component=parsed_candidate['component'],
-                        foundation=parsed_candidate['foundation'],
-                        ip=parsed_candidate['ip'],
-                        port=parsed_candidate['port'],
-                        priority=parsed_candidate['priority'],
-                        protocol=parsed_candidate['protocol'],
-                        type=parsed_candidate['type'],
-                        sdpMid=candidate.get('sdpMid'),
-                        sdpMLineIndex=candidate.get('sdpMLineIndex')
-                    )
-                    await self.pc.addIceCandidate(candidate_obj)
-                    logger.debug("ICE candidate added successfully")
-                except Exception as e:
-                    logger.error(f"Error adding ICE candidate: {e}")
-            #else:
-                #logger.warning("Received invalid ICE candidate")
-
-        @self.pc.on("icecandidate")
-        def on_icecandidate(event):
-            if event.candidate:
-                candidate_data = {
-                    'candidate': event.candidate.candidate,
-                    'sdpMid': event.candidate.sdpMid,
-                    'sdpMLineIndex': event.candidate.sdpMLineIndex,
-                }
-                logger.debug(f"Sending ICE candidate: {candidate_data}")
-                asyncio.create_task(self.sio.emit('ice-candidate', candidate_data, namespace='/webrtc'))
-
-    async def recreate_connection(self):
-        logger.info("Recreating connection")
-        if self.pc:
-            await self.pc.close()
-        if self.sio and self.sio.connected:
-            await self.sio.disconnect()
-        await asyncio.sleep(5)
-        await self.create_connection()
-    
     async def run_async(self):
-         while self.running:
+        while self.running:
             try:
-                await self.create_connection()
-                while self.running and self.sio.connected:
-                    await asyncio.sleep(1)
-                    logger.debug("Current connection state: " + self.pc.connectionState)
-            except Exception as e:
-                logger.error(f"Error in WebRTCThread: {e}")
-            finally:
-                if self.pc:
-                    await self.pc.close()
-                if self.sio and self.sio.connected:
-                    await self.sio.disconnect()
+                if not self.websocket:
+                    await self.connect()
+                    if not self.websocket:
+                        await asyncio.sleep(5)
+                        continue
 
-            if self.running:
-                logger.info("Attempting to reconnect in 5 seconds...")
+                logging.debug("Waiting for message")
+                message = await self.websocket.recv()
+                logging.debug(f"Received message: {message[:100]}...")
+
+                data = json.loads(message)
+                if data['type'] == 'video':
+                    frame_data = base64.b64decode(data['frame'].split(',')[1])
+                    frame = cv2.imdecode(np.frombuffer(frame_data, np.uint8), cv2.IMREAD_COLOR)
+                    self.frame_received.emit(frame)
+                    self.frames_received += 1
+                    if self.frames_received % 100 == 0:
+                        logging.info(f"Received {self.frames_received} frames")
+                else:
+                    logging.warning(f"Received unknown message type: {data['type']}")
+
+            except websockets.exceptions.ConnectionClosed:
+                logging.warning("Connection closed. Reconnecting...")
+                self.connection_status.emit("Connection closed. Reconnecting...")
+                self.websocket = None
+            except json.JSONDecodeError:
+                logging.error(f"Failed to decode JSON: {message}")
+            except Exception as e:
+                logging.error(f"Error in WebSocket thread: {str(e)}")
+                self.connection_status.emit(f"Error: {str(e)}")
+                self.websocket = None
+
+            if not self.websocket:
                 await asyncio.sleep(5)
 
     def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.run_async())
+        asyncio.run(self.run_async())
 
-    async def stop(self):
+    def stop(self):
         self.running = False
-        if self.sio.connected:
-            await self.sio.disconnect()
+        if self.websocket:
+            asyncio.run(self.websocket.close())
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PyQt6 WebRTC Test")
+        self.setWindowTitle("PyQt6 WebSocket Video Test")
         self.setGeometry(100, 100, 640, 480)
         
         layout = QVBoxLayout()
@@ -207,32 +98,30 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
         
-        self.webrtc_thread = WebRTCThread()
-        self.webrtc_thread.connection_status.connect(self.update_status)
-        self.webrtc_thread.frame_received.connect(self.display_frame)
-        self.webrtc_thread.start()
-        
-        logger.debug("MainWindow initialized")
+        self.websocket_thread = WebSocketThread()
+        self.websocket_thread.connection_status.connect(self.update_status)
+        self.websocket_thread.frame_received.connect(self.display_frame)
+        self.websocket_thread.start()
 
-    def display_frame(self, img):
-        logger.debug("Displaying frame")
-        height, width, channel = img.shape
+    def display_frame(self, frame):
+        height, width, channel = frame.shape
         bytes_per_line = 3 * width
-        q_img = QImage(img.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
+        q_img = QImage(frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
         pixmap = QPixmap.fromImage(q_img)
         self.video_label.setPixmap(pixmap.scaled(self.video_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
+        logging.debug("Frame displayed")
 
     def update_status(self, status):
         self.status_label.setText(f"Status: {status}")
-        logger.debug(f"Status updated: {status}")
+        logging.info(f"Status updated: {status}")
 
     def closeEvent(self, event):
-        asyncio.run(self.webrtc_thread.stop())
-        self.webrtc_thread.wait()
+        self.websocket_thread.stop()
+        self.websocket_thread.wait()
         super().closeEvent(event)
 
 if __name__ == "__main__":
-    logger.info("Starting application")
+    logging.info("Starting application")
     app = QApplication([])
     window = MainWindow()
     window.show()
