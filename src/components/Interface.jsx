@@ -4,7 +4,7 @@ import { ReactMic } from "react-mic";
 import io from "socket.io-client";
 import { useCharacterAnimations } from "../contexts/CharacterAnimations";
 import '../styles/InterfaceStyle.css';
-import CameraCapture from "./CameraCapture";
+import FaceDetection from "./FaceDetection";
 
 const Interface = () => {
   const [messages, setMessages] = useState([]);
@@ -248,7 +248,7 @@ const Interface = () => {
             className="input-field"
           />
         </div>
-        <CameraCapture onFaceDetected={handleFaceDetected} />
+        <FaceDetection onFaceDetected={handleFaceDetected} />
         <audio src={audioSrc} autoPlay />
         <ReactMic
           record={isRecording}

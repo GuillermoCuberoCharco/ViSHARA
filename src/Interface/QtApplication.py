@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QSplitter, Q
 from PyQt6.QtCore import Qt
 from ChatApplication import ChatApplication
 from WebView import WebViewWidget
-# from WebRTCClient import WebRTCClient, WebRTCThread
+from CameraTracker import CameraWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -20,28 +20,33 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        layout.addWidget(splitter)
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(main_splitter)
+
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        left_splitter = QSplitter(Qt.Orientation.Vertical)
+        left_layout.addWidget(left_splitter)
 
         self.chat_app = ChatApplication()
-        splitter.addWidget(self.chat_app)
+        left_splitter.addWidget(self.chat_app)
+
+        self.camera_widget = CameraWidget()
+        left_splitter.addWidget(self.camera_widget)
+
+        main_splitter.addWidget(left_widget)
 
         self.web_view = WebViewWidget()
-        splitter.addWidget(self.web_view)
+        main_splitter.addWidget(self.web_view)
 
-        web_container = QWidget()
-        web_layout = QVBoxLayout(web_container)
-        web_layout.setContentsMargins(0, 0, 0, 0)
-
-        splitter.setSizes([self.width() // 2, self.width() // 2])
+        height = self.height()
+        left_splitter.setSizes([int(height * 0.7), int(height * 0.3)])
+        main_splitter.setSizes([self.width() // 2, self.width() // 2])
 
         self.setWindowTitle('Wizard of Oz Chat App')
         self.setGeometry(100, 100, 1200, 800)
-
-        # self.webrtc_client = WebRTCClient()
-        # self.webrtc_client.frame_received.connect(self.on_frame_recived)
-        # self.webrtc_thread = WebRTCThread(self.webrtc_client)
-        # self.webrtc_thread.start()
 
 async def main():
     app = QApplication(sys.argv)
@@ -67,6 +72,7 @@ async def main():
         pass
     finally:
         await main_window.chat_app.close_application()
+        await main_window.camera_widget.cleanup()
 
 if __name__ == '__main__':
     qasync.run(main())

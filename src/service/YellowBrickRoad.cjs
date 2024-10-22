@@ -5,8 +5,8 @@ const bodyParser = require('body-parser');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
 const watsonService = require('./ibmWatsonService.cjs');
-const cameraService = require('./cameraService.cjs');
-const { setupWebRTC } = require('./webrtcService.cjs');
+const faceTracker = require('./faceTracker.cjs');
+const videoTracker = require('./videoTracker.cjs');
 const http = require('http');
 
 const app = express();
@@ -28,15 +28,10 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Watson service
+// Initialize the all services
 watsonService.createSession().catch(console.error);
-
-// WebRTC service
-setupWebRTC(io);
-
-// Camera service for face detection
-cameraService.startCameraService(app, io);
-
+faceTracker.startCameraService(app, io);
+videoTracker.startVideoService(server, io);
 
 // Google TTS service
 app.post("/synthesize", synthesize);
@@ -133,7 +128,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 8081;
 server.listen(PORT, 'localhost', () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`WebRTC and WebSocket services available at /webrtc`);
+    console.log(`Video WebSocket service available at /video-socket`);
     console.log(`Face detection service available at /upload`);
 });
 

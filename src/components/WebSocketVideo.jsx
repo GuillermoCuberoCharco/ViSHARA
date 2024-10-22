@@ -33,7 +33,7 @@ const WebSocketVideoComponent = () => {
 
     const setupSocketConnection = () => {
         return new Promise((resolve, reject) => {
-            socketRef.current = new WebSocket('ws://localhost:8081/socket');
+            socketRef.current = new WebSocket('ws://localhost:8081/video-socket');
 
             socketRef.current.onopen = () => {
                 console.log("WebSocket connected");

@@ -2,7 +2,7 @@
 import * as faceapi from 'face-api.js';
 import React, { useEffect, useRef, useState } from 'react';
 
-const CameraCapture = ({ onFaceDetected }) => {
+const FaceDetection = ({ onFaceDetected }) => {
   const videoRef = useRef(null);
   const [modelIsLoaded, setModelIsLoaded] = useState(false);
 
@@ -93,5 +93,5 @@ const CameraCapture = ({ onFaceDetected }) => {
   return <video ref={videoRef} autoPlay style={{ display: 'none' }} />;
 };
 
-export default CameraCapture;
+export default FaceDetection;
 

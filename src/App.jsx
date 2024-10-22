@@ -1,26 +1,24 @@
-// import { Sky } from "@react-three/drei";
-// import { Canvas } from "@react-three/fiber";
-// import Experience from "./components/Experience";
-// import Interface from "./components/Interface";
+import { Sky } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import Experience from "./components/Experience";
+import Interface from "./components/Interface";
 import WebSocketVideoComponent from "./components/WebSocketVideo";
-// import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
+import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
 
 function App() {
 
-  // return (
-  //   <CharacterAnimationsProvider>
-  //     <Canvas camera={{ position: [1.5, 1.5, 0.5], fov: 50 }} shadows>
-  //       <Sky sunPosition={[100, -50, 100]} />
-  //       <Experience >
-  //       </Experience>
-  //     </Canvas>
-  //     <Interface />
-  //   </CharacterAnimationsProvider>
-  // );
-
   return (
-    <WebSocketVideoComponent />
+    <CharacterAnimationsProvider>
+      <Canvas camera={{ position: [1.5, 1.5, 0.5], fov: 50 }} shadows>
+        <Sky sunPosition={[100, -50, 100]} />
+        <Experience >
+        </Experience>
+      </Canvas>
+      <WebSocketVideoComponent />
+      <Interface />
+    </CharacterAnimationsProvider>
   );
+
 }
 
 export default App;

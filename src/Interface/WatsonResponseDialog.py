@@ -1,5 +1,4 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton, QLabel
-from PyQt6.QtCore import Qt
 
 class WatsonResponseDialog(QDialog):
     def __init__(self, response, current_state, parent=None):
