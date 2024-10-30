@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 const bodyParser = require('body-parser');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
@@ -10,16 +10,6 @@ const videoTracker = require('./videoTracker.cjs');
 const http = require('http');
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: 'http://localhost:5173',
-        methods: ['GET', 'POST'],
-        credentials: true
-    }
-});
-
-
 app.use(cors({
     origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
@@ -28,10 +18,36 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Initialize the all services
+const server = http.createServer(app);
+
+const messageIo = new Server(server, {
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    upgradeTimeout: 10000,
+    allowUpgrades: true,
+    path: '/socket.io/'
+});
+
+const videoIo = new Server(server, {
+    path: '/video-socket',
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['websocket']
+});
+
+// Initialize all the services
 watsonService.createSession().catch(console.error);
-faceTracker.startCameraService(app, io);
-videoTracker.startVideoService(server, io);
+faceTracker.startCameraService(app, videoIo);
+videoTracker.startVideoService(server, videoIo);
 
 // Google TTS service
 app.post("/synthesize", synthesize);
@@ -41,12 +57,13 @@ app.post('/transcribe', transcribe);
 let pythonClient = null;
 
 // Unified WebSocket handling
-io.on('connection', (socket) => {
+messageIo.on('connection', (socket) => {
     console.log('New WebSocket connected');
 
     socket.on('register_python_client', () => {
         console.log('Python client registered:', socket.id);
         pythonClient = socket.id;
+        socket.emit('registration_confirmed');
     });
 
     socket.on('disconnect', () => {
@@ -60,27 +77,13 @@ io.on('connection', (socket) => {
     socket.on('message', async (message) => {
         console.log('Received message:', message);
 
-        let parsedMessage = message;
-        if (typeof message === 'string') {
-            try {
-                parsedMessage = JSON.parse(message);
-            } catch (error) {
-                console.error('Error parsing message:', error);
-                return;
-            }
-        }
+        let parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
 
         if (parsedMessage.type === 'client_message') {
             console.log('Received client message:', parsedMessage.text);
 
             // Send the message to the client
-            socket.emit('client_message', {
-                text: parsedMessage.text,
-                state: parsedMessage.state
-            });
-
-            // Broadcast the message to all other clients (Wizzard of Oz)
-            socket.broadcast.emit('client_message', {
+            messageIo.emit('client_message', {
                 text: parsedMessage.text,
                 state: parsedMessage.state
             });
@@ -88,36 +91,27 @@ io.on('connection', (socket) => {
             // Process the message with the Watson service
             try {
                 const { response, userDefined, emotions, strongestEmotion } = await watsonService.getWatsonResponse(parsedMessage.text);
-                if (response) {
-                    const watsonText = response.output.generic[0].text;
+                const watsonText = response.output.generic[0].text;
 
-                    // Send the response to all connections
-                    if (pythonClient) {
-                        io.to(pythonClient).emit('watson_message', {
-                            text: watsonText,
-                            emotions: emotions,
-                            state: strongestEmotion
-                        });
-                    } else {
-                        console.log('No Python client connected');
-                    }
-                } else {
-                    // Send a 'No response' message if Watson doesn't understand the input
-                    if (pythonClient) {
-                        io.to(pythonClient).emit('watson_message', {
-                            text: 'Sorry, I did not understand that',
-                            state: 'Confused'
-                        });
-                    } else {
-                        console.log('No Python client connected');
-                    }
+                // Send the response to all connections
+                if (response && pythonClient) {
+                    messageIo.to(pythonClient).emit('watson_message', {
+                        text: watsonText,
+                        emotions: emotions,
+                        state: strongestEmotion
+                    });
+                } else if (pythonClient) {
+                    messageIo.to(pythonClient).emit('watson_message', {
+                        text: 'Sorry, I did not understand that',
+                        state: 'Confused'
+                    });
                 }
             } catch (error) {
                 console.error('Error processing message:', error);
             }
         } else if (parsedMessage.type === 'wizard_message') {
             console.log('Received wizard message:', parsedMessage.text);
-            io.emit('wizard_message', {
+            messageIo.emit('wizard_message', {
                 text: parsedMessage.text,
                 state: parsedMessage.state
             });

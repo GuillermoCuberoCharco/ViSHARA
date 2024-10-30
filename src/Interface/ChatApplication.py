@@ -1,4 +1,5 @@
 import threading
+import asyncio
 import json
 from qasync import asyncSlot
 import logging
@@ -14,25 +15,37 @@ logging.getLogger('socketio').setLevel(logging.WARNING)
 logging.getLogger('engineio').setLevel(logging.WARNING)
 
 class ChatApplication(QWidget):
-    watson_response_received = pyqtSignal(dict)
-    close_signal = pyqtSignal()
-
     def __init__(self, parent=None):
-        super(ChatApplication, self).__init__(parent)
+        super().__init__(parent)
         logger.info('Initializing ChatApplication')
         self.socket_client = SockeIOtHandle('http://localhost:8081')
         self.socket_client.message_received.connect(self.handle_message)
         self.socket_client.connection_opened.connect(self.handle_connection_opened)
         self.socket_client.connection_closed.connect(self.handle_connection_closed)
         self.socket_client.connection_error.connect(self.handle_connection_error)
+        self.socket_client.registration_confirmed.connect(self.handle_registration_confirmed)
         self.create_widgets()
         self.auto_mode = False
-        self.close_signal.connect(self.close_application)
+        self.connection_retries = 0
+        self.max_retries = 5
 
     async def initialize(self):
         try:
-            await self.socket_client.connect()
-            logger.info('WebSocket connection initialized')
+            retries = 0
+            max_retries = 5
+            while retries < max_retries:
+                try:
+                    self.socket_client.sio.transports = ['polling']
+                    await self.socket_client.connect()
+                    logger.info('Connected successfully')
+                    break
+                except Exception as e:
+                    retries += 1
+                    logger.error(f'Connection attempt {retries} failed: {str(e)}')
+                    if retries < max_retries:
+                        await asyncio.sleep(5)
+                    else:
+                        raise Exception("Max connection retries reached")
         except Exception as e:
             logger.error(f'Error initializing WebSocket connection: {str(e)}')
             self.display_message(f'Error initializing WebSocket connection: {str(e)}')
@@ -45,6 +58,13 @@ class ChatApplication(QWidget):
         except Exception as e:
             logger.error(f'Error cleaning up WebSocket connection: {str(e)}')
             self.display_message(f'Error cleaning up WebSocket connection: {str(e)}')
+
+    def update_connection_status(self, status):
+        self.mode_label.setText(f'Connection: {status}')
+
+    def handle_registration_confirmed(self):
+        self.update_connection_status('Registered')
+        self.send_button.setEnabled(True)
 
     def handle_message(self, message):
         try:
@@ -194,7 +214,6 @@ class ChatApplication(QWidget):
 
     def closeEvent(self, event):
         logger.info('Close event received')
-        self.close_signal.emit()
         event.accept()
 
     @asyncSlot()

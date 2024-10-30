@@ -11,75 +11,106 @@ class SockeIOtHandle(QObject):
     connection_opened = pyqtSignal()
     connection_closed = pyqtSignal(str)
     connection_error = pyqtSignal(str)
-    video_chunk_received = pyqtSignal(str)
+    registration_confirmed = pyqtSignal()
 
     def __init__(self, url):
         super().__init__()
         self.url = url
-        self.sio = socketio.AsyncClient(logger=True, engineio_logger=True)
+        engineio_opts = {
+            'logger': True,
+            'engineio_logger': True
+        }
+        self.sio = socketio.AsyncClient(**engineio_opts)
         self.setup_events()
-        self.video_subscribed = False
+        self.is_registered = False
 
     def setup_events(self):
         @self.sio.event
         async def connect():
             logger.info('SocketIO connection established')
             self.connection_opened.emit()
+            if not self.is_registered:
+                try:
+                    await self.sio.emit('register_python_client')
+                    logger.info('Python client registered')
+                except Exception as e:
+                    logger.error(f'Error registering Python client: {str(e)}')
+
+        @self.sio.event
+        async def registration_confirmed():
+            logger.info('Registration confirmed')
+            self.is_registered = True
+            self.registration_confirmed.emit()
+            
+        @self.sio.event
+        async def connect_error(error):
+            logger.error(f'Connection error: {error}')
+            self.connection_error.emit(str(error))
+
+            if 'wensocket' in self.sio.transports:
+                self.sio.transports = ['polling']
+                await self.connect()
 
         @self.sio.event
         async def disconnect():
             logger.info('Disconnected from server')
             self.connection_closed.emit('Disconnected')
 
-        @self.sio.on('*')
-        async def catch_all(event, data):
-            if event == 'video_chunk':
-                if self.video_subscribed:
-                    self.video_chunk_received.emit(data)
-                return 
-            logger.info(f'Received event: {event}, data: {data}')
-            
-            self.message_received.emit(json.dumps({'event': event, 'data': data}))
+        @self.sio.event
+        async def client_message(data):
+            logger.info(f'Client message received: {data}')
+            self.message_received.emit(json.dumps({
+                'event': 'client_message',
+                'data': data
+            }))
 
         @self.sio.event
-        async def message(data):
-            logger.info(f'Message received: {data}')
-            self.message_received.emit(json.dumps(data))
+        async def watson_message(data):
+            logger.info(f'Watson message received: {data}')
+            self.message_received.emit(json.dumps({
+                'event': 'watson_message',
+                'data': data
+            }))
+
+        @self.sio.event
+        async def wizard_message(data):
+            logger.info(f'Wizard message received: {data}')
+            self.message_received.emit(json.dumps({
+                'event': 'wizard_message',
+                'data': data
+            }))
 
     async def connect(self):
         try:
             logger.info(f'Attempting to connect to server: {self.url}')
-            await self.sio.connect(self.url, transports=['websocket'])
-            logger.info(f'Connected to server: {self.url}')
-
-            await self.sio.emit('register_python_client')
-            logger.info('Registered Python client')
+            await self.sio.connect(
+                self.url,
+                transports=['polling', 'websocket'],
+                wait=True,
+                wait_timeout=10
+            )
+            logger.info('Connected to server')
+            self.connection_opened.emit()
         except Exception as e:
             logger.error(f'Error connecting to server: {str(e)}')
             self.connection_error.emit(str(e))
+            raise
 
     async def disconnect(self):
         if self.sio.connected:
             await self.sio.disconnect()
-        logger.info('Disconnected from server')
-
-    async def subscribe_video(self):
-        await self.sio.emit('subscribe_video')
-        self.video_subscribed = True
-        logger.info('Subscribed to video chunks')
-
-    async def unsubscribe_video(self):
-        await self.sio.emit('unsubscribe_video')
-        self.video_subscribed = False
-        logger.info('Unsubscribed from video chunks')
+            logger.info('Disconnected from server')
 
     async def send_message(self, message):
         if not self.sio.connected:
             logger.error('SocketIO connection not established')
-            return
+            self.connection_error.emit('SocketIO connection not established')
+            return False
         try:
             await self.sio.emit('message', message)
             logger.info(f'Message sent: {message}')
+            return True
         except Exception as e:
             logger.error(f'Error sending message: {str(e)}')
             self.connection_error.emit(str(e))
+            return False

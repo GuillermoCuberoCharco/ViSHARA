@@ -7,6 +7,7 @@ __pycache__
 .venv11
 webrtc_event_logs
 vite.config.js.timestamp-*
+src/service/speachTester.cjs
 
 # Logs
 logs
