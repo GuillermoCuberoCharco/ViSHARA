@@ -8,6 +8,7 @@ __pycache__
 webrtc_event_logs
 vite.config.js.timestamp-*
 src/service/speachTester.cjs
+src/service/audios/
 
 # Logs
 logs

@@ -11,7 +11,7 @@ const http = require('http');
 
 const app = express();
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: true,
     methods: ['GET', 'POST'],
     credentials: true
 }));
@@ -19,20 +19,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const server = http.createServer(app);
-
-const messageIo = new Server(server, {
-    cors: {
-        origin: 'http://localhost:5173',
-        methods: ['GET', 'POST'],
-        credentials: true
-    },
-    transports: ['websocket', 'polling'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    upgradeTimeout: 10000,
-    allowUpgrades: true,
-    path: '/socket.io/'
-});
 
 const videoIo = new Server(server, {
     path: '/video-socket',
@@ -44,6 +30,7 @@ const videoIo = new Server(server, {
     transports: ['websocket']
 });
 
+
 // Initialize all the services
 watsonService.createSession().catch(console.error);
 faceTracker.startCameraService(app, videoIo);
@@ -54,28 +41,61 @@ app.post("/synthesize", synthesize);
 // Google STT servicie
 app.post('/transcribe', transcribe);
 
+const messageIo = new Server(server, {
+    cors: {
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['polling', 'websocket'],
+    allowUpgrades: true,
+    upgradeTimeout: 10000,
+    pingTimeout: 5000,
+    pingInterval: 10000
+});
+
 let pythonClient = null;
+let webClient = null;
 
 // Unified WebSocket handling
 messageIo.on('connection', (socket) => {
     console.log('New WebSocket connected');
 
-    socket.on('register_python_client', () => {
-        console.log('Python client registered:', socket.id);
-        pythonClient = socket.id;
-        socket.emit('registration_confirmed');
+    socket.on('register_client', (clientType) => {
+        console.log(`Client registration attempt - Type: ${clientType}, ID: ${socket.id}`);
+
+        if (clientType === 'python') {
+            pythonClient = socket.id;
+            console.log('Python client registered');
+            socket.emit('registration_success', { type: 'python' });
+        }
+        else if (clientType === 'web') {
+            webClient = socket.id;
+            console.log('Web client registered');
+            socket.emit('registration_success', { type: 'web' });
+        }
     });
 
     socket.on('disconnect', () => {
-        console.log('WebSocket disconnected');
+        console.log('Client disconnected:', socket.id);
         if (socket.id === pythonClient) {
-            console.log('Python client disconnected');
             pythonClient = null;
+            console.log('Python client disconnected');
+        } else if (socket.id === webClient) {
+            webClient = null;
+            console.log('Web client disconnected');
         }
     });
 
     socket.on('message', async (message) => {
-        console.log('Received message:', message);
+        console.log('Received message from:', socket.id);
+
+        // if (socket.id !== webClient && socket.id !== pythonClient) {
+        //     console.log('Message rejected: sender not registered');
+        //     return;
+        // }
+
+        console.log('Message:', message);
 
         let parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
 
@@ -83,7 +103,7 @@ messageIo.on('connection', (socket) => {
             console.log('Received client message:', parsedMessage.text);
 
             // Send the message to the client
-            messageIo.emit('client_message', {
+            socket.emit('client_message', {
                 text: parsedMessage.text,
                 state: parsedMessage.state
             });
@@ -95,7 +115,7 @@ messageIo.on('connection', (socket) => {
 
                 // Send the response to all connections
                 if (response && pythonClient) {
-                    messageIo.to(pythonClient).emit('watson_message', {
+                    socket.to(pythonClient).emit('watson_message', {
                         text: watsonText,
                         emotions: emotions,
                         state: strongestEmotion

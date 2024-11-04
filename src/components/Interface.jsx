@@ -24,6 +24,8 @@ const Interface = () => {
   const [faceDetected, setFaceDetected] = useState(false);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const { setAnimationIndex, animations } = useCharacterAnimations();
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [connectionError, setConnectionError] = useState(null);
 
   const startRecording = () => {
     if (!isWaiting) {
@@ -52,12 +54,19 @@ const Interface = () => {
 
   // Send message to the server as a client message
   const sendMessage = useCallback(() => {
-    if (socket && newMessage) {
+    if (socket && newMessage && isRegistered) {
       const currentAnimation = animations[setAnimationIndex];
-      const messageObject = { type: "client_message", text: newMessage, state: currentAnimation };
+      const messageObject = {
+        type: "client_message",
+        text: newMessage,
+        state: currentAnimation
+      };
       socket.emit('message', messageObject);
       setNewMessage("");
       setIsWaitingResponse(true);
+    } else if (!isRegistered) {
+      console.error("Client not registered: cannot send message");
+      setConnectionError("Client not registered");
     }
   }, [socket, newMessage, animations, setAnimationIndex]);
 
@@ -121,15 +130,35 @@ const Interface = () => {
     });
   };
 
-  // Connection to the WebSocket server for messages exchange
+  // Connection to the WebSocket server with SocketIo for messages exchange
   useEffect(() => {
     const newSocket = io("http://localhost:8081", {
-      transports: ["websocket"],
-      upgrade: false
+      transports: ['polling', 'websocket']
+    });
+
+    newSocket.io.on("upgrade", (transport) => {
+      console.log("Upgraded to:", transport.name);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Connection error", error);
+      setConnectionError(error);
+      setIsRegistered(false);
+    });
+
+    newSocket.on("error", (error) => {
+      console.error("Error", error);
     });
 
     newSocket.on("connect", () => {
-      console.log("Connected to server");
+      console.log("Connected to server, attempting to register");
+      newSocket.emit("register_client", "web");
+    });
+
+    newSocket.on("registration_success", (data) => {
+      console.log("Registration successful", data);
+      setIsRegistered(true);
+      setConnectionError(null);
     });
 
     newSocket.on("disconnect", () => {

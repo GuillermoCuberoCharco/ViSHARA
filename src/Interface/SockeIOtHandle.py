@@ -31,7 +31,7 @@ class SockeIOtHandle(QObject):
             self.connection_opened.emit()
             if not self.is_registered:
                 try:
-                    await self.sio.emit('register_python_client')
+                    await self.sio.emit('register_client', 'python')
                     logger.info('Python client registered')
                 except Exception as e:
                     logger.error(f'Error registering Python client: {str(e)}')

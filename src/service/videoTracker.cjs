@@ -25,9 +25,6 @@ function startVideoService(server, io) {
           framesForwarded++;
         }
       }
-      if (framesReceived % 100 === 0) {
-        console.log(`Frames received: ${framesReceived}, frames forwarded: ${framesForwarded}`);
-      }
     });
 
     socket.on('disconnect', () => {
@@ -54,9 +51,6 @@ function startVideoService(server, io) {
           clients.add({ socket: ws, type: data.client, protocol: 'ws' });
         } else if (data.type === 'video-frame') {
           framesReceived++;
-          if (framesReceived % 100 === 0) {
-            console.log(`Received: ${framesReceived}`);
-          }
           for (const client of clients) {
             if (client.type === 'python' && client.protocol === 'ws') {
               client.socket.send(JSON.stringify({ type: 'video', frame: data.frame }));
@@ -65,9 +59,6 @@ function startVideoService(server, io) {
               client.socket.emit('video', { type: 'video', frame: data.frame });
               framesForwarded++;
             }
-          }
-          if (framesReceived % 100 === 0) {
-            console.log(`Forwarded: ${framesForwarded}`);
           }
         }
       } catch (error) {
@@ -93,9 +84,6 @@ function startVideoService(server, io) {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
-    } else {
-      socket.destroy();
-      console.log('Invalid upgrade request, socket destroyed');
     }
   });
 }
