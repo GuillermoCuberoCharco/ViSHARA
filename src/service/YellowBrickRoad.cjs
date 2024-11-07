@@ -145,4 +145,3 @@ server.listen(PORT, 'localhost', () => {
     console.log(`Video WebSocket service available at /video-socket`);
     console.log(`Face detection service available at /upload`);
 });
-
