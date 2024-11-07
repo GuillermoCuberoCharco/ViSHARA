@@ -4,7 +4,7 @@ import json
 from qasync import asyncSlot
 import logging
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QLineEdit, QPushButton, QApplication, QDialog, QLabel
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer
 from SockeIOtHandle import SockeIOtHandle
 from WatsonResponseDialog import WatsonResponseDialog
 
@@ -14,7 +14,26 @@ logger = logging.getLogger(__name__)
 logging.getLogger('socketio').setLevel(logging.WARNING)
 logging.getLogger('engineio').setLevel(logging.WARNING)
 
+class NonBlockingWatsonDialog(WatsonResponseDialog):
+    finished = pyqtSignal(bool, str, str)
+
+    def __init__(self, response, current_state, parent=None):
+        super().__init__(response, current_state, parent)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+
+    def accept(self):
+        response = self.get_response()
+        state = self.get_state()
+        self.finished.emit(True, response, state)
+        super().accept()
+
+    def reject(self):
+        self.finished.emit(False, '', '')
+        super().reject()
+
 class ChatApplication(QWidget):
+    dialog_response = pyqtSignal(bool, str, str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info('Initializing ChatApplication')
@@ -28,6 +47,23 @@ class ChatApplication(QWidget):
         self.auto_mode = False
         self.connection_retries = 0
         self.max_retries = 5
+
+        self.active_dialog = None
+
+        self.dialog_response.connect(self.handle_dialog_response)
+
+        self.keepalive_timer = QTimer(self)
+        self.keepalive_timer.timeout.connect(self.send_keepalive)
+        self.keepalive_timer.start(30000)
+
+    @asyncSlot()
+    async def send_keepalive(self):
+        if self.socket_client and not self.active_dialog:
+            try:
+                await self.socket_client.sio.emit('ping')
+            except Exception as e:
+                print(f"Error sending keepalive: {e}")
+
 
     async def initialize(self):
         try:
@@ -168,18 +204,36 @@ class ChatApplication(QWidget):
                 'state': validated_state
             })
         else:
+            if self.active_dialog is not None:
+                self.active_dialog.close()
+
             current_state = data.get('state', 'Attention')
-            dialog = WatsonResponseDialog(data['text'], current_state, self)
-            if dialog.exec() == QDialog.DialogCode.Accepted:
-                validated_response = dialog.get_response()
-                validated_state = dialog.get_state()
-                self.display_message(f"Watson: {validated_response}")
-                self.display_message(f"Robot state: {validated_state}")
-                await self.socket_client.send_message({
-                    'type': 'wizard_message',
-                    'text': validated_response,
-                    'state': validated_state
-                })
+            dialog = NonBlockingWatsonDialog(data['text'], current_state, self)
+            dialog.finished.connect(self.handle_dialog_response)
+            self.active_dialog = dialog
+            dialog.show()
+
+    def handle_dialog_response(self, accepted, response, state):
+        self.active_dialog = None
+        if accepted:
+            QTimer.singleShot(0, lambda: self.schedule_message_send(response, state))
+    
+    def schedule_message_send(self, response, state):
+        self.display_message(f"Watson: {response}")
+        self.display_message(f"Robot state: {state}")
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.send_message_async(response, state))
+
+    async def send_message_async(self, response, state):
+        try:
+            await self.socket_client.send_message({
+                'type': 'wizard_message',
+                'text': response,
+                'state': state
+            })
+        except Exception as e:
+            print(f"Error sending message: {e}")
+            self.display_message(f"Error sending message: {e}")
                 
     def on_error(self, ws, error):
         self.display_message(f'WebSocket error: {str(error)}')
@@ -213,7 +267,9 @@ class ChatApplication(QWidget):
         self.chat_display.append(message)
 
     def closeEvent(self, event):
-        logger.info('Close event received')
+        if self.active_dialog:
+            self.active_dialog.close()
+        self.keepalive_timer.stop()
         event.accept()
 
     @asyncSlot()

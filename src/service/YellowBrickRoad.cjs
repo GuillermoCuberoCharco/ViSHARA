@@ -34,7 +34,7 @@ const videoIo = new Server(server, {
 // Initialize all the services
 watsonService.createSession().catch(console.error);
 faceTracker.startCameraService(app, videoIo);
-videoTracker.startVideoService(server, videoIo);
+videoTracker.startVideoService(server);
 
 // Google TTS service
 app.post("/synthesize", synthesize);
@@ -103,7 +103,7 @@ messageIo.on('connection', (socket) => {
             console.log('Received client message:', parsedMessage.text);
 
             // Send the message to the client
-            socket.emit('client_message', {
+            messageIo.emit('client_message', {
                 text: parsedMessage.text,
                 state: parsedMessage.state
             });

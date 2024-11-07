@@ -1,41 +1,10 @@
 const WebSocket = require('ws');
 
 
-function startVideoService(server, io) {
+function startVideoService(server) {
   const clients = new Set();
   let framesReceived = 0;
   let framesForwarded = 0;
-
-  // Socket.IO handling
-  io.on('connection', (socket) => {
-    console.log('A Socket.IO client connected');
-
-    socket.on('register', (clientType) => {
-      console.log(`Socket.IO client registered: ${clientType}`);
-      clients.add({ socket, type: clientType, protocol: 'socketio' });
-    });
-
-    socket.on('video-frame', (frame) => {
-      for (const client of clients) {
-        if (client.type === 'python' && client.protocol === 'ws') {
-          client.socket.send(JSON.stringify({ type: 'video', frame }));
-          framesForwarded++;
-        } else if (client.type === 'python' && client.protocol === 'socketio') {
-          client.socket.emit('video', { type: 'video', frame });
-          framesForwarded++;
-        }
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Socket.IO client disconnected');
-      clients.forEach(client => {
-        if (client.socket === socket) {
-          clients.delete(client);
-        }
-      });
-    });
-  });
 
   // WebSocket handling
   const wss = new WebSocket.Server({ noServer: true });
