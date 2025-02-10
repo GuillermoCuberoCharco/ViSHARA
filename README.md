@@ -1,139 +1,142 @@
-# ViSHARA: Simulación Virtual de $\text{SHARA}^3$ mediante técnicas WoZ
+# ViSHARA: Virtual Simulation of $\text{SHARA}^3$ using WoZ techniques
 
-Sistema que permite la simulación y evaluación remota del robot asistencial social $\text{SHARA}^3$ mediante un enfoque semi-automático basado en la metodología Wizard of Oz (WoZ). Esta infraestructura facilita la evaluación y refinamiento de interacciones humano-robot sin necesidad de desplegar equipos físicos.
+A system that enables remote simulation and evaluation of the $\text{SHARA}^3$ social assistive robot through a semi-automatic approach based on the Wizard of Oz (WoZ) methodology. This infrastructure facilitates human-robot interaction evaluation and refinement without the need to deploy physical equipment or proffesionals teams.
 
 ![webGeneral](https://github.com/user-attachments/assets/d7968e9e-ac2a-4df3-aac1-479300e9e399)
 
-## 🤖 Descripción General
+## 🤖 General Description
 
-El sistema implementa una arquitectura distribuida compuesta por tres componentes principales:
+The system implements a distributed architecture composed of three main components:
 
-- **La Tierra de Oz**: Aplicación web que proporciona una simulación 3D interactiva del robot $\text{SHARA}^3$.
-- **El Camino de Baldosas Amarillas**: Servidor central que gestiona las comunicaciones y procesa las interacciones.
-- **La Ciudad Esmeralda**: Interfaz de control WoZ para operadores.
+- **The Land of Oz**: Web application that provides an interactive 3D simulation of the $\text{SHARA}^3$ robot.
+- **The Yellow Brick Road**: Central server that manages communications and processes interactions.
+- **The Emerald City**: WoZ control interface for operators.
 
-## 🚀 Características Principales
+## 🚀 Main Features
 
-- Simulación 3D realista del robot $\text{SHARA}^3$ con animaciones orientativas.
-- Sistema de activación "wakeface" mediante detección facial.
-- Comunicación bidireccional por voz y texto.
-- Análisis emocional en tiempo real.
-- Modo híbrido de operación (automático/semi-automático).
-- Streaming de vídeo en tiempo real.
-- Integración con servicios cognitivos en la nube (Google Cloud STT, TTS, Translate; IBM Watson Assistant, NLU).
+- Realistic 3D simulation of the $\text{SHARA}^3$ robot with orientation animations.
+- "Wakeface" activation system through facial detection.
+- Bidirectional voice and text communication.
+- Real-time emotional analysis.
+- Hybrid operation mode (automatic/semi-automatic).
+- Real-time video streaming.
+- Integration with cloud cognitive services (Google Cloud STT, TTS, Translate; IBM Watson Assistant, NLU).
 
-## 💻 Tecnologías
+## 💻 Technologies
 
-### Frontend Web (La Tierra de Oz)
-- React + Three.js para simulación 3D.
-- Face-api.js para detección facial.
-- React-mic para captura de audio.
-- Socket.IO para comunicación en tiempo real.
+### Web Frontend (The Land of Oz)
+- React + Three.js for 3D simulation.
+- Face-api.js for facial detection.
+- React-mic for audio capture.
+- Socket.IO for real-time communication.
 
-### Servidor (El Camino de Baldosas Amarillas)
-- Node.js y Express.
-- Socket.IO y WebSocket.
-- IBM Watson (Assistant y NLU).
+### Server (The Yellow Brick Road)
+- Node.js and Express.
+- Socket.IO and WebSocket.
+- IBM Watson (Assistant and NLU).
 - Google Cloud Services (STT, TTS, Translation).
 
-### Aplicación de Control (La Ciudad Esmeralda)
-- Python con PyQt6.
-- OpenCV para procesamiento de video.
-- WebSocket para streaming.
-- QAsync para operaciones asíncronas.
+### Control Application (The Emerald City)
+- Python with PyQt6.
+- OpenCV for video processing.
+- WebSocket for streaming.
+- QAsync for asynchronous operations.
 
-## ⚙️ Instalación
+## ⚙️ Local Installation
 
-### Prerequisitos
-- Node.js v14 o superior.
-- Python 3.8 o superior.
-- Navegador moderno con soporte WebGL 2.0.
-- Cámara web y micrófono.
+### Prerequisites
+- Node.js v14 or higher.
+- Python 3.8 or higher.
+- Modern browser with WebGL 2.0 support.
+- Webcam and microphone.
 
-### Configuración del Servidor
+### Server Setup
 
-1. Clonar el repositorio
+1. Clone the repository
 ```bash
-git clone https://github.com/GuillermoCuberoCharco/TFG-ViSHARA
-cd TFG-ViSHARA/src
+git clone https://github.com/GuillermoCuberoCharco/ViSHARA
+cd ViSHARA/src
 ```
 
-2. Instalar dependencias
+2. Install dependencies
 ```bash
 cd server
 npm install
 ```
 
-3. Configurar variables de entorno
+3. Configure environment variables
 ```bash
 cp .env.example .env
-# Editar .env con tus credenciales de IBM Watson y Google Cloud
+# Edit .env with your IBM Watson and Google Cloud credentials
 ```
 
-### Configuración del Cliente Web
+### Web Client Setup
 
 ```bash
 cd web
 yarn install
 ```
 
-### Configuración de la Aplicación WoZ
+### WoZ Application Setup
 
 ```bash
 cd wizard
 pip install -r requirements.txt
 ```
 
-## 🖥️ Uso
+## 🖥️ Usage
 
-1. Iniciar el servidor
+1. Start the server
 ```bash
 cd server/src
 node YellowBrickRoad.cjs
 ```
 
-2. Iniciar el cliente web
+2. Start the web client
 ```bash
 cd web/src
 yarn dev
 ```
 
-3. Iniciar la aplicación WoZ
+3. Start the WoZ application
 ```bash
 cd wizard/src
 python EmeraldCity.py
 ```
 
-## 📊 Arquitectura del Sistema
+## 📊 System Architecture
 
 ```
-[Cliente Web] <--WebSocket/Socket.IO--> [Servidor Central] <--WebSocket/Socket.IO--> [App WoZ]
+[Web Client] <--WebSocket/Socket.IO--> [Central Server] <--WebSocket/Socket.IO--> [WoZ App]
 ```
+Here's how to install the system for a local deployment. However, to use it as proposed, both the web application and server should be deployed to enable remote evaluations. Currently, both deployments have been made on Vercel and Render.
 
-## 👥 Contribuir
+```https://vi-shara.vercel.app```
 
-Las contribuciones son bienvenidas. Por favor:
+## 👥 Contributing
 
-1. Haz Fork del repositorio.
-2. Crea una rama para tu característica (`git checkout -b feature/nueva-caracteristica`).
-3. Realiza tus cambios y haz commit (`git commit -m 'Añade nueva característica'`).
-4. Push a la rama (`git push origin feature/nueva-caracteristica`).
-5. Abre un Pull Request.
+Contributions are welcome. Please:
 
-## 📝 Licencia
+1. Fork the repository.
+2. Create a branch for your feature (`git checkout -b feature/new-feature`).
+3. Make your changes and commit (`git commit -m 'Add new feature'`).
+4. Push to the branch (`git push origin feature/new-feature`).
+5. Open a Pull Request.
+
+## 📝 License
 
 [MIT](https://choosealicense.com/licenses/mit/)
 
-## ✉️ Contacto
+## ✉️ Contact
 
 Guillermo Cubero Charco
 Guillermo.Cubero@uclm.es
 
-Este proyecto es parte de un Trabajo Fin de Grado realizado en la Escuela Superior de Informática (UCLM).
+This project is part of a Final Degree Project carried out at the ESI(UCLM) Ciudad Real, Spain.
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
-- Ramón Hervás Lucas (Tutor).
-- Laura Villa Fernández-Arroyo (Co-tutora).
-- Grupo de investigación MAmI Research Lab.
-- Panel internacional de expertos en HRI por su evaluación y retroalimentación.
+- Ramón Hervás Lucas (Advisor).
+- Laura Villa Fernández-Arroyo (Co-advisor).
+- MAmI Research Lab research group.
+- International panel of HRI experts for their evaluation and feedback.
