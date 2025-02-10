@@ -1,0 +1,9 @@
+numpy
+PyQt6
+PyQt6-WebEngine
+python-socketio[asyncio_client]
+aiortc
+websockets
+websocket-client
+opencv-python
+qasync
