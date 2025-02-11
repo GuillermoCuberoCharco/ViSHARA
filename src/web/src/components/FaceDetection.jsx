@@ -137,7 +137,13 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
                     console.log('faceImage shape:', faceImage.shape);
 
-                    await recognizeFace(faceImage);
+                    // Convert faceImage to a tensor that face-api.js can process
+                    const resizedFaceImage = tf.image.resizeBilinear(faceImage, [150, 150]);
+                    const processedFaceImage = resizedFaceImage.expandDims(0).toFloat().div(tf.scalar(255));
+
+                    console.log('processedFaceImage shape:', processedFaceImage.shape);
+
+                    await recognizeFace(processedFaceImage);
                 }
             } catch (error) {
                 console.error('Detection error:', error);
