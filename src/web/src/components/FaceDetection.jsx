@@ -124,9 +124,12 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                     console.log('Face detected');
                     onFaceDetected();
 
+                    const topLeft = predictions[0].topLeft.map(Math.round);
+                    const bottomRight = predictions[0].bottomRight.map(Math.round);
+
                     const faceImage = tf.browser.fromPixels(video).slice(
-                        [predictions[0].topLeft[1], predictions[0].topLeft[0], 0],
-                        [predictions[0].bottomRight[1] - predictions[0].topLeft[1], predictions[0].bottomRight[0] - predictions[0].topLeft[0], 3]
+                        [topLeft[1], topLeft[0], 0],
+                        [bottomRight[1] - topLeft[1], bottomRight[0] - topLeft[0], 3]
                     );
 
                     await recognizeFace(faceImage);
