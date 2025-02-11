@@ -121,7 +121,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                 const predictions = await modelRef.current.estimateFaces(video, false);
 
                 if (predictions && predictions.length > 0) {
-                    console.log('Face detected:', predictions[0]);
+                    console.log('Face detected');
                     onFaceDetected();
 
                     const faceImage = tf.browser.fromPixels(video).slice(
