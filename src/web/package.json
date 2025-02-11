@@ -18,6 +18,8 @@
     "@react-three/fiber": "^8.16.8",
     "@tensorflow-models/blazeface": "^0.0.7",
     "@tensorflow/tfjs": "^4.0.0",
+    "@tensorflow/tfjs-backend-cpu": "^4.0.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.0.0",
     "axios": "^1.6.8",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
