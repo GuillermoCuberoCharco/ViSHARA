@@ -1,7 +1,4 @@
 const multer = require('multer');
-const fr = require('face-recognition');
-const recognizer = fr.FaceRecognizer();
-recognizer.load(require('path').resolve(__dirname, '../../../models'));
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
@@ -15,18 +12,6 @@ function startCameraService(app, io) {
                 io.to(socketIo).emit('video_chunk', base64Data);
             }
             res.status(200).send('File received and processed');
-        } else {
-            console.error('No file received');
-            res.status(400).send('No file received');
-        }
-    });
-
-    app.post('/recognize', upload.single('file'), (req, res) => {
-        if (req.file) {
-            const image = fr.loadImage(req.file.buffer);
-            const prediction = recognizer.predictBest(image);
-            console.log('Face recognized:', prediction); // Imprimir en consola
-            res.status(200).json(prediction);
         } else {
             console.error('No file received');
             res.status(400).send('No file received');
