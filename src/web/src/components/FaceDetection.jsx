@@ -136,10 +136,17 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
                     console.log('faceImage shape:', faceImage.shape);
 
-                    // Convert tf.Tensor to ImageData, then to a canvas element
+                    // Convert tf.Tensor (RGB) to ImageData (RGBA)
                     const pixels = await faceImage.data();
                     const width = faceImage.shape[1], height = faceImage.shape[0];
-                    const imageData = new ImageData(new Uint8ClampedArray(pixels), width, height);
+                    const rgbaData = new Uint8ClampedArray(width * height * 4);
+                    for (let i = 0; i < width * height; i++) {
+                        rgbaData[i * 4] = pixels[i * 3];
+                        rgbaData[i * 4 + 1] = pixels[i * 3 + 1];
+                        rgbaData[i * 4 + 2] = pixels[i * 3 + 2];
+                        rgbaData[i * 4 + 3] = 255;
+                    }
+                    const imageData = new ImageData(rgbaData, width, height);
                     const tempCanvas = document.createElement('canvas');
                     tempCanvas.width = width;
                     tempCanvas.height = height;
