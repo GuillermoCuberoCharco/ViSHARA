@@ -5,7 +5,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
     const videoRef = useRef(null);
-    const canvasRef = useRef(null);
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -137,13 +136,8 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
                     console.log('faceImage shape:', faceImage.shape);
 
-                    // Convert faceImage to a tensor that face-api.js can process
-                    const resizedFaceImage = tf.image.resizeBilinear(faceImage, [150, 150]);
-                    const processedFaceImage = resizedFaceImage.expandDims(0).toFloat().div(tf.scalar(255));
-
-                    console.log('processedFaceImage shape:', processedFaceImage.shape);
-
-                    await recognizeFace(processedFaceImage);
+                    // Pass faceImage directly to face-api without resizing
+                    await recognizeFace(faceImage);
                 }
             } catch (error) {
                 console.error('Detection error:', error);
