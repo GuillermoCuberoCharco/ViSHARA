@@ -1,9 +1,26 @@
 const multer = require('multer');
+const { recognizeFace } = require('./faceRecognition.cjs');
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
     const upload = multer({ storage: storage });
     const videoSubscribers = new Set();
+
+    // Endpoint para recibir los frames y ejecutar el reconocimiento en el servidor
+    app.post('/recognize', upload.single('frame'), async (req, res) => {
+        if (req.file) {
+            try {
+                const detections = await recognizeFace(req.file.buffer);
+                console.log('Detections (server):', detections);
+                res.status(200).json({ detections });
+            } catch (error) {
+                console.error('Recognition error (server):', error);
+                res.status(500).send('Recognition error');
+            }
+        } else {
+            res.status(400).send('No frame received');
+        }
+    });
 
     app.post('/upload', upload.single('file'), (req, res) => {
         if (req.file) {

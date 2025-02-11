@@ -1,14 +1,14 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
-import * as faceapi from 'face-api.js';
+import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 
-const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
+const FaceDetection = ({ onFaceDetected, stream }) => {
     const videoRef = useRef(null);
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
-    const [knownDescriptors, setKnownDescriptors] = useState([]);
+    const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
         const initializeModel = async () => {
@@ -17,6 +17,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                 await tf.ready();
                 await tf.setBackend('webgl');
                 console.log('TensorFlow initialized with backend:', tf.getBackend());
+
                 console.log('Loading BlazeFace model...');
                 modelRef.current = await blazeface.load({
                     maxFaces: 1,
@@ -26,12 +27,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                     scoreThreshold: 0.75
                 });
 
-                console.log('Loading face-api.js models...');
-                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-                console.log('face-api.js models loaded successfully');
-
+                console.log('BlazeFace model loaded successfully');
                 setIsModelLoaded(true);
             } catch (error) {
                 console.error('Error during initialization:', error);
@@ -76,39 +72,19 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
         console.log('Starting face detection...');
 
-        const recognizeFace = async (faceImage) => {
-            try {
-                const detections = await tf.tidy(() => {
-                    return faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions())
-                        .withFaceLandmarks()
-                        .withFaceDescriptors();
-                });
-                if (detections.length > 0) {
-                    const descriptor = detections[0].descriptor;
-                    const bestMatch = findBestMatch(descriptor);
-                    if (bestMatch) {
-                        console.log('Face recognized:', bestMatch);
-                        OnFaceRecognized(bestMatch);
-                    } else {
-                        console.log('New face detected:', detections[0]);
-                        setKnownDescriptors([...knownDescriptors, descriptor]);
-                        OnFaceRecognized(detections[0]);
-                    }
+        const sendFaceToServer = async (canvasElem) => {
+            canvasElem.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('frame', blob, 'face.png');
+                try {
+                    const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    console.log('Server response:', res.data);
+                } catch (error) {
+                    console.error('Error sending face to server:', error);
                 }
-            } catch (error) {
-                console.error('Recognition error:', error);
-            }
-        };
-
-        const findBestMatch = (descriptor) => {
-            if (knownDescriptors.length === 0) return null;
-            const labeledDescriptors = new faceapi.LabeledFaceDescriptors(
-                'known',
-                knownDescriptors.map(d => new Float32Array(d))
-            );
-            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors);
-            const bestMatch = faceMatcher.findBestMatch(descriptor);
-            return bestMatch.label === 'unknown' ? null : bestMatch;
+            }, 'image/png');
         };
 
         const detectFace = async () => {
@@ -122,23 +98,16 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                 const predictions = await modelRef.current.estimateFaces(video, false);
 
                 if (predictions && predictions.length > 0) {
-                    console.log('Face detected');
+                    console.log('Face detected:', predictions[0]);
                     onFaceDetected();
 
+                    // Recortar el rostro y enviarlo al servidor:
                     const topLeft = predictions[0].topLeft.map(Math.round);
                     const bottomRight = predictions[0].bottomRight.map(Math.round);
-
-                    console.log('topLeft:', topLeft);
-                    console.log('bottomRight:', bottomRight);
-
                     const faceImage = tf.browser.fromPixels(video).slice(
                         [topLeft[1], topLeft[0], 0],
                         [bottomRight[1] - topLeft[1], bottomRight[0] - topLeft[0], 3]
                     );
-
-                    console.log('faceImage shape:', faceImage.shape);
-
-                    // Convert tf.Tensor (RGB) to ImageData (RGBA)
                     const pixels = await faceImage.data();
                     const width = faceImage.shape[1], height = faceImage.shape[0];
                     const rgbaData = new Uint8ClampedArray(width * height * 4);
@@ -154,7 +123,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
                     tempCanvas.height = height;
                     const ctx = tempCanvas.getContext('2d');
                     ctx.putImageData(imageData, 0, 0);
-                    await recognizeFace(tempCanvas);
+                    await sendFaceToServer(tempCanvas);
                     faceImage.dispose();
                 }
             } catch (error) {
