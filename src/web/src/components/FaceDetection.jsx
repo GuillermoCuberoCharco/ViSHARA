@@ -15,7 +15,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
             try {
                 console.log('Initializing TensorFlow...');
                 await tf.ready();
-                await tf.setBackend('cpu');
+                await tf.setBackend('webgl');
                 console.log('TensorFlow initialized with backend:', tf.getBackend());
                 console.log('Loading BlazeFace model...');
                 modelRef.current = await blazeface.load({
@@ -78,9 +78,11 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
         const recognizeFace = async (faceImage) => {
             try {
-                const detections = await faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptors();
+                const detections = await tf.tidy(() => {
+                    return faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceDescriptors();
+                });
                 if (detections.length > 0) {
                     const descriptor = detections[0].descriptor;
                     const bestMatch = findBestMatch(descriptor);
