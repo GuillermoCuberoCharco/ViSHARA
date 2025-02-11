@@ -16,7 +16,7 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
             try {
                 console.log('Initializing TensorFlow...');
                 await tf.ready();
-                await tf.setBackend('webgl');
+                await tf.setBackend('cpu');
                 console.log('TensorFlow initialized with backend:', tf.getBackend());
                 console.log('Loading BlazeFace model...');
                 modelRef.current = await blazeface.load({
