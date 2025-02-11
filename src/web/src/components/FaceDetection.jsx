@@ -136,8 +136,17 @@ const FaceDetection = ({ onFaceDetected, OnFaceRecognized, stream }) => {
 
                     console.log('faceImage shape:', faceImage.shape);
 
-                    // Pass faceImage directly to face-api without resizing
-                    await recognizeFace(faceImage);
+                    // Convert tf.Tensor to ImageData, then to a canvas element
+                    const pixels = await faceImage.data();
+                    const width = faceImage.shape[1], height = faceImage.shape[0];
+                    const imageData = new ImageData(new Uint8ClampedArray(pixels), width, height);
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
+                    const ctx = tempCanvas.getContext('2d');
+                    ctx.putImageData(imageData, 0, 0);
+                    await recognizeFace(tempCanvas);
+                    faceImage.dispose();
                 }
             } catch (error) {
                 console.error('Detection error:', error);
