@@ -101,30 +101,30 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
                     console.log('Face detected:', predictions[0]);
                     onFaceDetected();
 
-                    // Recortar el rostro y enviarlo al servidor:
-                    const topLeft = predictions[0].topLeft.map(Math.round);
-                    const bottomRight = predictions[0].bottomRight.map(Math.round);
-                    const faceImage = tf.browser.fromPixels(video).slice(
-                        [topLeft[1], topLeft[0], 0],
-                        [bottomRight[1] - topLeft[1], bottomRight[0] - topLeft[0], 3]
-                    );
-                    const pixels = await faceImage.data();
-                    const width = faceImage.shape[1], height = faceImage.shape[0];
-                    const rgbaData = new Uint8ClampedArray(width * height * 4);
-                    for (let i = 0; i < width * height; i++) {
-                        rgbaData[i * 4] = pixels[i * 3];
-                        rgbaData[i * 4 + 1] = pixels[i * 3 + 1];
-                        rgbaData[i * 4 + 2] = pixels[i * 3 + 2];
-                        rgbaData[i * 4 + 3] = 255;
-                    }
-                    const imageData = new ImageData(rgbaData, width, height);
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = width;
-                    tempCanvas.height = height;
-                    const ctx = tempCanvas.getContext('2d');
-                    ctx.putImageData(imageData, 0, 0);
-                    await sendFaceToServer(tempCanvas);
-                    faceImage.dispose();
+                    // // Recortar el rostro y enviarlo al servidor:
+                    // const topLeft = predictions[0].topLeft.map(Math.round);
+                    // const bottomRight = predictions[0].bottomRight.map(Math.round);
+                    // const faceImage = tf.browser.fromPixels(video).slice(
+                    //     [topLeft[1], topLeft[0], 0],
+                    //     [bottomRight[1] - topLeft[1], bottomRight[0] - topLeft[0], 3]
+                    // );
+                    // const pixels = await faceImage.data();
+                    // const width = faceImage.shape[1], height = faceImage.shape[0];
+                    // const rgbaData = new Uint8ClampedArray(width * height * 4);
+                    // for (let i = 0; i < width * height; i++) {
+                    //     rgbaData[i * 4] = pixels[i * 3];
+                    //     rgbaData[i * 4 + 1] = pixels[i * 3 + 1];
+                    //     rgbaData[i * 4 + 2] = pixels[i * 3 + 2];
+                    //     rgbaData[i * 4 + 3] = 255;
+                    // }
+                    // const imageData = new ImageData(rgbaData, width, height);
+                    // const tempCanvas = document.createElement('canvas');
+                    // tempCanvas.width = width;
+                    // tempCanvas.height = height;
+                    // const ctx = tempCanvas.getContext('2d');
+                    // ctx.putImageData(imageData, 0, 0);
+                    // await sendFaceToServer(tempCanvas);
+                    // faceImage.dispose();
                 }
             } catch (error) {
                 console.error('Detection error:', error);
