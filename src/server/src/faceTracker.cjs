@@ -11,8 +11,10 @@ function startCameraService(app, io) {
         if (req.file) {
             try {
                 const detections = await recognizeFace(req.file.buffer);
-                console.log('Detections (server):', detections);
-                res.status(200).json({ detections });
+                if (detections.length > 0) {
+                    console.log('Face detected (server):', detections[0]);
+                }
+                res.sendStatus(200);
             } catch (error) {
                 console.error('Recognition error (server):', error);
                 res.status(500).send('Recognition error');
@@ -37,25 +39,20 @@ function startCameraService(app, io) {
 
     app.post('/save-descriptors', (req, res) => {
         const { descriptors } = req.body;
-        // Guardar los descriptores en una base de datos o archivo
         console.log('Saving descriptors:', descriptors);
-        // Aquí puedes agregar la lógica para guardar los descriptores en una base de datos
         res.status(200).send('Descriptors saved');
     });
 
     io.on('connection', (socket) => {
         console.log('A user connected');
-
         socket.on('subscribe_video', () => {
             videoSubscribers.add(socket.id);
             console.log(`User ${socket.id} subscribed to video`);
         });
-
         socket.on('unsubscribe_video', () => {
             videoSubscribers.delete(socket.id);
             console.log(`User ${socket.id} unsubscribed from video`);
         });
-
         socket.on('disconnect', () => {
             videoSubscribers.delete(socket.id);
             console.log('User disconnected');
