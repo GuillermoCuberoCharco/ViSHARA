@@ -6,7 +6,7 @@ const { Canvas, Image, ImageData } = canvas;
 // Simulamos el entorno de navegador para face-api
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
-const MODEL_PATH = path.join(__dirname, '/models');
+const MODEL_PATH = path.join(__dirname, '../models');
 
 async function loadModels() {
     await faceapi.nets.tinyFaceDetector.loadFromDisk(MODEL_PATH);
