@@ -25,6 +25,6 @@
     "ws": "^8.18.0",
     "face-api.js": "^0.22.2",
     "canvas": "^2.11.2",
-    "@tensorflow/tfjs-node": "^4.0.0"
+    "@tensorflow/tfjs-node": "^3.9.0"
   }
 }
