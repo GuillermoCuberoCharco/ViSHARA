@@ -1,5 +1,5 @@
 const multer = require('multer');
-const { recognizeFace, registerNewFace } = require('./faceRecognition');
+const { recognizeFace, registerNewFace } = require('./faceRecognition.cjs');
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
