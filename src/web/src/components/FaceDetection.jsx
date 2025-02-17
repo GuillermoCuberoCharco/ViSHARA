@@ -100,6 +100,9 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                 descriptor,
                 userId: suggestedUserId,
                 label
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
             });
 
             if (response.data.success) {
@@ -122,7 +125,8 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
             formData.append('frame', blob, 'face.png');
             try {
                 const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    withCredentials: true
                 });
 
                 if (res.data.success) {

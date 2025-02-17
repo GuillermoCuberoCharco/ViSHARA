@@ -47,6 +47,7 @@ function startCameraService(app, io) {
             }
             const result = await registerNewFace(descriptor, userId, label);
             res.json(result);
+            console.log('Face registered successfully:', result);
         } catch {
             console.error('Error registering face:', error);
             res.status(500).json({
