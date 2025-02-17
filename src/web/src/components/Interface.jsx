@@ -29,6 +29,7 @@ const Interface = ({ sharedStream }) => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
   const startRecording = async () => {
@@ -245,6 +246,20 @@ const Interface = ({ sharedStream }) => {
     }
   };
 
+  // Logic to for the recognition of the face
+  const handleNewFaceDetected = (userData) => {
+    console.log("New user registered:", userData);
+    setCurrentUser(userData);
+    setMessages(messages => [...messages, {
+      text: `¡Bienvenido/a ${userData.label}! Te he reconocido y registrado en el sistema.`,
+      sender: "system"
+    }]);
+
+    if (socket && isRegistered) {
+      socket.emit('new_user_registered', userData);
+    }
+  };
+
   // Endpoint call to the Google Cloud Speech-to-Text API
   const handleTranscribe = async (blob) => {
     try {
@@ -344,6 +359,7 @@ const Interface = ({ sharedStream }) => {
         />
         <FaceDetection
           onFaceDetected={handleFaceDetected}
+          onNewFaceDetected={handleNewFaceDetected}
           stream={sharedStream}
         />
         <audio src={audioSrc} autoPlay />

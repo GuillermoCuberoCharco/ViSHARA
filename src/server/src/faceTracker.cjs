@@ -1,28 +1,10 @@
 const multer = require('multer');
-// const { recognizeFace } = require('./faceRecognition.cjs');
+const { recognizeFace, registerNewFace } = require('./faceRecognition');
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
     const upload = multer({ storage: storage });
     const videoSubscribers = new Set();
-
-    // Endpoint para recibir los frames y ejecutar el reconocimiento en el servidor
-    // app.post('/recognize', upload.single('frame'), async (req, res) => {
-    //     if (req.file) {
-    //         try {
-    //             const detections = await recognizeFace(req.file.buffer);
-    //             if (detections.length > 0) {
-    //                 console.log('Face detected (server):', detections[0]);
-    //             }
-    //             res.sendStatus(200);
-    //         } catch (error) {
-    //             console.error('Recognition error (server):', error);
-    //             res.status(500).send('Recognition error');
-    //         }
-    //     } else {
-    //         res.status(400).send('No frame received');
-    //     }
-    // });
 
     app.post('/upload', upload.single('file'), (req, res) => {
         if (req.file) {
@@ -37,10 +19,41 @@ function startCameraService(app, io) {
         }
     });
 
-    app.post('/save-descriptors', (req, res) => {
-        const { descriptors } = req.body;
-        console.log('Saving descriptors:', descriptors);
-        res.status(200).send('Descriptors saved');
+    app.post('/recognize', upload.single('frame'), async (req, res) => {
+        if (!req.file) {
+            return res.status(400).send('No frame received');
+        }
+
+        try {
+            const result = await recognizeFace(req.file.buffer);
+            res.json(result);
+        } catch (error) {
+            console.error('Error recognizing face:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error recognizing face'
+            });
+        }
+    });
+
+    app.post('/register-face', async (req, res) => {
+        try {
+            const { descriptor, userId, label } = req.body;
+            if (!descriptor || !userId || !label) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields'
+                });
+            }
+            const result = await registerNewFace(descriptor, userId, label);
+            res.json(result);
+        } catch {
+            console.error('Error registering face:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error registering face'
+            });
+        }
     });
 
     io.on('connection', (socket) => {
