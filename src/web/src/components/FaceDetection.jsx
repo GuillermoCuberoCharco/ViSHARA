@@ -121,7 +121,7 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
 
     const compressImage = async (canvas, quality = 0.7) => {
         return new Promise((resolve) => {
-            canvas.toBlob((blob) => resolve(blob), 'image/png', quality);
+            canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
         });
     };
 
@@ -148,8 +148,8 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                         headers: { 'Content-Type': 'multipart/form-data' },
                         withCredentials: true,
                         timeout: 15000,
-                        maxContentLength: 10000000,
-                        maxBodyLength: 10000000
+                        maxContentLength: 5000000,
+                        maxBodyLength: 5000000
                     });
 
                     if (res.data.success) {
@@ -210,6 +210,20 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                     try {
                         const result = await sendFaceToServer(faceCanvas);
                         console.log('Face recognition result:', result);
+
+                        if (result.success) {
+                            if (result.isKnownFace) {
+                                console.log('Face recognized:', result.label);
+                                onFaceRecognized({
+                                    userId: result.userId,
+                                    label: result.label,
+                                    confidence: result.confidence
+                                });
+                            } else {
+                                console.log('Unknown face detected, initializing registration...');
+                                await registerNewFace(result.descriptor, result.suggestedUserId);
+                            }
+                        }
                     } catch (error) {
                         console.error('Face recognition error:', error);
                     }
