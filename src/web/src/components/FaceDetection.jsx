@@ -120,27 +120,38 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
     };
 
     const sendFaceToServer = async (canvasElem) => {
-        canvasElem.toBlob(async (blob) => {
-            const formData = new FormData();
-            formData.append('frame', blob, 'face.png');
-            try {
-                const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    withCredentials: true
-                });
+        return new Promise((resolve, reject) => {
+            canvasElem.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('frame', blob, 'face.png');
+                try {
+                    const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                        withCredentials: true,
+                        timeout: 10000
+                    });
 
-                if (res.data.success) {
-                    if (!res.data.isKnownFace) {
-                        await registerNewFace(res.data.descriptor, res.data.suggestdUserId);
+                    if (res.data.success) {
+                        if (!res.data.isKnownFace) {
+                            try {
+                                await registerNewFace(res.data.descriptor, res.data.suggestdUserId);
+                                resolve(res.data);
+                            } catch (regError) {
+                                console.error('Error registering new face:', regError);
+                                reject(regError);
+                            }
+                        } else {
+                            resolve(res.data);
+                        }
+                    } else {
+                        reject(new Error(res.data.message));
                     }
-                    resolve(res.data);
-                } else {
-                    reject(new Error(res.data.message));
+                } catch (error) {
+                    console.error('Error sending face to server:', error);
+                    reject(error);
                 }
-            } catch (error) {
-                console.error('Error sending face to server:', error);
-            }
-        }, 'image/png');
+            }, 'image/png');
+        });
     };
 
     useEffect(() => {
@@ -154,14 +165,19 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
         }
 
         console.log('Starting face detection...');
+        let isProcessing = false;
 
         const detectFace = async () => {
-            if (!videoRef.current || videoRef.current.readyState !== 4) return;
+            if (!videoRef.current || videoRef.current.readyState !== 4 || isProcessing) return;
 
             try {
+                isProcessing = true;
                 const video = videoRef.current;
 
-                if (video.paused || video.ended) return;
+                if (video.paused || video.ended) {
+                    isProcessing = false;
+                    return;
+                }
 
                 const predictions = await modelRef.current.estimateFaces(video, false);
 
@@ -169,19 +185,25 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                     console.log('Face detected:', predictions[0]);
                     onFaceDetected();
 
-                    // Capture frame and send it to server
                     const faceCanvas = captureFrame(predictions);
-                    await sendFaceToServer(faceCanvas);
+                    try {
+                        const result = await sendFaceToServer(faceCanvas);
+                        console.log('Face recognition result:', result);
+                    } catch (error) {
+                        console.error('Face recognition error:', error);
+                    }
                 }
             } catch (error) {
                 console.error('Detection error:', error);
                 if (error.message.includes('backend') || error.message.includes('tensor')) {
                     clearInterval(detectionRef.current);
                 }
+            } finally {
+                isProcessing = false;
             }
         };
 
-        detectionRef.current = setInterval(detectFace, 500);
+        detectionRef.current = setInterval(detectFace, 1000);
 
         return () => {
             if (detectionRef.current) {

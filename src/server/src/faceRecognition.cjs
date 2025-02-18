@@ -5,7 +5,6 @@ const { timeStamp } = require('console');
 const fs = require('fs').promises;
 const { Canvas, Image, ImageData } = canvas;
 
-// Simulamos el entorno de navegador para face-api
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 const MODEL_PATH = path.join(__dirname, '../models');

@@ -46,19 +46,30 @@ function startCameraService(app, io) {
                 });
             }
             const result = await registerNewFace(descriptor, userId, label);
+
+            io.emit('face_registered', {
+                userId,
+                label,
+                success: result.success
+            });
+
             res.json(result);
             console.log('Face registered successfully:', result);
         } catch {
             console.error('Error registering face:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error registering face'
+                message: 'Error registering face',
+                error: error.message
             });
         }
     });
 
     io.on('connection', (socket) => {
         console.log('A user connected');
+
+        socket.timeout(10000);
+
         socket.on('subscribe_video', () => {
             videoSubscribers.add(socket.id);
             console.log(`User ${socket.id} subscribed to video`);
@@ -70,6 +81,19 @@ function startCameraService(app, io) {
         socket.on('disconnect', () => {
             videoSubscribers.delete(socket.id);
             console.log('User disconnected');
+
+            if (reason === 'transport close' || reason === 'transport error') {
+                socket.connect();
+            }
+        });
+    });
+
+    app.use((err, req, res, next) => {
+        console.error('Error in server:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: err.message
         });
     });
 }
