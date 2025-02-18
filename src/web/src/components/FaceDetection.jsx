@@ -185,69 +185,41 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
             return;
         }
 
-        console.log('Starting face detection...');
         let isProcessing = false;
+        let processingTimeout
 
         const detectFace = async () => {
             if (!videoRef.current || videoRef.current.readyState !== 4 || isProcessing) return;
 
             try {
                 isProcessing = true;
+                console.log('Starting face detection...');
+
                 const video = videoRef.current;
-
-                if (video.paused || video.ended) {
-                    isProcessing = false;
-                    return;
-                }
-
                 const predictions = await modelRef.current.estimateFaces(video, false);
 
                 if (predictions && predictions.length > 0) {
-                    console.log('Face detected:', predictions[0]);
-                    onFaceDetected();
-
+                    console.log('Face detected, attempting recognition...');
                     const faceCanvas = captureFrame(predictions);
-                    try {
-                        const result = await sendFaceToServer(faceCanvas);
-                        console.log('Face recognition result:', result);
-
-                        if (result.success) {
-                            if (result.isKnownFace) {
-                                console.log('Face recognized:', result.label);
-                                onFaceRecognized({
-                                    userId: result.userId,
-                                    label: result.label,
-                                    confidence: result.confidence
-                                });
-                            } else {
-                                console.log('Unknown face detected, initializing registration...');
-                                await registerNewFace(result.descriptor, result.suggestedUserId);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Face recognition error:', error);
-                    }
+                    const recognitionPrimise = sendFaceToServer(faceCanvas);
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Face recognition timeout')), 5000)
+                    );
+                    const result = await Promise.race([recognitionPrimise, timeoutPromise]);
+                    console.log('Recognition result:', result);
                 }
             } catch (error) {
                 console.error('Detection error:', error);
-                if (error.message.includes('backend') || error.message.includes('tensor')) {
-                    clearInterval(detectionRef.current);
-                }
             } finally {
                 isProcessing = false;
             }
         };
 
-        let processingTimeout;
-        detectionRef.current = setInterval(() => {
-            if (processingTimeout) clearTimeout(processingTimeout);
-            processingTimeout = setTimeout(detectFace, 500);
-        }, 2000);
+        detectionRef.current = setInterval(detectFace, 3000);
 
         return () => {
-            if (detectionRef.current) {
-                clearInterval(detectionRef.current);
-            }
+            if (detectionRef.current) clearInterval(detectionRef.current);
+            if (processingTimeout) clearTimeout(processingTimeout);
         };
     }, [isModelLoaded, stream, onFaceDetected]);
 

@@ -24,10 +24,19 @@ function startCameraService(app, io) {
             return res.status(400).send('No frame received');
         }
 
+        const recognitionTimeout = setTimeout(() => {
+            res.status(408).json({
+                success: false,
+                message: 'Recognition timeout'
+            });
+        }, 10000);
+
         try {
             const result = await recognizeFace(req.file.buffer);
+            clearTimeout(recognitionTimeout);
             res.json(result);
         } catch (error) {
+            clearTimeout(recognitionTimeout);
             console.error('Error recognizing face:', error);
             res.status(500).json({
                 success: false,
