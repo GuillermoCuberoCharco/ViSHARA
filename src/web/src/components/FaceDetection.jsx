@@ -119,16 +119,37 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
         }
     };
 
+    const compressImage = async (canvas, quality = 0.7) => {
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png', quality);
+        });
+    };
+
+    const retryOperation = async (operation, maxRetries = 3, delay = 1000) => {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await operation();
+            } catch (error) {
+                if (i === maxRetries - 1) throw error;
+                console.log(`Retry ${i + 1}/${maxRetries} afer error:`, error.message);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+        }
+    };
+
     const sendFaceToServer = async (canvasElem) => {
         return new Promise((resolve, reject) => {
-            canvasElem.toBlob(async (blob) => {
+            retryOperation(async () => {
+                const compressedBlob = await compressImage(canvasElem);
                 const formData = new FormData();
-                formData.append('frame', blob, 'face.png');
+                formData.append('frame', compressedBlob, 'face.png');
                 try {
                     const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
                         headers: { 'Content-Type': 'multipart/form-data' },
                         withCredentials: true,
-                        timeout: 10000
+                        timeout: 15000,
+                        maxContentLength: 10000000,
+                        maxBodyLength: 10000000
                     });
 
                     if (res.data.success) {
@@ -203,7 +224,11 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
             }
         };
 
-        detectionRef.current = setInterval(detectFace, 1000);
+        let processingTimeout;
+        detectionRef.current = setInterval(() => {
+            if (processingTimeout) clearTimeout(processingTimeout);
+            processingTimeout = setTimeout(detectFace, 500);
+        }, 2000);
 
         return () => {
             if (detectionRef.current) {

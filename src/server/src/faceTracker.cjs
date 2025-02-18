@@ -86,6 +86,12 @@ function startCameraService(app, io) {
                 socket.connect();
             }
         });
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            if (!socket.connected) {
+                socket.connect();
+            }
+        });
     });
 
     app.use((err, req, res, next) => {
