@@ -85,6 +85,7 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
             safeX, safeY, safeWidth, safeHeight,
             0, 0, safeWidth, safeHeight
         );
+        console.log('Frame captured');
         return croppedCanvas;
     };
 
@@ -202,6 +203,7 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                 if (predictions && predictions.length > 0) {
                     console.log('Face detected, attempting recognition...');
                     const faceCanvas = captureFrame(predictions);
+                    console.log('Capturing frame...');
                     const recognitionPrimise = sendFaceToServer(faceCanvas);
                     const timeoutPromise = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error('Face recognition timeout')), 5000)
