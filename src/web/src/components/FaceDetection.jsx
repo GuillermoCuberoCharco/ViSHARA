@@ -143,40 +143,41 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
 
     const sendFaceToServer = async (canvasElem) => {
         console.log('Starting sendFaceToServer...');
-        return new Promise(async (resolve, reject) => {
-            try {
-                const result = await retryOperation(async () => {
-                    console.log('Compressing image...');
-                    const compressedBlob = await compressImage(canvasElem);
+        try {
+            const result = await retryOperation(async () => {
+                console.log('Compressing image...');
+                const compressedBlob = await compressImage(canvasElem);
 
-                    console.log('Creating form data...');
-                    const formData = new FormData();
-                    formData.append('frame', compressedBlob, 'face.png');
+                console.log('Creating form data...');
+                const formData = new FormData();
+                formData.append('frame', compressedBlob, 'face.png');
 
-                    console.log('Sending request to server...');
-                    const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                        withCredentials: true,
-                        timeout: 15000,
-                        maxContentLength: 5000000,
-                        maxBodyLength: 5000000
-                    });
-                    console.log('Server response received:', res.data);
-                    if (res.data.success) {
-                        if (!res.data.isKnownFace) {
-                            console.log('New face detected, registering...');
-                            await registerNewFace(res.data.descriptor, res.data.suggestedUserId);
-                        }
-                        return res.data;
-                    } else {
-                        throw new Error(res.data.message);
+                console.log('Sending request to server...');
+                const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    withCredentials: true,
+                    timeout: 15000,
+                    maxContentLength: 5000000,
+                    maxBodyLength: 5000000
+                });
+
+                console.log('Server response received:', res.data);
+                if (res.data.success) {
+                    if (!res.data.isKnownFace) {
+                        console.log('New face detected, registering...');
+                        await registerNewFace(res.data.descriptor, res.data.suggestedUserId);
                     }
-                }, 3, 1000);
-            } catch (error) {
-                console.error('Error in sendFaceToServer:', error);
-                reject(error);
-            }
-        });
+                    return res.data;
+                } else {
+                    throw new Error(res.data.message);
+                }
+            }, 3, 1000);
+
+            return result;
+        } catch (error) {
+            console.error('Error in sendFaceToServer:', error);
+            throw error;
+        }
     };
 
     useEffect(() => {
@@ -207,10 +208,18 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                     const faceCanvas = captureFrame(predictions);
                     const recognitionPrimise = sendFaceToServer(faceCanvas);
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Face recognition timeout')), 5000)
+                        setTimeout(() => reject(new Error('Face recognition timeout')), 10000)
                     );
-                    const result = await Promise.race([recognitionPrimise, timeoutPromise]);
-                    console.log('Recognition result:', result);
+                    try {
+                        const result = await Promise.race([recognitionPrimise, timeoutPromise]);
+                        console.log('Recognition result:', result);
+                        if (result && result.success) {
+                            console.log('Face recognition successfull');
+                            onFaceDetected(result);
+                        }
+                    } catch (regonitionError) {
+                        console.error('Recognition error:', regonitionError);
+                    }
                 }
             } catch (error) {
                 console.error('Detection error:', error);
