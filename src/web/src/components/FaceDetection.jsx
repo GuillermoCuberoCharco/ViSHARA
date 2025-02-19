@@ -127,10 +127,13 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
     };
 
     const retryOperation = async (operation, maxRetries = 3, delay = 1000) => {
+        console.log(`Starting retry operation with ${maxRetries} max retries...`);
         for (let i = 0; i < maxRetries; i++) {
             try {
+                console.log(`Attempt ${i + 1}/${maxRetries}`);
                 return await operation();
             } catch (error) {
+                console.log(`Attempt ${i + 1} failed:`, error.message);
                 if (i === maxRetries - 1) throw error;
                 console.log(`Retry ${i + 1}/${maxRetries} afer error:`, error.message);
                 await new Promise((resolve) => setTimeout(resolve, delay));
@@ -139,17 +142,18 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
     };
 
     const sendFaceToServer = async (canvasElem) => {
-        console.log('Creating face recognition request...');
-        return new Promise((resolve, reject) => {
-            console.log('Sending face to server...');
-            retryOperation(async () => {
-                console.log('Compressing face...');
-                const compressedBlob = await compressImage(canvasElem);
-                const formData = new FormData();
-                formData.append('frame', compressedBlob, 'face.png');
-                console.log('Face compressed');
-                try {
-                    console.log('Sending face to server...');
+        console.log('Starting sendFaceToServer...');
+        return new Promise(async (resolve, reject) => {
+            try {
+                const result = await retryOperation(async () => {
+                    console.log('Compressing image...');
+                    const compressedBlob = await compressImage(canvasElem);
+
+                    console.log('Creating form data...');
+                    const formData = new FormData();
+                    formData.append('frame', compressedBlob, 'face.png');
+
+                    console.log('Sending request to server...');
                     const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
                         headers: { 'Content-Type': 'multipart/form-data' },
                         withCredentials: true,
@@ -157,27 +161,21 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                         maxContentLength: 5000000,
                         maxBodyLength: 5000000
                     });
-
+                    console.log('Server response received:', res.data);
                     if (res.data.success) {
                         if (!res.data.isKnownFace) {
-                            try {
-                                await registerNewFace(res.data.descriptor, res.data.suggestdUserId);
-                                resolve(res.data);
-                            } catch (regError) {
-                                console.error('Error registering new face:', regError);
-                                reject(regError);
-                            }
-                        } else {
-                            resolve(res.data);
+                            console.log('New face detected, registering...');
+                            await registerNewFace(res.data.descriptor, res.data.suggestedUserId);
                         }
+                        return res.data;
                     } else {
-                        reject(new Error(res.data.message));
+                        throw new Error(res.data.message);
                     }
-                } catch (error) {
-                    console.error('Error sending face to server:', error);
-                    reject(error);
-                }
-            }, 'image/png');
+                }, 3, 1000);
+            } catch (error) {
+                console.error('Error in sendFaceToServer:', error);
+                reject(error);
+            }
         });
     };
 
