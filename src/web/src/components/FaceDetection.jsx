@@ -144,6 +144,7 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                 const formData = new FormData();
                 formData.append('frame', compressedBlob, 'face.png');
                 try {
+                    console.log('Sending face to server...');
                     const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
                         headers: { 'Content-Type': 'multipart/form-data' },
                         withCredentials: true,
