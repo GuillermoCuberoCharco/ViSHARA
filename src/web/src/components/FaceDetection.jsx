@@ -139,11 +139,15 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
     };
 
     const sendFaceToServer = async (canvasElem) => {
+        console.log('Creating face recognition request...');
         return new Promise((resolve, reject) => {
+            console.log('Sending face to server...');
             retryOperation(async () => {
+                console.log('Compressing face...');
                 const compressedBlob = await compressImage(canvasElem);
                 const formData = new FormData();
                 formData.append('frame', compressedBlob, 'face.png');
+                console.log('Face compressed');
                 try {
                     console.log('Sending face to server...');
                     const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
@@ -203,7 +207,6 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                 if (predictions && predictions.length > 0) {
                     console.log('Face detected, attempting recognition...');
                     const faceCanvas = captureFrame(predictions);
-                    console.log('Capturing frame...');
                     const recognitionPrimise = sendFaceToServer(faceCanvas);
                     const timeoutPromise = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error('Face recognition timeout')), 5000)
