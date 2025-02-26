@@ -153,24 +153,24 @@ const FaceDetection = ({ onFaceDetected, stream, onNewFaceDetected }) => {
                 formData.append('frame', compressedBlob, 'face.png');
 
                 console.log('Sending request to server...');
-                const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    withCredentials: true,
-                    timeout: 15000,
-                    maxContentLength: 5000000,
-                    maxBodyLength: 5000000
-                });
+                // const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
+                //     headers: { 'Content-Type': 'multipart/form-data' },
+                //     withCredentials: true,
+                //     timeout: 15000,
+                //     maxContentLength: 5000000,
+                //     maxBodyLength: 5000000
+                // });
 
-                console.log('Server response received:', res.data);
-                if (res.data.success) {
-                    if (!res.data.isKnownFace) {
-                        console.log('New face detected, registering...');
-                        await registerNewFace(res.data.descriptor, res.data.suggestedUserId);
-                    }
-                    return res.data;
-                } else {
-                    throw new Error(res.data.message);
-                }
+                // console.log('Server response received:', res.data);
+                // if (res.data.success) {
+                //     if (!res.data.isKnownFace) {
+                //         console.log('New face detected, registering...');
+                //         await registerNewFace(res.data.descriptor, res.data.suggestedUserId);
+                //     }
+                //     return res.data;
+                // } else {
+                //     throw new Error(res.data.message);
+                // }
             }, 3, 1000);
 
             return result;

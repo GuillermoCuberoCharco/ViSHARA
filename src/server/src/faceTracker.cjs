@@ -1,5 +1,5 @@
 const multer = require('multer');
-const { recognizeFace, registerNewFace } = require('./faceRecognition.cjs');
+// const { recognizeFace, registerNewFace } = require('./faceRecognition.cjs');
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
@@ -19,61 +19,61 @@ function startCameraService(app, io) {
         }
     });
 
-    app.post('/recognize', upload.single('frame'), async (req, res) => {
-        if (!req.file) {
-            return res.status(400).send('No frame received');
-        }
-        console.log('Recognizing face...');
-        const recognitionTimeout = setTimeout(() => {
-            res.status(408).json({
-                success: false,
-                message: 'Recognition timeout'
-            });
-        }, 10000);
+    // app.post('/recognize', upload.single('frame'), async (req, res) => {
+    //     if (!req.file) {
+    //         return res.status(400).send('No frame received');
+    //     }
+    //     console.log('Recognizing face...');
+    //     const recognitionTimeout = setTimeout(() => {
+    //         res.status(408).json({
+    //             success: false,
+    //             message: 'Recognition timeout'
+    //         });
+    //     }, 10000);
 
-        try {
-            const result = await recognizeFace(req.file.buffer);
-            clearTimeout(recognitionTimeout);
-            console.log('Face recognized');
-            res.json(result);
-        } catch (error) {
-            clearTimeout(recognitionTimeout);
-            console.error('Error recognizing face:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error recognizing face'
-            });
-        }
-    });
+    //     try {
+    //         const result = await recognizeFace(req.file.buffer);
+    //         clearTimeout(recognitionTimeout);
+    //         console.log('Face recognized');
+    //         res.json(result);
+    //     } catch (error) {
+    //         clearTimeout(recognitionTimeout);
+    //         console.error('Error recognizing face:', error);
+    //         res.status(500).json({
+    //             success: false,
+    //             message: 'Error recognizing face'
+    //         });
+    //     }
+    // });
 
-    app.post('/register-face', async (req, res) => {
-        try {
-            const { descriptor, userId, label } = req.body;
-            if (!descriptor || !userId || !label) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Missing required fields'
-                });
-            }
-            const result = await registerNewFace(descriptor, userId, label);
+    // app.post('/register-face', async (req, res) => {
+    //     try {
+    //         const { descriptor, userId, label } = req.body;
+    //         if (!descriptor || !userId || !label) {
+    //             return res.status(400).json({
+    //                 success: false,
+    //                 message: 'Missing required fields'
+    //             });
+    //         }
+    //         const result = await registerNewFace(descriptor, userId, label);
 
-            io.emit('face_registered', {
-                userId,
-                label,
-                success: result.success
-            });
+    //         io.emit('face_registered', {
+    //             userId,
+    //             label,
+    //             success: result.success
+    //         });
 
-            res.json(result);
-            console.log('Face registered successfully:', result);
-        } catch {
-            console.error('Error registering face:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error registering face',
-                error: error.message
-            });
-        }
-    });
+    //         res.json(result);
+    //         console.log('Face registered successfully:', result);
+    //     } catch {
+    //         console.error('Error registering face:', error);
+    //         res.status(500).json({
+    //             success: false,
+    //             message: 'Error registering face',
+    //             error: error.message
+    //         });
+    //     }
+    // });
 
     io.on('connection', (socket) => {
         console.log('A user connected');
