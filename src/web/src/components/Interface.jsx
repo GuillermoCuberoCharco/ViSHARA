@@ -24,18 +24,15 @@ const Interface = ({ sharedStream }) => {
   const dataArray = useRef(null);
   const silenceCounter = useRef(0);
   const [faceDetected, setFaceDetected] = useState(false);
-  const [isUserRecognized, setIsUserRecognized] = useState(false);
-  const [recognizedUser, setRecognizedUser] = useState(null);
   const [isWaitingResponse, setIsWaitingResponse] = useState(false);
   const { setAnimationIndex, animations } = useCharacterAnimations();
   const [isRegistered, setIsRegistered] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
   const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
   const startRecording = async () => {
-    if (!isWaiting && !isSpeaking && !isWaitingResponse && isUserRecognized) {
+    if (!isWaiting && !isSpeaking && !isWaitingResponse) {
       setIsRecording(true);
       silenceCounter.current = 0;
     }
@@ -235,55 +232,15 @@ const Interface = ({ sharedStream }) => {
 
   // Logic to detect face and start recording
   const handleFaceDetected = () => {
-    if (!faceDetected) {
-      setFaceDetected(true);
-      console.log("Face detected, waiting for recognition...");
-    }
-  };
-
-  // Logic to for the recognition of the face
-  const handleFaceRecognized = (userData) => {
-    if (!isUserRecognized) {
-      setIsUserRecognized(true);
-      setRecognizedUser(userData);
-      setCurrentUser(userData);
-      setMessages(messages => [...messages, {
-        text: `¡Bienvenido/a ${userData.label}! Te he reconocido y registrado en el sistema.`,
-        sender: "system"
-      }]);
-
-      if (!isRecording && !isWaiting && !isWaitingResponse && !isSpeaking) {
-        startRecording();
-
-        const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
-        if (helloAnimationIndex !== -1) {
-          setAnimationIndex(helloAnimationIndex);
-        }
-      }
-    }
-  };
-
-  const handleNewFaceDetected = async (userData) => {
-    console.log("New user registered:", userData);
-    setIsUserRecognized(true);
-    setRecognizedUser(userData);
-    setCurrentUser(userData);
-
-    setMessages(messages => [...messages, {
-      text: `¡Bienvenido/a ${userData.label}! Es la primera vez que te veo, te he registrado en el sistema.`,
-      sender: "system"
-    }]);
-
-    if (socket && isRegistered) {
-      socket.emit('new_user_registered', userData);
-    }
-
     if (!isRecording && !isWaiting && !isWaitingResponse && !isSpeaking) {
       startRecording();
 
-      const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
-      if (helloAnimationIndex !== -1) {
-        setAnimationIndex(helloAnimationIndex);
+      if (!faceDetected) {
+        const helloAnimationIndex = animations.findIndex((animation) => animation === "Hello");
+        if (helloAnimationIndex !== -1) {
+          setAnimationIndex(helloAnimationIndex);
+          setFaceDetected(true);
+        }
       }
     }
   };
@@ -387,8 +344,6 @@ const Interface = ({ sharedStream }) => {
         />
         <FaceDetection
           onFaceDetected={handleFaceDetected}
-          onFaceRecognized={handleFaceRecognized}
-          onNewFaceDetected={handleNewFaceDetected}
           stream={sharedStream}
         />
         <audio src={audioSrc} autoPlay />
