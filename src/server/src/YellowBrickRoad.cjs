@@ -41,14 +41,14 @@ app.post("/synthesize", synthesize);
 app.post('/transcribe', async (req, res) => {
     try {
         await transcribe(req, res);
-        const transcription = req.locals.transcription;
+        const transcription = req.locals.transcription || "";
 
-        if (transcription && messageIo) {
-            const response = await getOpenAIResponse(transcription, {
-                username: req.body.username || 'Desconocido',
-                proactive_question: req.body.proactive_question || 'Nunguna'
-            });
+        const response = await getOpenAIResponse(transcription, {
+            username: req.body.username || 'Desconocido',
+            proactive_question: req.body.proactive_question || 'Ninguna'
+        });
 
+        if (response.response && response.response.trim() !== "") {
             messageIo.emit('client_message', {
                 text: transcription,
                 state: response.state
@@ -58,9 +58,10 @@ app.post('/transcribe', async (req, res) => {
                 text: response.text,
                 state: response.robot_mood
             });
-
-            res.status(200).json(response);
         }
+
+        res.status(200).json(response);
+
     } catch (error) {
         console.error('Error transcribing audio:', error);
         res.status(500).json({ error: 'Error transcribing audio' });
