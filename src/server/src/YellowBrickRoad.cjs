@@ -1,12 +1,10 @@
-import { getOpenAIResponse } from './opeanaiService.cjs';
-
 const express = require('express');
 const cors = require('cors');
 const { Server } = require('socket.io');
 const bodyParser = require('body-parser');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
-const watsonService = require('./ibmWatsonService.cjs');
+const getOpenAIResponse = require('./opeanaiService.cjs');
 const faceTracker = require('./faceTracker.cjs');
 const videoTracker = require('./videoTracker.cjs');
 const http = require('http');
@@ -34,7 +32,6 @@ const videoIo = new Server(server, {
 
 
 // Initialize all the services
-watsonService.createSession().catch(console.error);
 faceTracker.startCameraService(app, videoIo);
 videoTracker.startVideoService(server);
 
