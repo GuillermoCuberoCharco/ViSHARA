@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
-export function loadPrompt() {
+function loadPrompt() {
     try {
         return fs.readFileSync(
             path.resolve('./files/shara_prompt.txt'),
@@ -12,3 +12,5 @@ export function loadPrompt() {
         return "Eres un asistente amigable. Responde de manera natural y conversacional"
     }
 }
+
+module.exports = { loadPrompt };

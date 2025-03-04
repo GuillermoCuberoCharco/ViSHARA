@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
-import { loadPrompt } from './utils/promptLoader.cjs';
+const OpenAI = require('openai');
+const { loadPrompt } = require('./utils/promptLoader.cjs');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 const SYSTEM_PROMPT = loadPrompt();
 
-export async function getOpenAIResponse(input, context = {}) {
+async function getOpenAIResponse(input, context = {}) {
     const message = [
         { role: "system", content: SYSTEM_PROMPT },
         {
@@ -38,3 +38,5 @@ export async function getOpenAIResponse(input, context = {}) {
         };
     }
 }
+
+module.exports = { getOpenAIResponse };
