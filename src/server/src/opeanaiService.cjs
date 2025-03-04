@@ -28,13 +28,21 @@ async function getOpenAIResponse(input, context = {}) {
             top_p: 1
         });
 
-        return JSON.parse(response.data.choices[0].message.content);
+        const parsedResponse = JSON.parse(response.data.choices[0].message.content);
+
+        if (!parsedResponse.response) {
+            return {
+                continue: false,
+                robot_mood: "Sad",
+                text: ""
+            };
+        }
     } catch (error) {
         console.error('Error getting OpenAI response:', error);
         return {
             continue: false,
             robot_mood: "Sad",
-            text: "Vaya, creo que estoy teniendo problemas técnicos. ¿Podríamos intentarlo de nuevo?"
+            text: ""
         };
     }
 }
