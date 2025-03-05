@@ -40,17 +40,15 @@ const Interface = ({ sharedStream }) => {
 
   const stopRecording = () => {
     setIsRecording(false);
-    setIsWaiting(true);
-    setIsWaitingResponse(true);
 
     // Wait 2 seconds after stopping the recording
     waitTimer.current = setTimeout(() => {
       setIsWaiting(false);
+      setIsWaitingResponse(false);
     }, 2000);
   };
 
   // Effect to scroll to the last message when a new message is added
-
   const scrollToBottom = () => {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollTop = lastMessageRef.current.scrollHeight;
@@ -65,21 +63,21 @@ const Interface = ({ sharedStream }) => {
 
   // Send message to the server as a client message
   const sendMessage = useCallback(async () => {
-    if (socket && newMessage && isRegistered) {
-      const currentAnimation = animations[setAnimationIndex];
+    if (socket && newMessage.trim() && isRegistered) {
       const messageObject = {
         type: "client_message",
-        text: newMessage,
-        state: currentAnimation
+        text: newMessage.trim(),
+        proactive_question: "Ninguna",
+        username: "Desconocido"
       };
+
       socket.emit('message', messageObject);
       setNewMessage("");
       setIsWaitingResponse(true);
-    } else if (!isRegistered) {
-      console.error("Client not registered: cannot send message");
-      setConnectionError("Client not registered");
+
+      setMessages((prevMessages) => [...prevMessages, { text: newMessage, sender: "me" }]);
     }
-  }, [socket, newMessage, animations, setAnimationIndex]);
+  }, [socket, newMessage, isRegistered]);
 
   const checkMicrophonePermission = async () => {
     try {
@@ -170,12 +168,14 @@ const Interface = ({ sharedStream }) => {
 
     newSocket.on("connect_error", (error) => {
       console.error("Connection error", error);
-      setConnectionError(error);
+      setConnectionError(`Error: ${error.message || 'Falló la conexión con el servidor'}`);
       setIsRegistered(false);
     });
 
     newSocket.on("error", (error) => {
-      console.error("Error", error);
+      console.error("OpenAI Error", error);
+      setConnectionError(`Error: ${error.message || 'Falló la conexión con el servidor'}`);
+      setIsRegistered(false);
     });
 
     newSocket.on("connect", () => {
@@ -194,14 +194,27 @@ const Interface = ({ sharedStream }) => {
     });
 
     newSocket.on("watson_message", async (message) => {
-      console.log("Received Watson message:", message);
-      setMessages((messages) => [...messages, { text: message.text, sender: "watson" }]);
-      await handleSynthesize(message.text);
-      setIsWaitingResponse(false);
+      console.log("Received OpenAI message:", message);
+      const responseText = message.text || "";
+      const emotionState = message.state || "Attention";
 
-      if (message.emotions) {
-        console.log("Emotions detected:", message.emotions);
+      const emotionAnimationMap = {
+        joy: "Joy",
+        joy_blush: "Blush",
+        neutrañ: "Hello",
+        sad: "Sad",
+        silly: "Yes",
+        surprise: "Attention",
+        angry: "Angry"
+      };
+
+      setAnimationIndex(animations.findIndex(a => a === emotionAnimationMap[emotionState]));
+
+      if (responseText.trim()) {
+        setMessages((messages) => [...messages, { text: responseText, sender: "watson" }]);
       }
+
+      setIsWaitingResponse(false);
     });
 
     newSocket.on("wizard_message", async (message) => {
