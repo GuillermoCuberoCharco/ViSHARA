@@ -41,14 +41,23 @@ app.post("/synthesize", synthesize);
 app.post('/transcribe', async (req, res) => {
     try {
         await transcribe(req, res);
-        const transcription = req.locals.transcription || "";
+        const transcription = req.locals.transcription?.trim() || "";
+
+        if (!transcription) {
+            console.log('No transcription available');
+            return res.status(200).json({
+                continue: true,
+                state: "Sad",
+                text: ""
+            });
+        }
 
         const response = await getOpenAIResponse(transcription, {
             username: req.body.username || 'Desconocido',
             proactive_question: req.body.proactive_question || 'Ninguna'
         });
 
-        if (response.response && response.response.trim() !== "") {
+        if (response.response?.trim()) {
             messageIo.emit('client_message', {
                 text: transcription,
                 state: response.state
@@ -84,18 +93,27 @@ const messageIo = new Server(server, {
 // Unified WebSocket handling
 messageIo.on('connection', (socket) => {
     socket.on('message', async (message) => {
-        const parsed = JSON.parse(message);
+        const parsed = typeof message === 'string' ? JSON.parse(message) : message;
 
         if (parsed.type === 'client_message') {
-            const response = await getOpenAIResponse(parsed.text, {
+            const inputText = parsed.text?.trim() || "";
+
+            if (!inputText) {
+                console.log('No input text available');
+                return;
+            }
+
+            const response = await getOpenAIResponse(inputText, {
                 username: parsed.username,
                 proactive_question: parsed.proactive_question
             });
 
-            socket.emit('watson_message', {
-                text: response.text,
-                state: response.robot_mood
-            });
+            if (response.response?.trim()) {
+                socket.emit('watson_message', {
+                    text: response.response,
+                    state: response.robot_mood
+                });
+            }
         }
     });
 });

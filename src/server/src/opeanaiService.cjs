@@ -10,6 +10,7 @@ const SYSTEM_PROMPT = loadPrompt();
 async function getOpenAIResponse(input, context = {}) {
     const message = [
         { role: "system", content: SYSTEM_PROMPT },
+        //...get_full_conversation_history(), // For historical context, future feature
         {
             role: "user", content: JSON.stringify({
                 ...context,
@@ -30,13 +31,12 @@ async function getOpenAIResponse(input, context = {}) {
 
         const parsedResponse = JSON.parse(response.data.choices[0].message.content);
 
-        if (!parsedResponse.response) {
-            return {
-                continue: false,
-                robot_mood: "Sad",
-                text: ""
-            };
-        }
+        return {
+            continue: parsedResponse.continue,
+            robot_mood: parsedResponse.robot_mood,
+            text: parsedResponse.response || ""
+        };
+
     } catch (error) {
         console.error('Error getting OpenAI response:', error);
         return {
