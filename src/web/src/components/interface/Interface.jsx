@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ReactMic } from "react-mic";
 import { ANIMATION_MAPPINGS } from '../../config';
 import { useCharacterAnimations } from '../../contexts/CharacterAnimations';
-import '../../styles/Interface.css';
+import '../../styles/InterfaceStyle.css';
 import FaceDetection from '../FaceDetection';
 import useAudioRecorder from './hooks/useAudioRecorder';
 import AudioControls from './subcomponents/AudioControls';
