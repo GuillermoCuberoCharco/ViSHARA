@@ -1,5 +1,5 @@
 import React from "react";
-import '../styles/StatusBar.css';
+import '../../../styles/StatusBar.css';
 
 const StatusBar = ({
     isRecording,
