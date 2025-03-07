@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React, { useEffect, useRef, useState } from 'react';
 import { ReactMic } from "react-mic";
 import { ANIMATION_MAPPINGS } from '../../config';
@@ -5,6 +6,7 @@ import { useCharacterAnimations } from '../../contexts/CharacterAnimations';
 import '../../styles/InterfaceStyle.css';
 import FaceDetection from '../FaceDetection';
 import useAudioRecorder from './hooks/useAudioRecorder';
+import useWebSocket from './hooks/useWebSocket';
 import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';

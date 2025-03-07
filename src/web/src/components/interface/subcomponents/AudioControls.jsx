@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import { ReactMic } from 'react-mic';
 import { AUDIO_SETTINGS } from '../../../config';
