@@ -1,6 +1,6 @@
 import { useAnimations, useGLTF } from "@react-three/drei";
 import React, { useRef } from "react";
-import { useCharacterAnimations } from "../contexts/CharacterAnimations";
+import { useCharacterAnimations } from "../../contexts/CharacterAnimations";
 
 const GlbViewer = () => {
   const group = useRef();

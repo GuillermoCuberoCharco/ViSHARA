@@ -1,8 +1,8 @@
 import { Sky } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React, { useState } from "react";
-import Experience from "./components/Experience";
-import Interface from "./components/Interface";
+import Experience from "./components/experience/Experience";
+import Interface from "./components/interface/Interface";
 import WebSocketVideoComponent from "./components/WebSocketVideo";
 import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
 

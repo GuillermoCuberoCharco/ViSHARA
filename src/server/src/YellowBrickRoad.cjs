@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const bodyParser = require('body-parser');
 const synthesize = require('./googleTTS.cjs');
 const transcribe = require('./googleSTT.cjs');
-const getOpenAIResponse = require('./opeanaiService.cjs');
+const { getOpenAIResponse } = require('./opeanaiService.cjs');
 const faceTracker = require('./faceTracker.cjs');
 const videoTracker = require('./videoTracker.cjs');
 const http = require('http');
@@ -30,6 +30,14 @@ const videoIo = new Server(server, {
     transports: ['websocket']
 });
 
+const messageIo = new Server(server, {
+    cors: {
+        origin: true,
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['polling', 'websocket']
+});
 
 // Initialize all the services
 faceTracker.startCameraService(app, videoIo);
@@ -41,7 +49,7 @@ app.post("/synthesize", synthesize);
 app.post('/transcribe', async (req, res) => {
     try {
         await transcribe(req, res);
-        const transcription = req.locals.transcription?.trim() || "";
+        const transcription = res.locals.transcript?.trim() || "";
 
         if (!transcription) {
             console.log('No transcription available');
@@ -63,7 +71,7 @@ app.post('/transcribe', async (req, res) => {
                 state: response.state
             });
 
-            messageIo.emit('watson_message', {
+            messageIo.emit('robot_message', {
                 text: response.text,
                 state: response.robot_mood
             });
@@ -77,21 +85,12 @@ app.post('/transcribe', async (req, res) => {
     }
 });
 
-const messageIo = new Server(server, {
-    cors: {
-        origin: true,
-        methods: ['GET', 'POST'],
-        credentials: true
-    },
-    transports: ['polling', 'websocket'],
-    allowUpgrades: true,
-    upgradeTimeout: 10000,
-    pingTimeout: 5000,
-    pingInterval: 10000
-});
-
 // Unified WebSocket handling
 messageIo.on('connection', (socket) => {
+    socket.on('register_client', (clientType) => {
+        console.log(`Client registered: ${clientType}`);
+        socket.emit('registration_success', { status: 'ok' });
+    });
     socket.on('message', async (message) => {
         const parsed = typeof message === 'string' ? JSON.parse(message) : message;
 
@@ -109,7 +108,7 @@ messageIo.on('connection', (socket) => {
             });
 
             if (response.response?.trim()) {
-                socket.emit('watson_message', {
+                socket.emit('robot_message', {
                     text: response.response,
                     state: response.robot_mood
                 });
