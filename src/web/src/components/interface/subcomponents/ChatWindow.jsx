@@ -9,6 +9,11 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
                     <div
                         key={index}
                         className={`message ${message.sender}`}
+                        ref={index === messages.length - 1 ? (el) => {
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        } : null}
                     >
                         {message.text}
                     </div>
@@ -25,6 +30,7 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
                         onMessageSend();
                     }
                 }}
+                placeholder="Escribe tu mensaje aquí..."
             />
             <button onClick={onMessageSend}>Enviar</button>
         </div>

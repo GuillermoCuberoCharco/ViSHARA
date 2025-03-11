@@ -126,9 +126,21 @@ const Interface = ({ sharedStream }) => {
                     newMessage={newMessage}
                     onMessageSend={() => {
                         if (newMessage.trim()) {
+                            const messageObject = {
+                                type: "client_message",
+                                text: newMessage,
+                                proactive_question: "Ninguna",
+                                username: "Desconocido"
+                            };
+                            socket.emit('client_message', messageObject);
+
                             setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
-                            lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+
                             setNewMessage('');
+
+                            setTimeout(() => {
+                                lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+                            }, 100);
                         }
                     }}
                     onInputChange={(e) => setNewMessage(e.target.value)}

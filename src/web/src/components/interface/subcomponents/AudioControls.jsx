@@ -28,7 +28,7 @@ const AudioControls = ({
 
         <button
             onClick={isRecording ? onStopRecording : onStartRecording}
-            disable={isSpeaking || isWaitingResponse}
+            disabled={isSpeaking || isWaitingResponse}
             className={`record-button ${isRecording ? 'recording' : ''}`}
         >
             {isRecording ? "⏹ Detener grabación" : "⏺ Iniciar grabación"}

@@ -83,15 +83,16 @@
     max-width: 80%;
   }
 
-  .message.me {
+  .message.client {
     background-color: #d0f0c0;
-    align-self: flex-end;
+    align-self: flex-start;
     color: #000;
   }
 
-  .message.them {
+  .message.robot,
+  .message.wizard {
     background-color: #d0c0f0;
-    align-self: flex-start;
+    align-self: flex-end;
     color: #000;
   }
 
