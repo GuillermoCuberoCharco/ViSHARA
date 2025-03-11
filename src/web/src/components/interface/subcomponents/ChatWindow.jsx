@@ -10,42 +10,43 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
             lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages.length]);
-
-    <div className="chat-container visible">
-        <div className="messages-container">
-            <div className="messages-wrapper">
-                {messages.map((message, index) => (
-                    <div
-                        key={index}
-                        className={`message ${message.sender}`}
-                        ref={index === messages.length - 1 ?
-                            lastMessageRef : null}
-                    >
-                        {message.text}
-                    </div>
-                ))}
+    return (
+        <div className="chat-container visible">
+            <div className="messages-container">
+                <div className="messages-wrapper">
+                    {messages.map((message, index) => (
+                        <div
+                            key={index}
+                            className={`message ${message.sender}`}
+                            ref={index === messages.length - 1 ?
+                                lastMessageRef : null}
+                        >
+                            {message.text}
+                        </div>
+                    ))}
+                </div>
             </div>
-        </div>
-        <div className="input-container">
-            <textarea
-                value={newMessage}
-                onChange={onInputChange}
-                onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        onMessageSend();
-                    }
-                }}
-                placeholder="Escribe tu mensaje aquí..."
-            />
-            <button onClick={onMessageSend}>Enviar</button>
-        </div>
-        {children && (
-            <div className="chat-controls-container">
-                {children}
+            <div className="input-container">
+                <textarea
+                    value={newMessage}
+                    onChange={onInputChange}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            onMessageSend();
+                        }
+                    }}
+                    placeholder="Escribe tu mensaje aquí..."
+                />
+                <button onClick={onMessageSend}>Enviar</button>
             </div>
-        )}
-    </div>
+            {children && (
+                <div className="chat-controls-container">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
 };
 
 ChatWindow.propTypes = {

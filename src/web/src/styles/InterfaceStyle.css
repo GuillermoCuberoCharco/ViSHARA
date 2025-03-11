@@ -1,6 +1,9 @@
 .chat-wrapper {
   display: flex;
   flex-direction: column;
+  position: relative;
+  height: 100%;
+  z-index: 100;
 }
 
 .chat-container {
@@ -14,10 +17,10 @@
   height: 100vh;
   overflow: hidden;
   padding: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  ;
+  background-color: rgba(255, 255, 255, 0.8);
   border-radius: 10px 10px 0 0;
   transition: transform 0.3s ease-in-out;
+  z-index: 10;
 }
 
 .chat-container.visible {
@@ -29,19 +32,18 @@
 }
 
 .chat-controls-container {
-  display: flex;
-  flex-direction: column;
+  position: sticky;
+  bottom: 0;
   padding: 10px;
   background-color: #f5f5f500;
   border-top: 1px solid #ddd;
+  z-index: 1;
 }
 
 .chat-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
-  padding: 10px;
 }
 
 .audio-controls {
@@ -59,16 +61,17 @@
 }
 
 .messages-container {
-  display: flex;
-  flex-direction: column-reverse;
-  height: 100%;
+  flex: 1;
+  padding: 10px;
   overflow-y: auto;
+  margin-bottom: 10px;
+  -ms-overflow-style: auto;
+  scrollbar-width: auto;
 }
 
 .messages-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
 }
 
 .messages-container::-webkit-scrollbar {
@@ -97,10 +100,13 @@
 }
 
 .input-container {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  padding: 10px;
+  border-top: 1px solid #ddd;
   display: flex;
-  position: relative;
-  gap: 10px;
-  margin-top: 10px;
+  z-index: 2;
 }
 
 .input-field {
@@ -123,17 +129,19 @@
 }
 
 .toggle-chat-button {
-  position: absolute;
-  top: 0;
-  right: 97%;
-  width: 30px;
-  height: 30px;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
   border: none;
-  background: none;
-  font-size: 24px;
+  background-color: rgba(0, 0, 0, 0.7);
+  font-size: 16px;
   color: #fff;
   cursor: pointer;
-  z-index: 1;
+  z-index: 100;
+  border-radius: 5px;
 }
 
 .muc-button {
