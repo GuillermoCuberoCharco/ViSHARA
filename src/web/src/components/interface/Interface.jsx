@@ -150,21 +150,21 @@ const Interface = ({ sharedStream }) => {
                             isWaitingResponse={isWaitingResponse}
                             audioSrc={audioSrc}
                         />
+                        <ReactMic
+                            record={isRecording}
+                            className="sound-wave"
+                            onStop={onStop}
+                            strokeColor="#000000"
+                            backgroundColor="#FF4081"
+                            mimeType="audio/webm"
+                            onError={(error) => console.error("ReactMic error:", error)}
+                            bufferSize={2048}
+                            sampleRate={44100}
+                            channelCount={1}
+                            visualSetting="sinewave"
+                        />
                     </div>
                 </ChatWindow>
-                <ReactMic
-                    record={isRecording}
-                    className="sound-wave"
-                    onStop={onStop}
-                    strokeColor="#000000"
-                    backgroundColor="#FF4081"
-                    mimeType="audio/webm"
-                    onError={(error) => console.error("ReactMic error:", error)}
-                    bufferSize={2048}
-                    sampleRate={44100}
-                    channelCount={1}
-                    visualSetting="sinewave"
-                />
                 <FaceDetection
                     onFaceDetected={handleFaceDetected}
                     stream={sharedStream}
