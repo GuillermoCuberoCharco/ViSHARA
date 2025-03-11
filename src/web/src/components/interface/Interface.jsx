@@ -133,15 +133,25 @@ const Interface = ({ sharedStream }) => {
                         }
                     }}
                     onInputChange={(e) => setNewMessage(e.target.value)}
-                />
-                <AudioControls
-                    isRecording={isRecording}
-                    isSpeaking={isSpeaking}
-                    isWaitingResponse={isWaitingResponse}
-                    onStartRecording={startRecording}
-                    onStopRecording={stopRecording}
-                    onAudioStop={handleAudioStop}
-                />
+                >
+                    <div className="chat-controls">
+                        <AudioControls
+                            isRecording={isRecording}
+                            isSpeaking={isSpeaking}
+                            isWaitingResponse={isWaitingResponse}
+                            onStartRecording={startRecording}
+                            onStopRecording={stopRecording}
+                            onAudioStop={handleAudioStop}
+                        />
+                        <StatusBar
+                            isRegistered={isRegistered}
+                            connectionError={connectionError}
+                            isSpeaking={isSpeaking}
+                            isWaitingResponse={isWaitingResponse}
+                            audioSrc={audioSrc}
+                        />
+                    </div>
+                </ChatWindow>
                 <ReactMic
                     record={isRecording}
                     className="sound-wave"
@@ -158,13 +168,6 @@ const Interface = ({ sharedStream }) => {
                 <FaceDetection
                     onFaceDetected={handleFaceDetected}
                     stream={sharedStream}
-                />
-                <StatusBar
-                    isRegistered={isRegistered}
-                    connectionError={connectionError}
-                    isSpeaking={isSpeaking}
-                    isWaitingResponse={isWaitingResponse}
-                    audioSrc={audioSrc}
                 />
                 <audio src={audioSrc} autoPlay />
             </div>

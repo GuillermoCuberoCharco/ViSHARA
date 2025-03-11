@@ -28,6 +28,34 @@
     transform: translateX(-100%);
   }
 
+  .chat-controls-container {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #ddd;
+  }
+
+  .chat-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .audio-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .status-bar {
+    width: 100px;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+  }
+
   .messages-container {
     display: flex;
     flex-direction: column-reverse;

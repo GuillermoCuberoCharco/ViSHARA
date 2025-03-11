@@ -25,9 +25,14 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange }) => (
                         onMessageSend();
                     }
                 }}
-                className="input-field"
             />
+            <button onClick={onMessageSend}>Enviar</button>
         </div>
+        {children && (
+            <div className="chat-controls-container">
+                {children}
+            </div>
+        )}
     </div>
 );
 
