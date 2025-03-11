@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange }) => (
+const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children }) => (
     <div className="chat-container visible">
         <div className="messages-container">
             <div className="messages-wrapper">
