@@ -1,7 +1,16 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
-const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children }) => (
+const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children }) => {
+
+    const lastMessageRef = useRef(null);
+
+    useEffect(() => {
+        if (messages.length > 0) {
+            lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages.length]);
+
     <div className="chat-container visible">
         <div className="messages-container">
             <div className="messages-wrapper">
@@ -9,11 +18,8 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
                     <div
                         key={index}
                         className={`message ${message.sender}`}
-                        ref={index === messages.length - 1 ? (el) => {
-                            if (el) {
-                                el.scrollIntoView({ behavior: 'smooth' });
-                            }
-                        } : null}
+                        ref={index === messages.length - 1 ?
+                            lastMessageRef : null}
                     >
                         {message.text}
                     </div>
@@ -40,7 +46,7 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
             </div>
         )}
     </div>
-);
+};
 
 ChatWindow.propTypes = {
     messages: PropTypes.arrayOf(PropTypes.shape({
