@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children }) => {
 
     const lastMessageRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
     useEffect(() => {
         if (messages.length > 0) {
@@ -12,7 +13,7 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
     }, [messages.length]);
     return (
         <div className="chat-container visible">
-            <div className="messages-container">
+            <div className="messages-container" ref={messagesContainerRef}>
                 <div className="messages-wrapper">
                     {messages.map((message, index) => (
                         <div
@@ -56,7 +57,8 @@ ChatWindow.propTypes = {
     })).isRequired,
     newMessage: PropTypes.string.isRequired,
     onMessageSend: PropTypes.func.isRequired,
-    onInputChange: PropTypes.func.isRequired
+    onInputChange: PropTypes.func.isRequired,
+    children: PropTypes.node
 };
 
 export default ChatWindow;
