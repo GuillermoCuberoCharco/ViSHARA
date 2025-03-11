@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React, { useEffect, useRef, useState } from 'react';
-import { ReactMic } from "react-mic";
 import { ANIMATION_MAPPINGS } from '../../config';
 import { useCharacterAnimations } from '../../contexts/CharacterAnimations';
 import '../../styles/InterfaceStyle.css';
@@ -149,19 +148,6 @@ const Interface = ({ sharedStream }) => {
                             isSpeaking={isSpeaking}
                             isWaitingResponse={isWaitingResponse}
                             audioSrc={audioSrc}
-                        />
-                        <ReactMic
-                            record={isRecording}
-                            className="sound-wave"
-                            onStop={onStop}
-                            strokeColor="#000000"
-                            backgroundColor="#FF4081"
-                            mimeType="audio/webm"
-                            onError={(error) => console.error("ReactMic error:", error)}
-                            bufferSize={2048}
-                            sampleRate={44100}
-                            channelCount={1}
-                            visualSetting="sinewave"
                         />
                         <FaceDetection
                             onFaceDetected={handleFaceDetected}
