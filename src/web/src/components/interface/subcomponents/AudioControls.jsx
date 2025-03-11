@@ -12,17 +12,19 @@ const AudioControls = ({
     onAudioStop
 }) => (
     <div className="audio-controls">
-        <ReactMic
-            record={isRecording}
-            className="sound-wave"
-            onStop={onAudioStop}
-            onData={() => { }}
-            strokeColor="#000000"
-            backgroundColor="#FF4081"
-            mimeType={AUDIO_SETTINGS.mimeType}
-            bufferSize={AUDIO_SETTINGS.bufferSize}
-            sampleRate={AUDIO_SETTINGS.sampleRate}
-        />
+        <div className="sound-wave-container">
+            <ReactMic
+                record={isRecording}
+                className="sound-wave"
+                onStop={onAudioStop}
+                onData={() => { }}
+                strokeColor="#000000"
+                backgroundColor="#FF4081"
+                mimeType={AUDIO_SETTINGS.mimeType}
+                bufferSize={AUDIO_SETTINGS.bufferSize}
+                sampleRate={AUDIO_SETTINGS.sampleRate}
+            />
+        </div>
 
         <button
             onClick={isRecording ? onStopRecording : onStartRecording}
