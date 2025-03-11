@@ -163,12 +163,12 @@ const Interface = ({ sharedStream }) => {
                             channelCount={1}
                             visualSetting="sinewave"
                         />
+                        <FaceDetection
+                            onFaceDetected={handleFaceDetected}
+                            stream={sharedStream}
+                        />
                     </div>
                 </ChatWindow>
-                <FaceDetection
-                    onFaceDetected={handleFaceDetected}
-                    stream={sharedStream}
-                />
                 <audio src={audioSrc} autoPlay />
             </div>
         </div>
