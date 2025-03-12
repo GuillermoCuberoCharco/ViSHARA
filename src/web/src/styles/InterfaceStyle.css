@@ -52,11 +52,17 @@ html {
   bottom: 60px;
   left: 0;
   right: 0;
-  background-color: rgba(255, 255, 255, 0);
+  background-color: rgba(162, 255, 167, 0.707);
   padding: 10px;
   border-top: 1px solid #ddd;
   display: flex;
   z-index: 2;
+}
+
+.chat-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 .chat-controls-container {
@@ -86,20 +92,6 @@ html {
 
 .chat-container.hidden {
   transform: translateX(-100%);
-}
-
-
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-  margin-bottom: 0;
-  height: calc(100vh - 200px);
-}
-
-.messages-wrapper {
-  display: flex;
-  flex-direction: column;
 }
 
 .messages-container::-webkit-scrollbar {
@@ -133,17 +125,6 @@ html {
   color: #000;
 }
 
-.input-container {
-  position: sticky;
-  bottom: 0;
-  background-color: white;
-  padding: 10px;
-  border-top: 1px solid #ddd;
-  display: flex;
-  z-index: 2;
-  flex-shrink: 0;
-}
-
 .input-field {
   min-height: 20px;
   max-height: 100px;
@@ -161,22 +142,6 @@ html {
   right: 10px;
   bottom: 10px;
   cursor: pointer;
-}
-
-.chat-controls-container {
-  position: sticky;
-  bottom: 0;
-  padding: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid #ddd;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
-.chat-controls {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
 }
 
 div::-webkit-scrollbar {
