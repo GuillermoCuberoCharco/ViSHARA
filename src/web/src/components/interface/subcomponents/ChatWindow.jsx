@@ -13,7 +13,7 @@ const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, childr
     }, [messages.length]);
     return (
         <div className="chat-container visible">
-            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '30px' }}>
+            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '10px' }}>
                 <div className="messages-wrapper">
                     <div className="messages-spacer"></div>
                     {messages.map((message, index) => (
