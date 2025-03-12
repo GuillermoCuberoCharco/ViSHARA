@@ -4,7 +4,7 @@ import React from 'react';
 const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children, messagesContainerRef }) => {
     return (
         <div className="chat-container visible">
-            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '60px' }}>
+            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '240px' }}>
                 <div className="messages-wrapper">
                     <div className="messages-spacer"></div>
                     {messages.map((message, index) => (

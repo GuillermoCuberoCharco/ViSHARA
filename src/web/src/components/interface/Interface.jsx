@@ -135,6 +135,7 @@ const Interface = ({ sharedStream }) => {
                 <ChatWindow
                     messages={messages}
                     newMessage={newMessage}
+                    messagesContainerRef={messagesContainerRef}
                     onMessageSend={() => {
                         if (newMessage.trim()) {
                             const messageObject = {
