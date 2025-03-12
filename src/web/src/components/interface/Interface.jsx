@@ -14,7 +14,7 @@ const Interface = ({ sharedStream }) => {
     // Main states
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [isChatVisible, setIsChatVisible] = useState(false);
+    const [isChatVisible, setIsChatVisible] = useState(true);
     const [isRegistered, setIsRegistered] = useState(false);
     const [connectionError, setConnectionError] = useState(false);
     const [isWaitingResponse, setIsWaitingResponse] = useState(false);
@@ -131,55 +131,55 @@ const Interface = ({ sharedStream }) => {
             >
                 {isChatVisible ? '🗨️ Ocultar chat' : '🗨️ Mostrar chat'}
             </button>
-            <div className={`interface-container ${isChatVisible ? 'visible' : 'hidden'}`}>
-                <ChatWindow
-                    messages={messages}
-                    newMessage={newMessage}
-                    messagesContainerRef={messagesContainerRef}
-                    onMessageSend={() => {
-                        if (newMessage.trim()) {
-                            const messageObject = {
-                                type: "client_message",
-                                text: newMessage,
-                                proactive_question: "Ninguna",
-                                username: "Desconocido"
-                            };
-                            socket.emit('client_message', messageObject);
+            <ChatWindow
+                messages={messages}
+                newMessage={newMessage}
+                messagesContainerRef={messagesContainerRef}
+                isChatVisible={isChatVisible}
+                onMessageSend={() => {
+                    if (newMessage.trim()) {
+                        const messageObject = {
+                            type: "client_message",
+                            text: newMessage,
+                            proactive_question: "Ninguna",
+                            username: "Desconocido"
+                        };
+                        socket.emit('client_message', messageObject);
 
-                            setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
+                        setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
 
-                            setNewMessage('');
+                        setNewMessage('');
 
-                            setTimeout(scrollToBottom, 100);
-                        }
-                    }}
-                    onInputChange={(e) => setNewMessage(e.target.value)}
-                >
-                    <div className="chat-controls">
-                        <AudioControls
-                            isRecording={isRecording}
-                            isSpeaking={isSpeaking}
-                            isWaitingResponse={isWaitingResponse}
-                            onStartRecording={startRecording}
-                            onStopRecording={stopRecording}
-                            onAudioStop={handleAudioStop}
-                        />
-                        <StatusBar
-                            isRegistered={isRegistered}
-                            connectionError={connectionError}
-                            isSpeaking={isSpeaking}
-                            isWaitingResponse={isWaitingResponse}
-                            audioSrc={audioSrc}
-                        />
-                        <FaceDetection
-                            onFaceDetected={handleFaceDetected}
-                            stream={sharedStream}
-                        />
-                    </div>
-                </ChatWindow>
-                <audio src={audioSrc} autoPlay />
-            </div>
+                        setTimeout(scrollToBottom, 100);
+                    }
+                }}
+                onInputChange={(e) => setNewMessage(e.target.value)}
+            >
+                <div className="chat-controls">
+                    <AudioControls
+                        isRecording={isRecording}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
+                        onAudioStop={handleAudioStop}
+                    />
+                    <StatusBar
+                        isRegistered={isRegistered}
+                        connectionError={connectionError}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        audioSrc={audioSrc}
+                    />
+                    <FaceDetection
+                        onFaceDetected={handleFaceDetected}
+                        stream={sharedStream}
+                    />
+                </div>
+            </ChatWindow>
+            <audio src={audioSrc} autoPlay />
         </div>
+
     );
 };
 

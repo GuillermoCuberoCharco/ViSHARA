@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children, messagesContainerRef }) => {
+const ChatWindow = ({ messages, newMessage, onMessageSend, onInputChange, children, messagesContainerRef, isChatVisible }) => {
     return (
-        <div className="chat-container visible">
-            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '240px' }}>
+        <div className={`chat-container ${isChatVisible ? 'visible' : 'hidden'}`}>
+            <div className="messages-container" ref={messagesContainerRef} style={{ paddingBottom: '280px' }}>
                 <div className="messages-wrapper">
                     <div className="messages-spacer"></div>
                     {messages.map((message, index) => (
