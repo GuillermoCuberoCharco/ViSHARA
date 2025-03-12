@@ -32,9 +32,8 @@ html {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
   padding: 10px;
+  margin-bottom: 0;
 }
 
 .messages-wrapper {
@@ -49,9 +48,11 @@ html {
 }
 
 .input-container {
-  position: relative;
-  flex-shrink: 0;
-  background-color: white;
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0);
   padding: 10px;
   border-top: 1px solid #ddd;
   display: flex;
@@ -59,10 +60,12 @@ html {
 }
 
 .chat-controls-container {
-  position: relative;
-  flex-shrink: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.216);
   border-top: 1px solid #ddd;
   z-index: 1;
 }
