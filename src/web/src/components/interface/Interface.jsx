@@ -21,7 +21,7 @@ const Interface = ({ sharedStream }) => {
 
     // Context and references
     const { animations, setAnimationIndex } = useCharacterAnimations();
-    const lastMessageRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const waitTimer = useRef(null);
 
     // Audio hooks and handlers
@@ -91,6 +91,17 @@ const Interface = ({ sharedStream }) => {
         }
     };
 
+    const scrollToBottom = () => {
+        if (messagesContainerRef.current) {
+            const scrollContainer = messagesContainerRef.current;
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
     useEffect(() => {
         const audioElement = document.querySelector('audio');
         if (audioElement) {
@@ -138,9 +149,7 @@ const Interface = ({ sharedStream }) => {
 
                             setNewMessage('');
 
-                            setTimeout(() => {
-                                lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
-                            }, 100);
+                            setTimeout(scrollToBottom, 100);
                         }
                     }}
                     onInputChange={(e) => setNewMessage(e.target.value)}
