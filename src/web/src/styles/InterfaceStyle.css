@@ -54,7 +54,7 @@ html {
   right: 0;
   background-color: rgba(162, 255, 167, 0);
   padding: 10px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #dddddd00;
   display: flex;
   z-index: 2;
 }
