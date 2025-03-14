@@ -1,4 +1,4 @@
-const { synthesizeText } = require('../../services/googleTTS');
+const { synthesizeText } = require('../../services/googleTTS.cjs');
 
 async function handleSynthesize(req, res) {
     try {
