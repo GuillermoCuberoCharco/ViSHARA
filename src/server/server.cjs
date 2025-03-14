@@ -3,8 +3,8 @@ const setupExpress = require('./config/app.cjs');
 const setupSocketIO = require('./config/socket.cjs');
 const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
-const { startCameraServices } = require('./services/faceService.cjs');
-const { startVideoServices } = require('./services/videoService.cjs');
+const { startCameraService } = require('./services/faceService.cjs');
+const { startVideoService } = require('./services/videoService.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app
@@ -20,8 +20,8 @@ const io = setupSocketIO(server);
 app.use('/api', setupRoutes(io.messageIo));
 
 // Initialize services
-startCameraServices(app, io.videoIo);
-startVideoServices(server);
+startCameraService(app, io.videoIo);
+startVideoService(server);
 
 // Configure sockets
 setupSockets(io);
