@@ -1,5 +1,5 @@
 const { transcribeAudio } = require('../../services/googleSTT.cjs');
-const { getOpenAIResponse } = require('../../services/openAI');
+const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 
 async function handleTranscribe(req, res, messageIo) {
     try {
