@@ -49,7 +49,8 @@ ChatWindow.propTypes = {
     onMessageSend: PropTypes.func.isRequired,
     onInputChange: PropTypes.func.isRequired,
     children: PropTypes.node,
-    messagesContainerRef: PropTypes.object
+    messagesContainerRef: PropTypes.object,
+    isChatVisible: PropTypes.bool
 };
 
 export default ChatWindow;

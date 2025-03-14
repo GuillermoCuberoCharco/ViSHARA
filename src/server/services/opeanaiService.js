@@ -1,8 +1,9 @@
 const OpenAI = require('openai');
-const { loadPrompt } = require('../utils/promptLoader.cjs');
+const { loadPrompt } = require('../utils/promptLoader');
+const config = require('../config/environment');
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: config.openai.apiKey
 });
 
 const SYSTEM_PROMPT = loadPrompt();

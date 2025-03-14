@@ -1,8 +1,8 @@
 const textToSpeech = require('@google-cloud/text-to-speech');
-require('dotenv').config();
+const config = require('../config/environment');
 
 const getCredentialsConfig = () => {
-  const googleCreds = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const googleCreds = config.google.credentials;
 
   try {
     const parsedCreds = JSON.parse(googleCreds);
@@ -12,11 +12,10 @@ const getCredentialsConfig = () => {
   }
 };
 
-const synthesize = async (req, res) => {
+async function synthesizeText(text) {
   try {
     const credentialsConfig = getCredentialsConfig();
     const client = new textToSpeech.TextToSpeechClient(credentialsConfig);
-    const text = req.body.text;
 
     const request = {
       input: { text: text },
@@ -32,13 +31,11 @@ const synthesize = async (req, res) => {
       },
     };
     const [response] = await client.synthesizeSpeech(request);
-    const audioContent = response.audioContent.toString('base64');
-
-    res.json({ audioContent });
+    return response.audioContent.toString('base64');
   } catch (error) {
     console.error('Error en la síntesis de voz:', error);
-    res.status(500).json({ error: error.message });
+    throw error;
   }
-};
+}
 
-module.exports = synthesize;
+module.exports = { synthesizeText };
