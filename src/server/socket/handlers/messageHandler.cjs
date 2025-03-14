@@ -1,4 +1,4 @@
-const { getOpenAIResponse } = require('../../services/opeanaiService');
+const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 
 function setupMessageHandlers(io) {
     io.on('connection', (socket) => {

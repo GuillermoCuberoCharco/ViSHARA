@@ -1,12 +1,11 @@
 const http = require('http');
-const setupExpress = require('./config/app');
-const setupSocketIO = require('./config/socket');
-const setupRoutes = require('./api/routes');
-const setupSockets = require('./socket');
-const { startCameraServices } = require('./services/faceService');
-const { startVideoServices } = require('./services/videoService');
-const config = require('./config/environment');
-const { start } = require('repl');
+const setupExpress = require('./config/app.cjs');
+const setupSocketIO = require('./config/socket.cjs');
+const setupRoutes = require('./api/routes/index.cjs');
+const setupSockets = require('./socket/index.cjs');
+const { startCameraServices } = require('./services/faceService.cjs');
+const { startVideoServices } = require('./services/videoService.cjs');
+const config = require('./config/environment.cjs');
 
 // Initialize Express app
 const app = setupExpress();

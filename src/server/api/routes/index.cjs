@@ -1,10 +1,10 @@
 const express = require('express');
-const synthesizeRoutes = require('./synthesize');
+const synthesizeRoutes = require('./synthesize.cjs');
 
 const router = express.Router();
 
 function setupRoutes(messageIo) {
-    const setupTranscribeRoutes = require('./transcribe');
+    const setupTranscribeRoutes = require('./transcribe.cjs');
 
     router.use('/synthesize', synthesizeRoutes);
     router.use('/transcribe', setupTranscribeRoutes(messageIo));

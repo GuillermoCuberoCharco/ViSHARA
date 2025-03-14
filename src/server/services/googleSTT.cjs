@@ -1,6 +1,6 @@
 // Imports the Google Cloud client library
 const speech = require('@google-cloud/speech');
-const config = require('../config/environment')
+const config = require('../config/environment.cjs')
 
 let client;
 

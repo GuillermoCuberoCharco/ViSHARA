@@ -1,5 +1,5 @@
 const { Server } = require('socket.io');
-const config = require('./environment');
+const config = require('./environment.cjs');
 
 function setupSocketIO(server) {
 

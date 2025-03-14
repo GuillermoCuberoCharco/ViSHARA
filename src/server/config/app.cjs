@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const config = require('./environment');
+const config = require('./environment.cjs');
 
 function setupExpress() {
     const app = express();

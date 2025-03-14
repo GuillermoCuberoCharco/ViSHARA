@@ -1,5 +1,5 @@
 const textToSpeech = require('@google-cloud/text-to-speech');
-const config = require('../config/environment');
+const config = require('../config/environment.cjs');
 
 const getCredentialsConfig = () => {
   const googleCreds = config.google.credentials;

@@ -1,5 +1,5 @@
-const { setupMessageHandlers } = require('./handlers/messageHandler');
-const { setupVideoHandlers } = require('./handlers/videoHandler');
+const { setupMessageHandlers } = require('./handlers/messageHandler.cjs');
+const { setupVideoHandlers } = require('./handlers/videoHandler.cjs');
 
 function setupSockets(io) {
     const { messageIo, videoIo } = io;
