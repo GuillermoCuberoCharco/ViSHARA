@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 
 function startVideoService(server) {
-    const client = new Set();
+    const clients = new Set();
     let framesReceived = 0;
     let framesForwarded = 0;
 
@@ -15,7 +15,7 @@ function startVideoService(server) {
                 const data = JSON.parse(message);
                 if (data.type === 'register') {
                     console.log('WebSocket client registered:', data.clientId);
-                    client.add({ socket: ws, type: data.client, protocol: 'ws' });
+                    clients.add({ socket: ws, type: data.client, protocol: 'ws' });
                 } else if (data.type === 'video-frame') {
                     framesReceived++;
                     for (const client of clients) {
