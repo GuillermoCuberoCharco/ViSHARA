@@ -61,14 +61,14 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
     }, [stream]);
 
     useEffect(() => {
-        if (!isModelLoaded || !stream || !videoRef.current) {
-            console.log('Detection prerequisites not met:', {
-                modelLoaded: isModelLoaded,
-                streamExists: !!stream,
-                videoExists: !!videoRef.current
-            });
-            return;
-        }
+        // if (!isModelLoaded || !stream || !videoRef.current) {
+        //     console.log('Detection prerequisites not met:', {
+        //         modelLoaded: isModelLoaded,
+        //         streamExists: !!stream,
+        //         videoExists: !!videoRef.current
+        //     });
+        //     return;
+        // }
 
         console.log('Starting face detection...');
 

@@ -50,11 +50,11 @@ function startVideoService(server) {
         }
     });
 
-    setInterval(() => {
-        console.log(`Video stats: ${framesReceived} frames received, ${framesForwarded} frames forwarded`);
-        framesReceived = 0;
-        framesForwarded = 0;
-    }, 10000);
+    // setInterval(() => {
+    //     console.log(`Video stats: ${framesReceived} frames received, ${framesForwarded} frames forwarded`);
+    //     framesReceived = 0;
+    //     framesForwarded = 0;
+    // }, 10000);
 
     return { clients };
 }
