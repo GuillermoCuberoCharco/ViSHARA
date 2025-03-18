@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const synthesize = require('../src/googleTTS.cjs');
+const synthesize = require('../services/googleTTS.cjs');
 
 const inputFile = process.argv[2];
 

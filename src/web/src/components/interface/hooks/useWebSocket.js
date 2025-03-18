@@ -7,7 +7,11 @@ const useWebSocket = (handlers) => {
 
     useEffect(() => {
         const socket = io(SERVER_URL, {
-            transport: ['polling', 'websocket']
+            transport: ['polling', 'websocket'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 10000,
+            forceNew: true
         });
 
         setWebSocket(socket);
@@ -24,6 +28,15 @@ const useWebSocket = (handlers) => {
             socket.on('client_message', handlers.handleClientMessage);
             socket.on('connect_error', handlers.handleConnectError);
             socket.on('error', handlers.handleSocketError);
+
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                console.log(`Reconnecting attempt ${attemptNumber}...`);
+            });
+
+            socket.on('reconnect_failed', () => {
+                console.log('Reconnection failed');
+                handlers.handleConnectError({ message: 'Reconnection failed after 5 attempts' })
+            });
         };
 
         setupEventListeners();

@@ -45,8 +45,17 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
         return new Promise((resolve, reject) => {
             socketRef.current = new WebSocket(`${SERVER_URL.replace('/^http', 'ws').replace('/^https', 'wss')}/video-socket`);
 
+            const connectionTimeout = setTimeout(() => {
+                if (socketRef.current.readyState !== WebSocket.OPEN) {
+                    console.error("WebSocket connection timeout");
+                    setConnectionStatus("Connection timeout");
+                    reject(new Error("WebSocket connection timeout"));
+                }
+            }, 10000);
+
             socketRef.current.onopen = () => {
                 console.log("WebSocket connected");
+                clearTimeout(connectionTimeout);
                 socketRef.current.send(JSON.stringify({ type: 'register', client: 'web' }));
                 setConnectionStatus("Connected to server");
                 resolve();
@@ -54,6 +63,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
             socketRef.current.onerror = (error) => {
                 console.error("WebSocket error:", error);
+                clearTimeout(connectionTimeout);
                 setConnectionStatus("Connection error");
                 reject(error);
             };
@@ -61,6 +71,13 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             socketRef.current.onclose = (event) => {
                 console.log("WebSocket closed:", event.reason);
                 setConnectionStatus("Disconnected: " + event.reason);
+
+                setTimeout(() => {
+                    if (socketRef.current?.readyState !== WebSocket.OPEN) {
+                        console.log("Attempting to reconnect WebSocket...");
+                        setupSocketConnection().catch(err => console.error("Reconnection failed: ", err));
+                    }
+                }, 5000);
             };
         });
     };

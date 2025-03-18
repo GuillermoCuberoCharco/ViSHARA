@@ -74,6 +74,15 @@ const Interface = ({ sharedStream }) => {
             console.log('Error connecting to server: ', error);
             setConnectionError(error.message || 'Error de conexión');
             setIsRegistered(false);
+
+            const errorMessage = error.message || 'Error de conexión';
+            setMessages(prev => [
+                ...prev,
+                {
+                    text: `Error de conexión: ${errorMessage}. Por favor, intenta recargar la página.`,
+                    sender: 'robot'
+                }
+            ]);
         },
 
         handleSocketError: (error) => {
@@ -122,6 +131,19 @@ const Interface = ({ sharedStream }) => {
             socket.emit('client_message', messageObject);
         }
     }, [transcribedText, socket]);
+
+    useEffect(() => {
+        if (connectionError && socket) {
+            const reconnectTimer = setTimeout(() => {
+                console.log('Intentando reconectar...');
+
+                if (socket.disconnected) {
+                    socket.connect();
+                }
+            }, 5000);
+            return () => clearTimeout(reconnectTimer);
+        }
+    }, [connectionError, socket]);
 
     return (
         <div className="chat-wrapper">
