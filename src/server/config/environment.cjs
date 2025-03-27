@@ -12,9 +12,15 @@ module.exports = {
         apiKey: process.env.OPENAI_API_KEY
     },
     cors: {
-        origin: true,
+        origin: [
+            process.env.FRONTEND_URL,
+            'http://localhost:5173'
+        ],
         methods: ['GET', 'POST'],
         credentials: true,
-        allowedHeaders: ['Content-Type', 'Authorization']
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowEIO3: true,
+        pingTimeout: 60000,
+        pingInterval: 25000
     }
 };
