@@ -7,7 +7,7 @@ const useWebSocket = (handlers) => {
 
     useEffect(() => {
         const socket = io(SERVER_URL, {
-            transport: ['polling', 'websocket'],
+            transports: ['polling', 'websocket'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
             timeout: 10000,
