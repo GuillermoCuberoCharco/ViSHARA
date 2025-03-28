@@ -2,10 +2,7 @@ const multer = require('multer');
 
 function startCameraService(app, io) {
     const storage = multer.memoryStorage();
-    const upload = multer({
-        storage: storage,
-        limits: { fileSize: 5 * 1024 * 1024 }
-    });
+    const upload = multer({ storage: storage });
     const videoSubscribers = new Set();
 
     app.get('/camera-status', (req, res) => {
@@ -58,7 +55,5 @@ function startCameraService(app, io) {
             }
         });
     });
-
-    return { videoSubscribers };
 }
 module.exports = { startCameraService };
