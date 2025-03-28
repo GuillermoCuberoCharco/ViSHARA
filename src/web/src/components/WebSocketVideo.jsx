@@ -43,7 +43,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
     const setupSocketConnection = () => {
         return new Promise((resolve, reject) => {
-            socketRef.current = new WebSocket(`${SERVER_URL.replace(/^http/, 'ws').replace(/^https/, 'wss')}/video-socket`);
+            socketRef.current = new WebSocket(`${SERVER_URL}/video-socket`);
 
             const connectionTimeout = setTimeout(() => {
                 if (socketRef.current.readyState !== WebSocket.OPEN) {
