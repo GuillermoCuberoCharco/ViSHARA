@@ -91,6 +91,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
     const setupVideoStream = async () => {
         try {
+            console.log("Setting up video stream...");
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             streamRef.current = stream;
             if (videoRef.current) {
@@ -108,6 +109,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     };
 
     const startVideoTransmission = () => {
+        console.log("Starting video transmission...");
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         const video = videoRef.current;
