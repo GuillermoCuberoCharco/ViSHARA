@@ -15,6 +15,13 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
+        if (!canvasRef.current) {
+            console.error("Canvas reference is not available");
+            return;
+        }
+        canvasRef.current.width = 320;
+        canvasRef.current.height = 240;
+
         lastFrameTimeRef.current = Date.now();
         initializeWebSocket();
         return () => {
@@ -131,28 +138,34 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     };
 
     return (
-        <div className="hidden">
-            <div aria-hidden="true">
+        <div>
+            <div style={{
+                position: 'fixed',
+                bottom: '10px',
+                left: '10px',
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                color: 'white',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                zIndex: 1000
+            }}>
+                Estado: {connectionStatus} | Frames: {frameSent}
+            </div>
+
+            <div style={{ position: 'absolute', opacity: 0.1, pointerEvents: 'none' }}>
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    style={{
-                        position: 'absolute',
-                        width: '1px',
-                        height: '1px',
-                        padding: 0,
-                        margin: '-1px',
-                        overflow: 'hidden',
-                        clip: 'rect(0, 0, 0, 0)',
-                        whiteSpace: 'nowrap',
-                        border: 0
-                    }}
+                    width="320"
+                    height="240"
                 />
                 <canvas
                     ref={canvasRef}
-                    style={{ display: 'none' }}
+                    width="320"
+                    height="240"
                 />
             </div>
         </div>
