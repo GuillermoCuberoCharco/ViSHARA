@@ -51,7 +51,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
     const setupSocketConnection = () => {
         return new Promise((resolve, reject) => {
-            const wsUrl = SERVER_URL.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
+            const wsUrl = SERVER_URL.replace('/^http', 'ws').replace('/^https', 'wss');
             console.log(`Connecting to WebSocket at: ${wsUrl}/video-socket`);
             socketRef.current = new WebSocket(`${wsUrl}/video-socket`);
 
