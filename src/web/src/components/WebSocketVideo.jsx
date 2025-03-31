@@ -39,6 +39,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
     const initializeWebSocket = async () => {
         try {
+            console.log("Initializing WebSocket...");
             await setupSocketConnection();
             await setupVideoStream();
             startVideoTransmission();
