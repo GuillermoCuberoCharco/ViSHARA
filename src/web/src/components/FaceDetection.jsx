@@ -8,6 +8,7 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
+    const [isStreamReady, setIsStreamReady] = useState(false);
     const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
@@ -44,31 +45,40 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
     }, []);
 
     useEffect(() => {
-        if (!stream || !videoRef.current) return;
+        if (!stream || !videoRef.current) {
+            console.log('Detection prerequisites not met');
+            return;
+        }
+
+        console.log('Setting up video stream...');
 
         const video = videoRef.current;
         video.srcObject = stream;
 
         video.onloadedmetadata = () => {
             video.play()
-                .then(() => console.log('Video playback started'))
+                .then(() => {
+                    console.log('Video playback started');
+                    setIsStreamReady(true);
+                })
                 .catch(error => console.error('Video playback error:', error));
         };
 
         return () => {
+            setIsStreamReady(false);
             video.srcObject = null;
         };
     }, [stream]);
 
     useEffect(() => {
-        // if (!isModelLoaded || !stream || !videoRef.current) {
-        //     console.log('Detection prerequisites not met:', {
-        //         modelLoaded: isModelLoaded,
-        //         streamExists: !!stream,
-        //         videoExists: !!videoRef.current
-        //     });
-        //     return;
-        // }
+        if (!isModelLoaded || !isStreamReady || !videoRef.current) {
+            console.log('Detection prerequisites not met:', {
+                modelLoaded: isModelLoaded,
+                streamReady: isStreamReady,
+                videoExists: !!videoRef.current
+            });
+            return;
+        }
 
         console.log('Starting face detection...');
 
@@ -117,7 +127,7 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
                 clearInterval(detectionRef.current);
             }
         };
-    }, [isModelLoaded, stream, onFaceDetected]);
+    }, [isModelLoaded, stream, onFaceDetected, isStreamReady]);
 
     return (
         <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
