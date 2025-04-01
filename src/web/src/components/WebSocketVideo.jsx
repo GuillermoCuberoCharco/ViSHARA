@@ -57,7 +57,6 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             socketRef.current = io(SERVER_URL, {
                 path: '/video-socket',
                 transports: ['websocket', 'polling'],
-                upgrade: false,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
                 timeout: 10000
@@ -139,11 +138,15 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const frame = canvas.toDataURL('image/jpeg', 0.5);
                 if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                    socketRef.current.send(JSON.stringify({
+                    socketRef.current.emit('video_frame', {
                         type: 'video-frame',
                         frame: frame
-                    }));
+                    });
                     setFramesSent((prev) => prev + 1);
+
+                    if (frameSent % 100 === 0) {
+                        console.log(`Frames sent: ${frameSent}`);
+                    }
                 }
                 lastFrameTimeRef.current = now;
             }

@@ -49,7 +49,7 @@ class CameraWidget(QWidget):
 
         self.status_label = QLabel("Connecting to server...")
         self.status_label.setStyleSheet("color: #e74c3c; background-color: rgba(0,0,0,0.5); padding: 2px;")
-        slef.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
         
         self.websocket_client = WebSocketClient()
@@ -134,7 +134,7 @@ class WebSocketClient(QObject):
                 message = await self.websocket.recv()
                 data = json.loads(message)
                 
-                if data.get('type') == 'video-frame':
+                if data.get('type') == 'video-frame' or 'frame' in data:
                     frame_data = data.get('frame', '')
                     if frame_data and ',' in frame_data:
                         frame_data = base64.b64decode(frame_data.split(',')[1])

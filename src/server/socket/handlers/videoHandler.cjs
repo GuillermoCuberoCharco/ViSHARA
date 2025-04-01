@@ -8,13 +8,25 @@ function setupVideoHandlers(io) {
             console.log('Client registered:', data.client, socket.id);
             if (data.client === 'web') {
                 socket.emit('registration_success', { status: 'ok' });
+            } else if (data.client === 'python') {
+                videoSubscribers.add(socket.id);
+                console.log('Python client registered:', socket.id);
+                socket.emit('registration_success', { status: 'ok' });
             }
         });
         socket.on('video_frame', (data) => {
-            for (const subscriberId of videoSubscribers) {
-                if (subscriberId !== socket.id) {
-                    io.to(subscriberId).emit('video_frame', data.frame);
+            if (videoSubscribers.size > 0) {
+                console.log('Forwarding video frame to', videoSubscribers.size, 'subscribers');
+                for (const subscriberId of videoSubscribers) {
+                    if (subscriberId !== socket.id) {
+                        io.to(subscriberId).emit('video-frame', {
+                            type: 'video-frame',
+                            frame: data.frame,
+                        });
+                    }
                 }
+            } else {
+                console.log('No subscribers available for video frame forwarding');
             }
         });
         socket.on('subscribe_video', () => {
