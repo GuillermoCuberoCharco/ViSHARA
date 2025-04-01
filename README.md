@@ -78,7 +78,7 @@ yarn install
 ```
 
 ### WoZ Application Setup
-
+It is recommended to use a virtual environment.
 ```bash
 cd wizard
 pip install -r requirements.txt

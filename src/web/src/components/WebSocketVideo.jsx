@@ -107,9 +107,18 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 onStreamReady(stream);
             }
             console.log("Video stream set up");
+            return stream;
         } catch (error) {
             console.error("Error accessing camera:", error);
-            setConnectionStatus("Camera error: " + error.message);
+            if (error.name === 'NotAllowedError') {
+                setConnectionStatus("Error: Camera access denied");
+            } else if (error.name === 'NotFoundError') {
+                setConnectionStatus("Error: Camera not found");
+            } else if (error.name === 'NotReadableError') {
+                setConnectionStatus("Error: Camera not readable");
+            } else {
+                setConnectionStatus("Error: Camera " + error.message);
+            }
             throw error;
         }
     };
@@ -130,7 +139,10 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const frame = canvas.toDataURL('image/jpeg', 0.5);
                 if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                    socketRef.current.emit('video_frame', { frame });
+                    socketRef.current.send(JSON.stringify({
+                        type: 'video-frame',
+                        frame: frame
+                    }));
                     setFramesSent((prev) => prev + 1);
                 }
                 lastFrameTimeRef.current = now;
@@ -138,11 +150,15 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             frameRequestRef.current = requestAnimationFrame(sendFrame);
         };
 
-        video.onloadedmetadata = () => {
-            canvas.width = video.videoWidth / 2;
-            canvas.height = video.videoHeight / 2;
+        if (video.readyState >= 3) {
             sendFrame();
-        };
+        } else {
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth / 2;
+                canvas.height = video.videoHeight / 2;
+                sendFrame();
+            };
+        }
     };
 
     return (
@@ -158,7 +174,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 fontSize: '12px',
                 zIndex: 1000
             }}>
-                Estado: {connectionStatus} | Frames: {frameSent}
+                Estado cámara: {connectionStatus} | Frames: {frameSent}
             </div>
 
             <div style={{ position: 'absolute', opacity: 0.1, pointerEvents: 'none' }}>

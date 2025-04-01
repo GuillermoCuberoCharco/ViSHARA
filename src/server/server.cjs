@@ -4,7 +4,7 @@ const setupSocketIO = require('./config/socket.cjs');
 const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
-const { startVideoService } = require('./services/videoService.cjs');
+const startVideoService = require('./services/videoService.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app

@@ -7,7 +7,7 @@ function setupVideoHandlers(io) {
         socket.on('register', (data) => {
             console.log('Client registered:', data.client, socket.id);
             if (data.client === 'web') {
-                socket.emit('registration_confirmed', { status: 'ok' });
+                socket.emit('registration_success', { status: 'ok' });
             }
         });
         socket.on('video_frame', (data) => {
