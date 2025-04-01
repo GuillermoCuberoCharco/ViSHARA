@@ -5,12 +5,23 @@ function setupSocketIO(server) {
 
     const videoIo = new Server(server, {
         path: '/video-socket',
-        cors: config.cors,
-        transports: ['websocket']
+        cors: config.cors || {
+            origin: '*',
+            methods: ['GET', 'POST'],
+            credentials: true
+        },
+        transports: ['websocket', 'polling'],
+        pingTimeout: 60000,
+        pingInterval: 25000,
+        connectTimeout: 45000
     });
 
     const messageIo = new Server(server, {
-        cors: config.cors,
+        cors: config.cors || {
+            origin: '*',
+            methods: ['GET', 'POST'],
+            credentials: true
+        },
         transports: ['polling', 'websocket']
     });
 
