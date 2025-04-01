@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import io from "socket.io-client";
 
 const WebSocketVideoComponent = ({ onStreamReady }) => {
     const [connectionStatus, setConnectionStatus] = useState("Disconnected");
@@ -26,7 +27,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
         initializeWebSocket();
         return () => {
             if (socketRef.current) {
-                socketRef.current.close();
+                socketRef.current.disconnect();
             }
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => track.stop());
@@ -51,28 +52,44 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
 
     const setupSocketConnection = () => {
         return new Promise((resolve, reject) => {
-            const wsUrl = SERVER_URL.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://');
-            console.log(`Connecting to WebSocket at: ${wsUrl}/video-socket`);
+            console.log(`Connecting to Socket.IO at: ${SERVER_URL}(path: /video-socket)`);
 
-            socketRef.current = new WebSocket(`${wsUrl}/video-socket`);
+            socketRef.current = io(SERVER_URL, {
+                path: '/video-socket',
+                transports: ['websocket', 'polling'],
+                upgrade: false,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 10000
+            });
 
-            socketRef.current.onopen = () => {
-                console.log("WebSocket connected");
-                socketRef.current.send(JSON.stringify({ type: 'register', client: 'web' }));
-                setConnectionStatus("Connected to server");
+            socketRef.current.on('connect', () => {
+                console.log("Connected to Socket.IO");
+                socketRef.current.emit('register', { client: 'web' })
+                setConnectionStatus("Connected");
                 resolve();
-            };
+            });
 
-            socketRef.current.onerror = (error) => {
-                console.error("WebSocket error:", error);
-                setConnectionStatus("Connection error");
+            socketRef.current.on('connect_error', (error) => {
+                console.error("Socket.IO connection error:", error);
+                setConnectionStatus("Socket.IO error: " + error.message);
                 reject(error);
-            };
+            });
 
-            socketRef.current.onclose = (event) => {
-                console.log("WebSocket closed:", event.reason);
-                setConnectionStatus("Disconnected: " + event.reason);
-            };
+            socketRef.current.on('disconnect', () => {
+                console.log("Disconnected from Socket.IO");
+                setConnectionStatus("Disconnected");
+            });
+
+            const connectionTimeout = setTimeout(() => {
+                console.error("Socket.IO connection timeout");
+                setConnectionStatus("Connection timeout");
+                reject(new Error("Socket.IO connection timeout"));
+            }, 10000);
+
+            socketRef.current.on('connect', () => {
+                clearTimeout(connectionTimeout);
+            });
         });
     };
 
@@ -93,6 +110,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
         } catch (error) {
             console.error("Error accessing camera:", error);
             setConnectionStatus("Camera error: " + error.message);
+            throw error;
         }
     };
 
@@ -112,7 +130,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const frame = canvas.toDataURL('image/jpeg', 0.5);
                 if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                    socketRef.current.send(JSON.stringify({ type: 'video-frame', frame }));
+                    socketRef.current.emit('video_frame', { frame });
                     setFramesSent((prev) => prev + 1);
                 }
                 lastFrameTimeRef.current = now;
