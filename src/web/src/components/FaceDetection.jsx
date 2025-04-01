@@ -120,7 +120,7 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
             }
         };
 
-        detectionRef.current = setInterval(detectFace, 500);
+        detectionRef.current = setInterval(detectFace, 5000);
 
         return () => {
             if (detectionRef.current) {
