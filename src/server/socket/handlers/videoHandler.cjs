@@ -29,6 +29,7 @@ function setupVideoHandlers(io) {
             if (data.client === 'python') {
                 videoSubscribers.add(socket.id);
                 console.log('New python subscriber:', socket.id);
+                socket.emit('subcription_success', { status: 'ok' });
             }
         });
         socket.on('unsubscribe_video', () => {

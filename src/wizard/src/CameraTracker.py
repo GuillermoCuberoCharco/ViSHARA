@@ -136,8 +136,8 @@ class WebSocketClient(QObject):
 
                 logging.debug(f"Received message type: {data.get('type')}")
 
-                if data.get('type') == 'registration_success':
-                    logging.info("Registration successful")
+                if data.get('type') == 'subcription_success':
+                    logging.info("Video subcription successful")
                 elif data.get('type') == 'video-frame' or 'frame' in data:
                     frame_data = data.get('frame', '')
 
