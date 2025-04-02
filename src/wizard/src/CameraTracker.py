@@ -109,9 +109,9 @@ class WebSocketClient(QObject):
             logging.debug("Attempting to connect to WebSocket server at ´{ws_url}/video-socket´")
             self.websocket = await websockets.connect(f'{ws_url}/video-socket', ping_interval=20, ping_timeout=20, close_timeout=5)
             logging.info("Connected to server")
-            self.connection_status.emit("Connected to server")
             self.reconnect_attempts = 0
-            await self.websocket.send(json.dumps({"type": "subscribe_video", "client": "python"}))
+            await self.websocket.send(json.dumps({"type": "subscribe_video"}))
+            self.connection_status.emit("Connected to server")
             logging.info("Registered as python client")
             await self.receive_messages()
         except Exception as e:
