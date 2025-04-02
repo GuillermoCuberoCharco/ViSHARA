@@ -111,7 +111,7 @@ class WebSocketClient(QObject):
             logging.info("Connected to server")
             self.connection_status.emit("Connected to server")
             self.reconnect_attempts = 0
-            await self.websocket.send(json.dumps({"type": "register", "client": "python"}))
+            await self.websocket.send(json.dumps({"type": "subscribe_video", "client": "python"}))
             logging.info("Registered as python client")
             await self.receive_messages()
         except Exception as e:
@@ -171,5 +171,6 @@ class WebSocketClient(QObject):
     async def stop(self):
         self.running = False
         if self.websocket:
+            await self.websocket.send(json.dumps({"type": "unsubscribe_video", "client": "python"}))
             await self.websocket.close()
             self.websocket = None

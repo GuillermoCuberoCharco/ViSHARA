@@ -9,11 +9,6 @@ function setupVideoHandlers(io) {
             if (data.client === 'web') {
                 socket.emit('registration_success', { status: 'ok' });
             }
-            if (data.client === 'python') {
-                videoSubscribers.add(socket.id);
-                console.log('Python client registered:', socket.id);
-                socket.emit('registration_success', { status: 'ok' });
-            }
         });
         socket.on('video_frame', (data) => {
             if (videoSubscribers.size > 0) {
@@ -31,8 +26,10 @@ function setupVideoHandlers(io) {
             }
         });
         socket.on('subscribe_video', () => {
-            videoSubscribers.add(socket.id);
-            console.log('New subscriber:', socket.id);
+            if (data.client === 'python') {
+                videoSubscribers.add(socket.id);
+                console.log('New python subscriber:', socket.id);
+            }
         });
         socket.on('unsubscribe_video', () => {
             videoSubscribers.delete(socket.id);
