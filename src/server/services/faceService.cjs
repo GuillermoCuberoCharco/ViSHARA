@@ -40,7 +40,7 @@ function startCameraService(app, io) {
         socket.on('subscribe_video', () => {
             videoSubscribers.add(socket.id);
             console.log(`Client ${socket.id} subscribed to video. Total subscribers: ${videoSubscribers.size}`);
-            socket.emit('subscription_confirmed', { status: 'ok' });
+            socket.emit('subscription_success', { status: 'ok' });
         });
 
         socket.on('unsubscribe_video', () => {
