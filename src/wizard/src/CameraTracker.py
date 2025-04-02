@@ -52,11 +52,11 @@ class CameraWidget(QWidget):
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
         
-        self.websocket_client = WebSocketClient()
-        self.websocket_client.frame_received.connect(self.display_frame)
-        self.websocket_client.connection_status.connect(self.update_status)
+        self.iosocket_client = IOSocketClient()
+        self.iosocket_client.frame_received.connect(self.display_frame)
+        self.iosocket_client.connection_status.connect(self.update_status)
    
-        asyncio.get_event_loop().create_task(self.websocket_client.connect())
+        asyncio.get_event_loop().create_task(self.iosocket_client.connect())
 
     @pyqtSlot(str)
     def update_status(self, status):
@@ -87,10 +87,10 @@ class CameraWidget(QWidget):
             logging.error(f"Error displaying frame: {str(e)}")
 
     async def cleanup(self):
-        if hasattr(self, 'websocket_client'):
-            await self.websocket_client.stop()
+        if hasattr(self, 'iosocket_client'):
+            await self.iosocket_client.stop()
 
-class WebSocketClient(QObject):
+class IOSocketClient(QObject):
     connection_status = pyqtSignal(str)
     frame_received = pyqtSignal(np.ndarray)
 

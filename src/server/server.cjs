@@ -4,7 +4,6 @@ const setupSocketIO = require('./config/socket.cjs');
 const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
-const startVideoService = require('./services/videoService.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app
@@ -21,7 +20,6 @@ app.use('/api', setupRoutes(io.messageIo));
 
 // Initialize services
 faceService.startCameraService(app, io.videoIo);
-startVideoService(server);
 
 // Configure sockets
 setupSockets(io);
@@ -29,7 +27,7 @@ setupSockets(io);
 // Start the server
 server.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`);
-    console.log(`Video WebSocket service available at /video-socket`);
+    console.log(`Video Socket.IO service available at /video-socket`);
     console.log(`Face detection service available at /upload`);
     console.log(`API endpoints available at /api/*`);
 });
