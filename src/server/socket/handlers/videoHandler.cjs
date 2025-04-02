@@ -8,7 +8,8 @@ function setupVideoHandlers(io) {
             console.log('Client registered:', data.client, socket.id);
             if (data.client === 'web') {
                 socket.emit('registration_success', { status: 'ok' });
-            } else if (data.client === 'python') {
+            }
+            if (data.client === 'python') {
                 videoSubscribers.add(socket.id);
                 console.log('Python client registered:', socket.id);
                 socket.emit('registration_success', { status: 'ok' });
