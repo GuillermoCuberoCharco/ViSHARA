@@ -1,7 +1,7 @@
 import asyncio
 import cv2
 import numpy as np
-import websockets
+import socketio
 import json
 import base64
 import logging
@@ -97,7 +97,7 @@ class WebSocketClient(QObject):
     def __init__(self):
         super().__init__()
         self.running = True
-        self.websocket = None
+        self.sio = None
         self.frames_received = 0
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 10
@@ -105,19 +105,52 @@ class WebSocketClient(QObject):
 
     async def connect(self):
         try:
-            ws_url = f'{VITE_SERVER_URL.replace("https://", "wss://").replace("http://", "ws://")}'
-            logging.debug("Attempting to connect to WebSocket server at ´{ws_url}/video-socket´")
-            self.websocket = await websockets.connect(f'{ws_url}/video-socket', ping_interval=20, ping_timeout=20, close_timeout=5)
-            logging.info("Connected to server")
-            self.reconnect_attempts = 0
-            await self.websocket.send(json.dumps({"type": "subscribe_video"}))
-            self.connection_status.emit("Connected to server")
-            logging.info("Registered as python client")
-            await self.receive_messages()
+            self.sio = socketio.AsyncClient(reconnection=True,
+            reconnection_attempts=self.max_reconnect_attempts)
+
+            @self.sio.event
+            async def connect():
+                self.connection_status.emit("Connected to server")
+                self.reconnect_attempts = 0
+                await self.sio.emit('subscribe_video')
+
+            @self.sio.event
+            async def connect_error():
+                self.connection_status.emit("Connection failed")
+
+            @self.sio.event
+            async def disconnect():
+                self.connection_status.emit("Disconnected from server")
+
+            @self.sio.event
+            async def subcription_success(data):
+                self.connection_status.emit("Subscribed to video stream")
+            
+            @self.sio.on('video-frame')
+            async def on_video_frame(data):
+                await self.process_frame(data)
+
+            server_url = VITE_SERVER_URL
+            await self.sio.connect(server_url, socketio_path='/video-socket', transports=['websocket'])
+            
+            while self.running and self.sio.connected:
+                await asyncio.sleep(1)
+
+            if self.running and not self.sio.connected:
+                self.reconnect_attempts += 1
+                if self.reconnect_attempts <= self.max_reconnect_attempts:
+                    delay = min(30, self.reconnect_delay * (2 ** (self.reconnect_attempts - 1)))
+                    self.connection_status.emit(f"Reconnecting in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    if self.running:
+                        asyncio.create_task(self.connect())
+                else:
+                    self.connection_status.emit("Max reconnect attempts reached. Stopping...")
+
         except Exception as e:
-            logging.error(f"Connection failed: {str(e)}")
-            self.connection_status.emit(f"Connection failed: {str(e)}")
-            self.websocket = None
+            self.connection_status.emit(f"Error connecting: {str(e)}")
+            self.sio = None
+
             self.reconnect_attempts += 1
             if self.reconnect_attempts <= self.max_reconnect_attempts:
                 delay = min(30, self.reconnect_delay * (2 ** (self.reconnect_attempts - 1)))
@@ -126,51 +159,35 @@ class WebSocketClient(QObject):
                 if self.running:
                     asyncio.create_task(self.connect())
             else:
-                self.connection_status.emit("Max reconnect attempts reached. Stopping.")
+                self.connection_status.emit("Max reconnect attempts reached. Stopping...")
 
-    async def receive_messages(self):
-        while self.running and self.websocket:
-            try:
-                message = await self.websocket.recv()
-                data = json.loads(message)
+    async def process_frame(self, data):
+        try:
+            frame_data = None
+            if isinstance(data, dict):
+                frame_data = data.get('frame', '')
 
-                logging.debug(f"Received message type: {data.get('type')}")
+            if frame_data and ',' in frame_data:
+                frame_data = base64.b64decode(frame_data.split(',', 1)[1])
 
-                if data.get('type') == 'subcription_success':
-                    logging.info("Video subcription successful")
-                elif data.get('type') == 'video-frame' or 'frame' in data:
-                    frame_data = data.get('frame', '')
+                frame = cv2.imdecode(np.frombuffer(frame_data, np.uint8), cv2.IMREAD_COLOR)
+                if frame is not None:
+                    self.frame_received.emit(frame)
+                    self.frames_received += 1
+                    if self.frames_received % 100 == 0:
+                        logging.info(f"Frames received: {self.frames_received}")
+                else:
+                    logging.warning("Failed to decode frame")
 
-                    if frame_data and ',' in frame_data:
-                        frame_data = base64.b64decode(frame_data.split(',')[1])
-                        frame = cv2.imdecode(np.frombuffer(frame_data, np.uint8), cv2.IMREAD_COLOR)
-                        if frame is not None:
-                            self.frame_received.emit(frame)
-                            self.frames_received += 1
-                            if self.frames_received % 100 == 0:
-                                logging.info(f"Received {self.frames_received} frames")
-                        else:
-                            logging.warning("Received empty frame")
-                    else:
-                        logging.warning(f"Invalid frame data format: {frame_data[:30]}...")
-
-            except websockets.exceptions.ConnectionClosed as e:
-                logging.warning(f"Connection closed: {str(e)}. Reconnecting...")
-                self.connection_status.emit(f"Connection closed: {str(e)}. Reconnecting...")
-                self.websocket = None
-                break
-            except Exception as e:
-                logging.error(f"Error in receive_messages: {str(e)}")
-                self.connection_status.emit(f"Error in receive_messages: {str(e)}")
-                break
-
-        if self.running:
-            await asyncio.sleep(self.reconnect_delay)
-            asyncio.create_task(self.connect())
+            else:
+                logging.warning(f"Invalid frame data format: {frame_data[:30] if frame_data else 'None'}...")
+        except Exception as e:
+            logging.error(f"Error processing frame: {str(e)}")
 
     async def stop(self):
         self.running = False
-        if self.websocket:
-            await self.websocket.send(json.dumps({"type": "unsubscribe_video", "client": "python"}))
-            await self.websocket.close()
-            self.websocket = None
+        if self.sio and self.sio.connected:
+            await self.sio.emit('unsubscribe_video')
+            await self.sio.disconnect()
+        self.connection_status.emit("Disconnected from server")
+        self.sio = None

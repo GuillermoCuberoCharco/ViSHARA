@@ -5,7 +5,7 @@ function setupMessageHandlers(io) {
         console.log('Client connected to message socket');
 
         socket.on('register_operator', (cientType) => {
-            console.log('Message client registered', cientType);
+            console.log('Message client registered', cientType, socket.id);
             socket.emit('registration_success', { status: 'ok' });
         });
 
