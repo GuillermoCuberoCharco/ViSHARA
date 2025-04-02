@@ -133,9 +133,15 @@ class WebSocketClient(QObject):
             try:
                 message = await self.websocket.recv()
                 data = json.loads(message)
-                
-                if data.get('type') == 'video-frame' or 'frame' in data:
+
+                logging.debug(f"Received message type: {data.get('type')}")
+
+                if data.get('type') == 'registration_success':
+                    logging.info("Registration successful")
+                    self.connection_status.emit("Registration confirmed")
+                elif data.get('type') == 'video-frame' or 'frame' in data:
                     frame_data = data.get('frame', '')
+                    
                     if frame_data and ',' in frame_data:
                         frame_data = base64.b64decode(frame_data.split(',')[1])
                         frame = cv2.imdecode(np.frombuffer(frame_data, np.uint8), cv2.IMREAD_COLOR)

@@ -22,7 +22,7 @@ function startVideoService(server) {
                     framesReceived++;
                     const frameData = data.frame || data.data;
                     for (const client of clients) {
-                        if (client.type === 'python' && client.socket.readySate === WebSocket.OPEN) {
+                        if (client.type === 'python' && client.socket.readyState === WebSocket.OPEN) {
                             client.socket.send(JSON.stringify({ type: 'video', frame: frameData }));
                             framesForwarded++;
                         }

@@ -9,6 +9,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     const streamRef = useRef(null);
     const canvasRef = useRef(null);
     const frameRequestRef = useRef(null);
+    const isTransmitting = useRef(false);
     const frameRate = 15;
     const frameInterval = 1000 / frameRate;
     const lastFrameTimeRef = useRef(0);
@@ -100,7 +101,8 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.play();
+                await videoRef.current.play();
+                console.log("Video stream playing");
             }
             if (onStreamReady) {
                 onStreamReady(stream);
@@ -128,7 +130,11 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
         const context = canvas.getContext('2d');
         const video = videoRef.current;
 
+        isTransmitting.current = true;
+
         const sendFrame = () => {
+            if (!isTransmitting.current) { console.log("Transmision stopped"); return; }
+
             const now = Date.now();
             const timeDiff = now - lastFrameTimeRef.current;
 
@@ -137,7 +143,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 canvas.height = video.videoHeight / 2;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const frame = canvas.toDataURL('image/jpeg', 0.5);
-                if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                if (socketRef.current && socketRef.current.connected) {
                     socketRef.current.emit('video_frame', {
                         type: 'video-frame',
                         frame: frame

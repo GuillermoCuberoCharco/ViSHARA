@@ -1,6 +1,5 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
-import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 
 const FaceDetection = ({ onFaceDetected, stream }) => {
@@ -82,20 +81,20 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
 
         console.log('Starting face detection...');
 
-        const sendFaceToServer = async (canvasElem) => {
-            canvasElem.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('frame', blob, 'face.png');
-                try {
-                    const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
-                    });
-                    console.log('Server response:', res.data);
-                } catch (error) {
-                    console.error('Error sending face to server:', error);
-                }
-            }, 'image/png');
-        };
+        // const sendFaceToServer = async (canvasElem) => {
+        //     canvasElem.toBlob(async (blob) => {
+        //         const formData = new FormData();
+        //         formData.append('frame', blob, 'face.png');
+        //         try {
+        //             const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
+        //                 headers: { 'Content-Type': 'multipart/form-data' }
+        //             });
+        //             console.log('Server response:', res.data);
+        //         } catch (error) {
+        //             console.error('Error sending face to server:', error);
+        //         }
+        //     }, 'image/png');
+        // };
 
         const detectFace = async () => {
             if (!videoRef.current || videoRef.current.readyState !== 4) return;
