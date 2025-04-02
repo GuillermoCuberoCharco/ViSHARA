@@ -25,7 +25,7 @@ function setupVideoHandlers(io) {
                 console.log('No subscribers available for video frame forwarding');
             }
         });
-        socket.on('subscribe_video', () => {
+        socket.on('subscribe_video', (data) => {
             if (data.client === 'python') {
                 videoSubscribers.add(socket.id);
                 console.log('New python subscriber:', socket.id);
