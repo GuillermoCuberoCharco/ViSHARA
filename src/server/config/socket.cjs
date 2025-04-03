@@ -17,6 +17,7 @@ function setupSocketIO(server) {
     });
 
     const messageIo = new Server(server, {
+        path: '/message-socket',
         cors: config.cors || {
             origin: '*',
             methods: ['GET', 'POST'],
