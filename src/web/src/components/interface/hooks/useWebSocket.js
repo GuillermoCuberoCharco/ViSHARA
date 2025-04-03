@@ -3,9 +3,10 @@ import io from "socket.io-client";
 import { SERVER_URL } from "../../../config";
 
 const useWebSocket = (handlers) => {
+    const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const socket = io(SERVER_URL, {
+        const newSocket = io(SERVER_URL, {
             path: '/message-socket',
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
@@ -14,24 +15,26 @@ const useWebSocket = (handlers) => {
             forceNew: true
         });
 
+        setSocket(newSocket);
+
         const setupEventListeners = () => {
-            socket.on('connect', () => {
+            newSocket.on('connect', () => {
                 console.log('Connected to server');
-                socket.emit('register_client', 'web');
+                newSocket.emit('register_client', 'web');
             });
 
-            socket.on('registration_success', handlers.handleRegistrationSuccess);
-            socket.on('robot_message', handlers.handleRobotMessage);
-            socket.on('wizard_message', handlers.handleWizardMessage);
-            socket.on('client_message', handlers.handleClientMessage);
-            socket.on('connect_error', handlers.handleConnectError);
-            socket.on('error', handlers.handleSocketError);
+            newSocket.on('registration_success', handlers.handleRegistrationSuccess);
+            newSocket.on('robot_message', handlers.handleRobotMessage);
+            newSocket.on('wizard_message', handlers.handleWizardMessage);
+            newSocket.on('client_message', handlers.handleClientMessage);
+            newSocket.on('connect_error', handlers.handleConnectError);
+            newSocket.on('error', handlers.handleSocketError);
 
-            socket.on('reconnect_attempt', (attemptNumber) => {
+            newSocket.on('reconnect_attempt', (attemptNumber) => {
                 console.log(`Reconnecting attempt ${attemptNumber}...`);
             });
 
-            socket.on('reconnect_failed', () => {
+            newSocket.on('reconnect_failed', () => {
                 console.log('Reconnection failed');
                 handlers.handleConnectError({ message: 'Reconnection failed after 5 attempts' })
             });
@@ -40,8 +43,8 @@ const useWebSocket = (handlers) => {
         setupEventListeners();
 
         return () => {
-            socket.offAny();
-            socket.disconnect();
+            newSocket.offAny();
+            newSocket.disconnect();
         };
     }, [handlers]);
 
