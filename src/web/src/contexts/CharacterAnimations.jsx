@@ -10,7 +10,7 @@ export const CharacterAnimationsProvider = (props) => {
   // Connect to the animation socket and control the animation interchanges
   useEffect(() => {
     const socket = io(SERVER_URL, {
-      path: "/animation-socket",
+      path: "/message-socket",
       transports: ["websocket"],
       upgrade: false
     });
