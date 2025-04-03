@@ -26,7 +26,17 @@ function setupSocketIO(server) {
         transports: ['polling', 'websocket']
     });
 
-    return { videoIo, messageIo };
+    const animationIo = new Server(server, {
+        path: '/animation-socket',
+        cors: config.cors || {
+            origin: '*',
+            methods: ['GET', 'POST'],
+            credentials: true
+        },
+        transports: ['polling', 'websocket']
+    });
+
+    return { videoIo, messageIo, animationIo };
 }
 
 module.exports = setupSocketIO;
