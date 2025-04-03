@@ -129,6 +129,7 @@ const Interface = ({ sharedStream }) => {
                 username: "Desconocido"
             };
             socket.emit('client_message', messageObject);
+            setIsWaitingResponse(true);
         }
     }, [transcribedText, socket]);
 
@@ -167,6 +168,7 @@ const Interface = ({ sharedStream }) => {
                             username: "Desconocido"
                         };
                         socket.emit('client_message', messageObject);
+                        setIsWaitingResponse(true);
 
                         setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
 

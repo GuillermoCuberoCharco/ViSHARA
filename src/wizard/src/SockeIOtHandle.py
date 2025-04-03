@@ -20,7 +20,7 @@ class SockeIOtHandle(QObject):
             'logger': True,
             'engineio_logger': True
         }
-        self.sio = socketio.AsyncClient(**engineio_opts)
+        self.sio = socketio.AsyncClient(json=engineio_opts)
         self.setup_events()
         self.is_registered = False
 
@@ -46,10 +46,6 @@ class SockeIOtHandle(QObject):
         async def connect_error(error):
             logger.error(f'Connection error: {error}')
             self.connection_error.emit(str(error))
-
-            if 'wensocket' in self.sio.transports:
-                self.sio.transports = ['polling']
-                await self.connect()
 
         @self.sio.event
         async def disconnect():

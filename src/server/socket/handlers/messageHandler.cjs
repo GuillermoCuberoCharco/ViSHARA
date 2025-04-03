@@ -18,6 +18,7 @@ function setupMessageHandlers(io) {
                     console.log('Empty message received');
                     return;
                 }
+                console.log('Received message:', inputText);
 
                 const response = await getOpenAIResponse(inputText, {
                     username: parsed.username || 'Desconocido',
