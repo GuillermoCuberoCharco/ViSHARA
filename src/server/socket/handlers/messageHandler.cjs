@@ -9,6 +9,11 @@ function setupMessageHandlers(io) {
             socket.emit('registration_success', { status: 'ok' });
         });
 
+        socket.on('register_client', (cientType) => {
+            console.log('Message client registered', cientType, socket.id);
+            socket.emit('registration_success', { status: 'ok' });
+        });
+
         socket.on('client_message', async (message) => {
             try {
                 const parsed = typeof message === 'string' ? JSON.parse(message) : message;
