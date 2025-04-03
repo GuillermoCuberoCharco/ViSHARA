@@ -79,8 +79,6 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
             return;
         }
 
-        console.log('Starting face detection...');
-
         // const sendFaceToServer = async (canvasElem) => {
         //     canvasElem.toBlob(async (blob) => {
         //         const formData = new FormData();

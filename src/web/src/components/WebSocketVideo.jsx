@@ -149,10 +149,6 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                         frame: frame
                     });
                     setFramesSent((prev) => prev + 1);
-
-                    if (frameSent % 100 === 0) {
-                        console.log(`Frames sent: ${frameSent}`);
-                    }
                 }
                 lastFrameTimeRef.current = now;
             }
