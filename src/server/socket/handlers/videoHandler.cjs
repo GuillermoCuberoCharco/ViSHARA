@@ -12,7 +12,6 @@ function setupVideoHandlers(io) {
         });
         socket.on('video_frame', (data) => {
             if (videoSubscribers.size > 0) {
-                console.log('Forwarding video frame to', videoSubscribers.size, 'subscribers');
                 for (const subscriberId of videoSubscribers) {
                     if (subscriberId !== socket.id) {
                         io.to(subscriberId).emit('video-frame', {
@@ -21,8 +20,6 @@ function setupVideoHandlers(io) {
                         });
                     }
                 }
-            } else {
-                console.log('No subscribers available for video frame forwarding');
             }
         });
         socket.on('subscribe_video', () => {
