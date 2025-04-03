@@ -18,23 +18,23 @@ const useWebSocket = (handlers) => {
         setWebSocket(socket);
 
         const setupEventListeners = () => {
-            socket.on('connect', () => {
+            websocket.on('connect', () => {
                 console.log('Connected to server');
                 socket.emit('register_client', 'web');
             });
 
-            socket.on('registration_success', handlers.handleRegistrationSuccess);
-            socket.on('robot_message', handlers.handleRobotMessage);
-            socket.on('wizard_message', handlers.handleWizardMessage);
-            socket.on('client_message', handlers.handleClientMessage);
-            socket.on('connect_error', handlers.handleConnectError);
-            socket.on('error', handlers.handleSocketError);
+            websocket.on('registration_success', handlers.handleRegistrationSuccess);
+            websocket.on('robot_message', handlers.handleRobotMessage);
+            websocket.on('wizard_message', handlers.handleWizardMessage);
+            websocket.on('client_message', handlers.handleClientMessage);
+            websocket.on('connect_error', handlers.handleConnectError);
+            websocket.on('error', handlers.handleSocketError);
 
-            socket.on('reconnect_attempt', (attemptNumber) => {
+            websocket.on('reconnect_attempt', (attemptNumber) => {
                 console.log(`Reconnecting attempt ${attemptNumber}...`);
             });
 
-            socket.on('reconnect_failed', () => {
+            websocket.on('reconnect_failed', () => {
                 console.log('Reconnection failed');
                 handlers.handleConnectError({ message: 'Reconnection failed after 5 attempts' })
             });
@@ -43,8 +43,8 @@ const useWebSocket = (handlers) => {
         setupEventListeners();
 
         return () => {
-            socket.offAny();
-            socket.disconnect();
+            websocket.offAny();
+            websocket.disconnect();
         };
     }, [handlers]);
 
