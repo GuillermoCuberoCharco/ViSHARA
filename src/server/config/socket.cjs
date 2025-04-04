@@ -23,7 +23,7 @@ function setupSocketIO(server) {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        transports: ['websocket', 'polling']
+        transports: ['polling', 'websocket']
     });
 
     const animationIo = new Server(server, {
@@ -33,7 +33,7 @@ function setupSocketIO(server) {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        transports: ['polling', 'websocket']
+        transports: ['websocket']
     });
 
     return { videoIo, messageIo, animationIo };

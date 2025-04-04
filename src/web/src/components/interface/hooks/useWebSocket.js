@@ -1,20 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { SERVER_URL } from "../../../config";
 
 const useWebSocket = (handlers) => {
     const [socket, setSocket] = useState(null);
+    const socketRef = useRef(null);
 
     useEffect(() => {
+        console.log('useWebSocket useEffect');
         const newSocket = io(SERVER_URL, {
             path: '/message-socket',
-            transports: ['websocket', 'polling'],
+            transports: ['polling', 'websocket'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
             timeout: 10000,
             forceNew: true
         });
 
+        socketRef.current = newSocket;
         setSocket(newSocket);
 
         const setupEventListeners = () => {
@@ -24,7 +27,7 @@ const useWebSocket = (handlers) => {
             });
 
             newSocket.on('registration_success', (data) => {
-                console.log('Registro exitoso:', data);
+                console.log('Registration success:', data);
                 handlers.handleRegistrationSuccess(data);
             });
             newSocket.on('robot_message', handlers.handleRobotMessage);
@@ -46,12 +49,13 @@ const useWebSocket = (handlers) => {
         setupEventListeners();
 
         return () => {
-            newSocket.offAny();
-            newSocket.disconnect();
+            socketRef.current.offAny();
+            socketRef.current.disconnect();
+            socketRef.current = null;
         };
     }, [handlers]);
 
-    return socket;
+    return socketRef.current;
 };
 
 export default useWebSocket;

@@ -17,7 +17,7 @@
   ],
   "author": "Guillermo Cubero Charco",
   "license": "ISC",
-  "type": "module",
+  "type": "commonjs",
   "dependencies": {
     "@google-cloud/speech": "^6.7.0",
     "@google-cloud/text-to-speech": "^5.8.0",
