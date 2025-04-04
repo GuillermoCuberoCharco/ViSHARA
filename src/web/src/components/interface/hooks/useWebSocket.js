@@ -23,7 +23,10 @@ const useWebSocket = (handlers) => {
                 newSocket.emit('register_client', 'web');
             });
 
-            newSocket.on('registration_success', handlers.handleRegistrationSuccess);
+            newSocket.on('registration_success', (data) => {
+                console.log('Registro exitoso:', data);
+                handlers.handleRegistrationSuccess(data);
+            });
             newSocket.on('robot_message', handlers.handleRobotMessage);
             newSocket.on('wizard_message', handlers.handleWizardMessage);
             newSocket.on('client_message', handlers.handleClientMessage);

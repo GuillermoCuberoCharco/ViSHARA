@@ -70,14 +70,7 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
     }, [stream]);
 
     useEffect(() => {
-        if (!isModelLoaded || !isStreamReady || !videoRef.current) {
-            console.log('Detection prerequisites not met:', {
-                modelLoaded: isModelLoaded,
-                streamReady: isStreamReady,
-                videoExists: !!videoRef.current
-            });
-            return;
-        }
+        if (!isModelLoaded || !isStreamReady || !videoRef.current) return;
 
         // const sendFaceToServer = async (canvasElem) => {
         //     canvasElem.toBlob(async (blob) => {
