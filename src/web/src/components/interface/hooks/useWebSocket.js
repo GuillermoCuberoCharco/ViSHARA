@@ -7,14 +7,18 @@ const useWebSocket = (handlers) => {
     const socketRef = useRef(null);
 
     useEffect(() => {
-        console.log('useWebSocket useEffect');
+        console.log('Connecting to server at:', SERVER_URL);
         const newSocket = io(SERVER_URL, {
             path: '/message-socket',
             transports: ['polling', 'websocket'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
             timeout: 10000,
-            forceNew: true
+            forceNew: true,
+            withCredentials: true,
+            extraHeaders: {
+                'Access-Control-Allow-Origin': '*'
+            }
         });
 
         socketRef.current = newSocket;

@@ -14,9 +14,10 @@ module.exports = {
     cors: {
         origin: [
             process.env.FRONTEND_URL,
+            process.env.VITE_SERVER_URL,
             'http://localhost:5173'
         ],
-        methods: ['GET', 'POST'],
+        methods: ['GET', 'POST', 'OPTIONS'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization'],
         allowEIO3: true,
