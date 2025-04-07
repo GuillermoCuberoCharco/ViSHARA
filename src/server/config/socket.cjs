@@ -5,7 +5,7 @@ function setupSocketIO(server) {
     console.log('Setting up Socket.IO with CORS configuration:', config.cors);
 
     const corsConfig = {
-        origin: config.cors.origin || '*',
+        origin: '*',
         methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
         credentials: config.cors.credentials || true,
         allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
