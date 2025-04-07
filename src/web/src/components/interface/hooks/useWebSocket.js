@@ -15,10 +15,7 @@ const useWebSocket = (handlers) => {
             reconnectionDelay: 1000,
             timeout: 10000,
             forceNew: true,
-            withCredentials: true,
-            extraHeaders: {
-                'Access-Control-Allow-Origin': '*'
-            }
+            withCredentials: true
         });
 
         socketRef.current = newSocket;

@@ -4,14 +4,16 @@ const config = require('./environment.cjs');
 function setupSocketIO(server) {
     console.log('Setting up Socket.IO with CORS configuration:', config.cors);
 
+    const corsConfig = {
+        origin: config.cors.origin || '*',
+        methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
+        credentials: config.cors.credentials || true,
+        allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
+    };
+
     const videoIo = new Server(server, {
         path: '/video-socket',
-        cors: {
-            origin: config.cors.origin || '*',
-            methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
-            credentials: config.cors.credentials || true,
-            allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
-        },
+        cors: corsConfig,
         transports: ['websocket', 'polling'],
         pingTimeout: 60000,
         pingInterval: 25000,
@@ -20,12 +22,7 @@ function setupSocketIO(server) {
 
     const messageIo = new Server(server, {
         path: '/message-socket',
-        cors: {
-            origin: config.cors.origin || '*',
-            methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
-            credentials: config.cors.credentials || true,
-            allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
-        },
+        cors: corsConfig,
         transports: ['polling', 'websocket'],
         pingTimeout: 60000,
         pingInterval: 25000,
@@ -34,12 +31,7 @@ function setupSocketIO(server) {
 
     const animationIo = new Server(server, {
         path: '/animation-socket',
-        cors: {
-            origin: config.cors.origin || '*',
-            methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
-            credentials: config.cors.credentials || true,
-            allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
-        },
+        cors: corsConfig,
         transports: ['websocket']
     });
 
