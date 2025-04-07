@@ -11,11 +11,7 @@ const useWebSocket = (handlers) => {
         const newSocket = io(SERVER_URL, {
             path: '/message-socket',
             transports: ['polling', 'websocket'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            timeout: 10000,
-            forceNew: true,
-            withCredentials: false
+            upgrade: false
         });
 
         socketRef.current = newSocket;

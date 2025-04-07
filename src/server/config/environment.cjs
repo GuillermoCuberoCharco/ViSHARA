@@ -13,8 +13,8 @@ module.exports = {
     },
     cors: {
         origin: [
-            process.env.FRONTEND_URL,
-            process.env.VITE_SERVER_URL,
+            'https://vi-shara.vercel.app',
+            'https://vishara.onrender.com',
             'http://localhost:5173'
         ],
         methods: ['GET', 'POST', 'OPTIONS'],

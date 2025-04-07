@@ -2,14 +2,21 @@ const { Server } = require('socket.io');
 const config = require('./environment.cjs');
 
 function setupSocketIO(server) {
-    console.log('Setting up Socket.IO with CORS configuration:', config.cors);
+    console.log('Setting up Socket.IO with CORS configuration:', JSON.stringify(config.cors));
+    const origins = Array.isArray(config.cors.origin) ? config.cors.origin : [config.cors.origin];
+
+    if (!origins.includes('https://vi-shara.vercel.app')) {
+        origins.push('https://vi-shara.vercel.app');
+    }
 
     const corsConfig = {
-        origin: config.cors.origin || '*',
+        origin: origins,
         methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
         credentials: config.cors.credentials || true,
         allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
     };
+
+    console.log('Final CORS configuration:', JSON.stringify(corsConfig));
 
     const videoIo = new Server(server, {
         path: '/video-socket',
