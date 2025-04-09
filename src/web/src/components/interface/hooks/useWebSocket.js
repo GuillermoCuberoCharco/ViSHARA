@@ -18,10 +18,14 @@ const useWebSocket = (handlers) => {
             autoConnect: true
         });
 
+        console.log('New socket created:', newSocket.id);
+
         socketRef.current = newSocket;
         setSocket(newSocket);
+        console.log('Socket set:', newSocket.id);
 
         const setupEventListeners = () => {
+            console.log('Setting up event listeners');
             newSocket.on('connect', () => {
                 console.log('Connected to server with ID:', newSocket.id);
                 newSocket.emit('register_client', 'web');
