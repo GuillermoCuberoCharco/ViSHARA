@@ -30,7 +30,7 @@ function setupSocketIO(server) {
     const messageIo = new Server(server, {
         path: '/message-socket',
         cors: corsConfig,
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         pingTimeout: 60000,
         pingInterval: 25000,
         connectTimeout: 45000

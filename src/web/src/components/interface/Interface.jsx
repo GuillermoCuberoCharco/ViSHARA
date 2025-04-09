@@ -41,7 +41,6 @@ const Interface = ({ sharedStream }) => {
     });
 
     const websocketHandlers = {
-
         handleRegistrationSuccess: (data) => {
             console.log('Registration successful');
             setIsRegistered(true);
@@ -92,7 +91,7 @@ const Interface = ({ sharedStream }) => {
         }
     };
 
-    const socket = useWebSocket(websocketHandlers);
+    const socketApi = useWebSocket(websocketHandlers);
 
     const handleFaceDetected = () => {
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
@@ -119,7 +118,7 @@ const Interface = ({ sharedStream }) => {
     }, [audioSrc, handleSynthesize]);
 
     useEffect(() => {
-        if (transcribedText && socket) {
+        if (transcribedText && socketApi.isConnected()) {
             setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
 
             const messageObject = {
@@ -128,23 +127,47 @@ const Interface = ({ sharedStream }) => {
                 proactive_question: "Ninguna",
                 username: "Desconocido"
             };
-            socket.emit('client_message', messageObject);
+            socketApi.emit('client_message', messageObject);
             setIsWaitingResponse(true);
         }
-    }, [transcribedText, socket]);
+    }, [transcribedText, socketApi]);
 
     useEffect(() => {
-        if (connectionError && socket) {
+        if (connectionError && socketApi.socket) {
             const reconnectTimer = setTimeout(() => {
                 console.log('Intentando reconectar...');
-
-                if (socket.disconnected) {
-                    socket.connect();
+                if (socketApi.socket && !socketApi.isConnected()) {
+                    socketApi.socket.connect();
                 }
             }, 5000);
             return () => clearTimeout(reconnectTimer);
         }
-    }, [connectionError, socket]);
+    }, [connectionError, socketApi]);
+
+    const handleSendMessage = () => {
+        if (newMessage.trim() && socketApi.isConnected()) {
+            const messageObject = {
+                type: "client_message",
+                text: newMessage,
+                proactive_question: "Ninguna",
+                username: "Desconocido"
+            };
+
+            const success = socketApi.emit('client_message', messageObject);
+
+            if (success) {
+                setIsWaitingResponse(true);
+                setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
+                setNewMessage('');
+                setTimeout(scrollToBottom, 100);
+            } else {
+                setMessages((messages) => [...messages, {
+                    text: "No se pudo enviar el mensaje. Comprueba tu conexión.",
+                    sender: 'robot'
+                }]);
+            }
+        }
+    };
 
     return (
         <div className="chat-wrapper">
@@ -159,24 +182,7 @@ const Interface = ({ sharedStream }) => {
                 newMessage={newMessage}
                 messagesContainerRef={messagesContainerRef}
                 isChatVisible={isChatVisible}
-                onMessageSend={() => {
-                    if (newMessage.trim()) {
-                        const messageObject = {
-                            type: "client_message",
-                            text: newMessage,
-                            proactive_question: "Ninguna",
-                            username: "Desconocido"
-                        };
-                        socket.emit('client_message', messageObject);
-                        setIsWaitingResponse(true);
-
-                        setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
-
-                        setNewMessage('');
-
-                        setTimeout(scrollToBottom, 100);
-                    }
-                }}
+                onMessageSend={handleSendMessage}
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
@@ -203,7 +209,6 @@ const Interface = ({ sharedStream }) => {
             </ChatWindow>
             <audio src={audioSrc} autoPlay />
         </div>
-
     );
 };
 
