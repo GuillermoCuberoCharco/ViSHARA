@@ -274,7 +274,7 @@ class ChatApplication(QWidget):
             max_retries = 5
             while retries < max_retries:
                 try:
-                    self.socket_client.sio.transports = ['polling']
+                    self.socket_client.sio.transports = ['websocket']
                     await self.socket_client.connect()
                     logger.info('Connected successfully')
                     break

@@ -20,7 +20,7 @@ class SockeIOtHandle(QObject):
             'logger': True,
             'engineio_logger': True
         }
-        self.sio = socketio.AsyncClient(json=engineio_opts)
+        self.sio = socketio.AsyncClient(engineio_opts)
         self.setup_events()
         self.is_registered = False
 
@@ -81,7 +81,7 @@ class SockeIOtHandle(QObject):
             logger.info(f'Attempting to connect to server: {self.url}')
             await self.sio.connect(
                 self.url,
-                transports=['polling', 'websocket'],
+                transports=['websocket', 'polling'],
                 wait=True,
                 wait_timeout=10
             )
