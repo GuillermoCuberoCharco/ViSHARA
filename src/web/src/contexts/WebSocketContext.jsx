@@ -84,7 +84,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
                 if (handlers.handleConnectError) {
                     newSocket.on('connect_error', (error) => {
                         console.error('WebSocket connection error:', error);
-                        handlers.handleConnectionError(error);
+                        handlers.handleConnectError(error);
                     });
                 }
             }
