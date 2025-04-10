@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React, { useEffect, useRef, useState } from 'react';
 import { ANIMATION_MAPPINGS } from '../../config';
 import { useCharacterAnimations } from '../../contexts/CharacterAnimations';
+import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
 import FaceDetection from '../FaceDetection';
 import useAudioRecorder from './hooks/useAudioRecorder';
-import useWebSocket from './hooks/useWebSocket';
 import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';
@@ -15,12 +15,12 @@ const Interface = ({ sharedStream }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [isChatVisible, setIsChatVisible] = useState(true);
-    const [isRegistered, setIsRegistered] = useState(false);
     const [connectionError, setConnectionError] = useState(false);
     const [isWaitingResponse, setIsWaitingResponse] = useState(false);
 
     // Context and references
     const { animations, setAnimationIndex } = useCharacterAnimations();
+    const { isConnected, isRegistered, emit } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
     const waitTimer = useRef(null);
 
@@ -40,58 +40,46 @@ const Interface = ({ sharedStream }) => {
         setIsWaitingResponse(false);
     });
 
-    const websocketHandlers = {
-        handleRegistrationSuccess: (data) => {
-            console.log('Registration successful');
-            setIsRegistered(true);
-            setConnectionError(false);
-        },
+    useEffect(() => {
+        setConnectionError(!isConnected);
+    }, [isConnected]);
 
-        handleRobotMessage: (message) => {
-            const animationName = ANIMATION_MAPPINGS[message.state] || 'Attention';
-            setAnimationIndex(animations.findIndex((animation) => animation.name === animationName));
+    const handleRobotMessage = (message) => {
+        const animationName = ANIMATION_MAPPINGS[message.state] || 'Attention';
+        setAnimationIndex(animations.findIndex((animation) => animation.name === animationName));
 
-            if (message.text?.trim()) {
-                setMessages((messages) => [...messages, { text: message.text, sender: 'robot' }]);
-            }
-            setIsWaitingResponse(false);
-        },
+        if (message.text?.trim()) {
+            setMessages((messages) => [...messages, { text: message.text, sender: 'robot' }]);
+        }
+        setIsWaitingResponse(false);
+    };
 
-        handleWizardMessage: async (message) => {
-            setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
-            await handleSynthesize(message.text);
-            setIsWaitingResponse(false);
-        },
+    const handleWizardMessage = async (message) => {
+        setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
+        await handleSynthesize(message.text);
+        setIsWaitingResponse(false);
+    };
 
-        handleClientMessage: (message) => {
-            if (message.text?.trim()) {
-                setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
-            }
-        },
-
-        handleConnectError: (error) => {
-            console.log('Error connecting to server: ', error);
-            setConnectionError(error.message || 'Error de conexión');
-            setIsRegistered(false);
-
-            const errorMessage = error.message || 'Error de conexión';
-            setMessages(prev => [
-                ...prev,
-                {
-                    text: `Error de conexión: ${errorMessage}. Por favor, intenta recargar la página.`,
-                    sender: 'robot'
-                }
-            ]);
-        },
-
-        handleSocketError: (error) => {
-            console.log('Socket error: ', error);
-            setConnectionError(true);
-            setIsRegistered(false);
+    const handleClientMessage = (message) => {
+        if (message.text?.trim()) {
+            setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
         }
     };
 
-    const socketApi = useWebSocket(websocketHandlers);
+    useEffect(() => {
+        const socket = document.querySelector('body').__SOCKET__;
+        if (socket) {
+            socket.on('robot_message', handleRobotMessage);
+            socket.on('wizard_message', handleWizardMessage);
+            socket.on('client_message', handleClientMessage);
+
+            return () => {
+                socket.off('robot_message', handleRobotMessage);
+                socket.off('wizard_message', handleWizardMessage);
+                socket.off('client_message', handleClientMessage);
+            };
+        }
+    }, [animations])
 
     const handleFaceDetected = () => {
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
@@ -118,7 +106,7 @@ const Interface = ({ sharedStream }) => {
     }, [audioSrc, handleSynthesize]);
 
     useEffect(() => {
-        if (transcribedText && socketApi.isConnected()) {
+        if (transcribedText && isConnected) {
             setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
 
             const messageObject = {
@@ -127,25 +115,13 @@ const Interface = ({ sharedStream }) => {
                 proactive_question: "Ninguna",
                 username: "Desconocido"
             };
-            socketApi.emit('client_message', messageObject);
-            setIsWaitingResponse(true);
+            const success = emit('client_message', messageObject);
+            setIsWaitingResponse(success);
         }
-    }, [transcribedText, socketApi]);
-
-    useEffect(() => {
-        if (connectionError && socketApi.socket) {
-            const reconnectTimer = setTimeout(() => {
-                console.log('Intentando reconectar...');
-                if (socketApi.socket && !socketApi.isConnected()) {
-                    socketApi.socket.connect();
-                }
-            }, 5000);
-            return () => clearTimeout(reconnectTimer);
-        }
-    }, [connectionError, socketApi]);
+    }, [transcribedText, isConnected, emit]);
 
     const handleSendMessage = () => {
-        if (newMessage.trim() && socketApi.isConnected()) {
+        if (newMessage.trim() && isConnected) {
             const messageObject = {
                 type: "client_message",
                 text: newMessage,
@@ -153,10 +129,10 @@ const Interface = ({ sharedStream }) => {
                 username: "Desconocido"
             };
 
-            const success = socketApi.emit('client_message', messageObject);
+            const success = emit('client_message', messageObject);
 
             if (success) {
-                setIsWaitingResponse(true);
+                setIsWaitingResponse(success);
                 setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
                 setNewMessage('');
                 setTimeout(scrollToBottom, 100);
