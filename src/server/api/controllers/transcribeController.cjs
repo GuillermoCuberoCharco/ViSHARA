@@ -1,7 +1,6 @@
 const { transcribeAudio } = require('../../services/googleSTT.cjs');
-const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 
-async function handleTranscribe(req, res, messageIo) {
+async function handleTranscribe(req, res) {
     try {
         const audio = req.body.audio;
 
@@ -19,23 +18,7 @@ async function handleTranscribe(req, res, messageIo) {
             });
         }
 
-        const response = await getOpenAIResponse(transcription, {
-            username: req.user.username || 'Desconocido',
-            proactive_question: req.body.proactive_question || 'Ninguna',
-        });
-
-        if (response.text?.trim()) {
-            messageIo.emit('client_message', {
-                text: transcription,
-                state: response.state
-            });
-            messageIo.emit('robot_message', {
-                text: response.text,
-                state: response.robot_mood
-            });
-        }
-
-        res.status(200).json(response);
+        res.status(200).json(transcription);
     } catch (error) {
         console.error('Error transcribing audio:', error);
         res.status(500).json({ error: 'Error transcribing audio' })

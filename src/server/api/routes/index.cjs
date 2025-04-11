@@ -3,11 +3,11 @@ const synthesizeRoutes = require('./synthesize.cjs');
 
 const router = express.Router();
 
-function setupRoutes(messageIo) {
+function setupRoutes() {
     const setupTranscribeRoutes = require('./transcribe.cjs');
 
     router.use('/synthesize', synthesizeRoutes);
-    router.use('/transcribe', setupTranscribeRoutes(messageIo));
+    router.use('/transcribe', setupTranscribeRoutes());
 
     return router;
 }

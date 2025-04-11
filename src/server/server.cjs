@@ -19,7 +19,7 @@ const io = setupSocketIO(server);
 console.log('Socket.IO initialized');
 
 // Configure API routes
-app.use('/api', setupRoutes(io.messageIo));
+app.use('/api', setupRoutes());
 console.log('API routes configured');
 
 // Initialize services

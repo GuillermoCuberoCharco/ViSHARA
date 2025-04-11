@@ -67,7 +67,7 @@ const useAudioRecorder = (onTranscriptioComplete) => {
     const handleTranscribe = useCallback(async (blob) => {
         try {
             const audio = await blobToBase64(blob);
-            const response = await axios.post(`${SERVER_URL}/transcribe`, { audio });
+            const response = await axios.post(`${SERVER_URL}/api/transcribe`, { audio });
             setTranscribedText(response.data.text);
             return response.data.text;
         } catch (error) {
@@ -82,7 +82,7 @@ const useAudioRecorder = (onTranscriptioComplete) => {
 
         try {
             setIsSpeaking(true);
-            const response = await axios.post(`${SERVER_URL}/synthesize`, { text: message });
+            const response = await axios.post(`${SERVER_URL}/api/synthesize`, { text: message });
             setAudioSrc(`data:audio/mp3;base64,${response.data.audioContent}`);
         } catch (error) {
             console.error('Error synthesizing audio:', error);

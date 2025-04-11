@@ -2,10 +2,10 @@ const express = require('express');
 
 const router = express.Router();
 
-function setupTranscribeRoutes(messageIo) {
+function setupTranscribeRoutes() {
     const { handleTranscribe } = require('../controllers/transcribeController.cjs');
 
-    router.post('/', (req, res) => handleTranscribe(req, res, messageIo));
+    router.post('/', (req, res) => handleTranscribe(req, res));
 
     return router;
 }
