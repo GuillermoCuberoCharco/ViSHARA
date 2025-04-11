@@ -81,6 +81,7 @@ class SockeIOtHandle(QObject):
             logger.info(f'Attempting to connect to server: {self.url}')
             await self.sio.connect(
                 self.url,
+                socketio_path='/message-socket',
                 transports=['websocket', 'polling'],
                 wait=True,
                 wait_timeout=10
