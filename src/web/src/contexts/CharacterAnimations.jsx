@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import io from "socket.io-client";
+import { SERVER_URL } from "../config";
 export const CharacterAnimationsContext = createContext();
 
 export const CharacterAnimationsProvider = (props) => {
   const [animationIndex, setAnimationIndex] = useState(0);
   const [animations, setAnimations] = useState([]);
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
   // Connect to the animation socket and control the animation interchanges
   useEffect(() => {

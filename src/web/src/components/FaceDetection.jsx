@@ -9,7 +9,6 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const [isModelLoaded, setIsModelLoaded] = useState(false);
     const [isStreamReady, setIsStreamReady] = useState(false);
     const [isFaceDetected, setIsFaceDetected] = useState(false);
-    const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
         const initializeModel = async () => {

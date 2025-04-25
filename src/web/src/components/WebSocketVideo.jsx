@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
+import { SERVER_URL } from "../../config";
 
 const WebSocketVideoComponent = ({ onStreamReady }) => {
     const [connectionStatus, setConnectionStatus] = useState("Disconnected");
@@ -13,8 +14,6 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     const frameRate = 15;
     const frameInterval = 1000 / frameRate;
     const lastFrameTimeRef = useRef(0);
-
-    const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
         if (!canvasRef.current) {
