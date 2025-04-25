@@ -2,12 +2,13 @@ import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
 import React, { useEffect, useRef, useState } from 'react';
 
-const FaceDetection = ({ onFaceDetected, stream }) => {
+const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const videoRef = useRef(null);
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
     const [isStreamReady, setIsStreamReady] = useState(false);
+    const [isFaceDetected, setIsFaceDetected] = useState(false);
     const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8081';
 
     useEffect(() => {
@@ -99,8 +100,15 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
 
                 if (predictions && predictions.length > 0) {
                     // console.log('Face detected:', predictions[0]);
-                    onFaceDetected();
-
+                    if (!isFaceDetected) {
+                        setIsFaceDetected(true);
+                        onFaceDetected();
+                    }
+                } else {
+                    if (isFaceDetected) {
+                        setIsFaceDetected(false);
+                        onFaceLost();
+                    }
                 }
             } catch (error) {
                 console.error('Detection error:', error);
@@ -117,7 +125,7 @@ const FaceDetection = ({ onFaceDetected, stream }) => {
                 clearInterval(detectionRef.current);
             }
         };
-    }, [isModelLoaded, stream, onFaceDetected, isStreamReady]);
+    }, [isModelLoaded, stream, onFaceDetected, onFaceLost, isStreamReady, isFaceDetected]);
 
     return (
         <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>

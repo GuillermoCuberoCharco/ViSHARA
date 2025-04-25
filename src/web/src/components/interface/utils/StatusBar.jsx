@@ -7,7 +7,8 @@ const StatusBar = ({
     isWaitingResponse,
     audioSrc,
     connectionError,
-    isRegistered
+    isRegistered,
+    faceDetected
 }) => {
     const getStatusMessage = () => {
         if (connectionError) {
@@ -55,6 +56,14 @@ const StatusBar = ({
                 message: "Audio ready",
                 icon: "🔊",
                 color: "status-bar-playing"
+            };
+        }
+
+        if (!faceDetected) {
+            return {
+                message: "Face not detected",
+                icon: "😢",
+                color: "status-bar-face-not-detected"
             };
         }
 

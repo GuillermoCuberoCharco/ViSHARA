@@ -81,8 +81,16 @@ const Interface = ({ sharedStream }) => {
     }, [socket, animations])
 
     const handleFaceDetected = () => {
+        setFaceDetected(true);
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
             startRecording();
+        }
+    };
+
+    const handleFaceLost = () => {
+        setFaceDetected(false);
+        if (isRecording) {
+            stopRecording();
         }
     };
 
@@ -175,9 +183,11 @@ const Interface = ({ sharedStream }) => {
                         isSpeaking={isSpeaking}
                         isWaitingResponse={isWaitingResponse}
                         audioSrc={audioSrc}
+                        faceDetected={faceDetected}
                     />
                     <FaceDetection
                         onFaceDetected={handleFaceDetected}
+                        onFaceLost={handleFaceLost}
                         stream={sharedStream}
                     />
                 </div>

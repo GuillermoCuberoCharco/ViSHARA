@@ -48,6 +48,10 @@
     background-color: #10B981;
 }
 
+.status-bar-face-not-detected {
+    background-color: #f3ec16;
+}
+
 @keyframes pulse {
     0% {
         opacity: 1;
