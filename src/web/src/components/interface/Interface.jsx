@@ -17,6 +17,7 @@ const Interface = ({ sharedStream }) => {
     const [isChatVisible, setIsChatVisible] = useState(true);
     const [connectionError, setConnectionError] = useState(false);
     const [isWaitingResponse, setIsWaitingResponse] = useState(false);
+    const [faceDetected, setFaceDetected] = useState(false);
 
     // Context and references
     const { animations, setAnimationIndex } = useCharacterAnimations();
