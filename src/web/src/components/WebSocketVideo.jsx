@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
-import { SERVER_URL } from "../../config";
+import { SERVER_URL } from "../config";
 
 const WebSocketVideoComponent = ({ onStreamReady }) => {
     const [connectionStatus, setConnectionStatus] = useState("Disconnected");
