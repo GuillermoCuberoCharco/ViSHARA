@@ -313,7 +313,7 @@ class ChatApplication(QWidget):
                 event_data = data.get('data')
                 if event == 'client_message':
                     self.chat_display.append(f"CLIENT: {event_data['text']}")
-                elif event == 'watson_message':
+                elif event == 'openai_message':
                     self.handle_watson_response(event_data)
                 else:
                     self.chat_display.append(f'EVENT: {event}, DATA: {event_data}')

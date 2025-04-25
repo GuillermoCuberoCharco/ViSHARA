@@ -61,10 +61,10 @@ class SockeIOtHandle(QObject):
             }))
 
         @self.sio.event
-        async def watson_message(data):
-            logger.info(f'Watson message received: {data}')
+        async def openai_message(data):
+            logger.info(f'OpenAI message received: {data}')
             self.message_received.emit(json.dumps({
-                'event': 'watson_message',
+                'event': 'openai_message',
                 'data': data
             }))
 

@@ -25,13 +25,24 @@ function setupMessageHandlers(io) {
                 }
                 console.log('Received message:', inputText);
 
-                const response = await getOpenAIResponse(inputText, {
+                const context = {
                     username: parsed.username || 'Desconocido',
                     proactive_question: parsed.proactive_question || 'Ninguna',
-                });
+                };
+
+                console.log('Processing message with context:', context);
+
+                const response = await getOpenAIResponse(inputText, context);
 
                 if (response.text?.trim()) {
+                    console.log('Sending robot response:', response);
+
                     socket.emit('robot_message', {
+                        text: response.text,
+                        state: response.robot_mood
+                    });
+
+                    socket.broadcast.emit('openai_message', {
                         text: response.text,
                         state: response.robot_mood
                     });
