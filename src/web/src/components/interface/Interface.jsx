@@ -20,7 +20,7 @@ const Interface = ({ sharedStream }) => {
 
     // Context and references
     const { animations, setAnimationIndex } = useCharacterAnimations();
-    const { isConnected, isRegistered, emit } = useWebSocketContext();
+    const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
     const waitTimer = useRef(null);
 
@@ -67,7 +67,6 @@ const Interface = ({ sharedStream }) => {
     };
 
     useEffect(() => {
-        const socket = document.querySelector('body').__SOCKET__;
         if (socket) {
             socket.on('robot_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
@@ -79,7 +78,7 @@ const Interface = ({ sharedStream }) => {
                 socket.off('client_message', handleClientMessage);
             };
         }
-    }, [animations])
+    }, [socket, animations])
 
     const handleFaceDetected = () => {
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
