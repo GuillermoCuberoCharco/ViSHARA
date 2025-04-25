@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AUDIO_SETTINGS, SERVER_URL } from '../../../config';
 
 const useAudioRecorder = (onTranscriptionComplete) => {
