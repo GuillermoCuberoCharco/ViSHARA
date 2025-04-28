@@ -132,7 +132,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
         isTransmitting.current = true;
 
         const sendFrame = () => {
-            if (!isTransmitting.current || !socketRef.current) { console.log("Transmision stopped"); return; }
+            if (!isTransmitting.current) { console.log("Transmision stopped"); return; }
 
             const now = Date.now();
             const timeDiff = now - lastFrameTimeRef.current;
@@ -151,9 +151,7 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
                 }
                 lastFrameTimeRef.current = now;
             }
-            if (isTransmitting.current) {
-                frameRequestRef.current = requestAnimationFrame(sendFrame);
-            }
+            frameRequestRef.current = requestAnimationFrame(sendFrame);
         };
 
         if (video.readyState >= 3) {

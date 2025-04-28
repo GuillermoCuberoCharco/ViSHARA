@@ -51,7 +51,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
                 }
             });
 
-            newSocket.on('registration_success', () => {
+            newSocket.on('registration_success', (data) => {
                 console.log('WebSocket registered successfully');
                 setIsRegistered(true);
                 if (handlers && handlers.handleRegistrationSuccess) {
