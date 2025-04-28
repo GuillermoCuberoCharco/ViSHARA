@@ -5,7 +5,7 @@ export const AUDIO_SETTINGS = {
     sampleRate: 44100,
     silenceThreshold: 20,
     silenceDuration: 2000,
-    maxTimeRecording: 90000,
+    maxRecordingTime: 90000,
     audioBitsPerSecond: 16000
 };
 export const ANIMATION_MAPPINGS = {
