@@ -51,11 +51,11 @@ export const WebSocketProvider = ({ children, handlers }) => {
                 }
             });
 
-            newSocket.on('registration_success', (data) => {
+            newSocket.on('registration_success', () => {
                 console.log('WebSocket registered successfully');
                 setIsRegistered(true);
                 if (handlers && handlers.handleRegistrationSuccess) {
-                    handlers.handleRegistrationSuccess(data);
+                    handlers.handleRegistrationSuccess();
                 }
             });
 

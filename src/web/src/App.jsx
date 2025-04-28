@@ -12,8 +12,8 @@ function App() {
   const [isStreamReady, setIsStreamReady] = useState(false);
 
   const webSocketHandlers = {
-    handleRegistrationSuccess: (data) => {
-      console.log("Registration successful:", data);
+    handleRegistrationSuccess: () => {
+      console.log("Registration successful");
     },
     handleConnectError: (error) => {
       console.error("Connection error:", error);
