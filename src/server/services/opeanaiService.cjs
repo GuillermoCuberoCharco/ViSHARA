@@ -11,7 +11,7 @@ const SYSTEM_PROMPT = loadPrompt();
 async function getOpenAIResponse(input, context = {}) {
     const now = new Date();
     const formattedDate = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     const message = [
         { role: "system", content: SYSTEM_PROMPT },
         //...get_full_conversation_history(), // For historical context, future feature
@@ -28,7 +28,7 @@ async function getOpenAIResponse(input, context = {}) {
     try {
         console.log("Sending message to OpenAI:", JSON.stringify(message[1].content));
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-4o-mini",
             messages: message,
             response_format: { type: "json_object" },
             temperature: 1,
