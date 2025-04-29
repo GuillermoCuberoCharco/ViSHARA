@@ -29,6 +29,46 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         }
     }, [isRecording]);
 
+    const detectSilence = useCallback((stream) => {
+        if (!audioContextRef.current || !analyserRef.current) return;
+
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        source.connect(analyserRef.current);
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const checkSilence = () => {
+            if (!isRecording) {
+                cancelAnimationFrame(silenceTimerRef.current);
+                silenceTimerRef.current = null;
+                return;
+            }
+
+            analyserRef.current.getByteFrequencyData(dataArray);
+
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / bufferLength;
+
+            if (average < silenceThreshold.current) {
+                if (!silenceTimerRef.current) {
+                    silenceStartTimeRef.current = Date.now();
+                    console.log('Silence detected, starting timer...');
+                } else if (Date.now() - silenceStartTimeRef.current > silenceDuration.current) {
+                    console.log('Silence duration exceeded, stopping recording...');
+                    stopRecording();
+                    return;
+                }
+            } else {
+                silenceStartTimeRef.current = null;
+            }
+            silenceTimerRef.current = requestAnimationFrame(checkSilence);
+        };
+        silenceTimerRef.current = requestAnimationFrame(checkSilence);
+    }, [isRecording, stopRecording]);
+
     const startRecording = useCallback(async () => {
         try {
             audioChunksRef.current = [];
@@ -141,46 +181,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             }
         };
     }, []);
-
-    const detectSilence = useCallback((stream) => {
-        if (!audioContextRef.current || !analyserRef.current) return;
-
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        source.connect(analyserRef.current);
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        const checkSilence = () => {
-            if (!isRecording) {
-                cancelAnimationFrame(silenceTimerRef.current);
-                silenceTimerRef.current = null;
-                return;
-            }
-
-            analyserRef.current.getByteFrequencyData(dataArray);
-
-            let sum = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i];
-            }
-            const average = sum / bufferLength;
-
-            if (average < silenceThreshold.current) {
-                if (!silenceTimerRef.current) {
-                    silenceStartTimeRef.current = Date.now();
-                    console.log('Silence detected, starting timer...');
-                } else if (Date.now() - silenceStartTimeRef.current > silenceDuration.current) {
-                    console.log('Silence duration exceeded, stopping recording...');
-                    stopRecording();
-                    return;
-                }
-            } else {
-                silenceStartTimeRef.current = null;
-            }
-            silenceTimerRef.current = requestAnimationFrame(checkSilence);
-        };
-        silenceTimerRef.current = requestAnimationFrame(checkSilence);
-    }, [isRecording, stopRecording]);
 
     return {
         isRecording,
