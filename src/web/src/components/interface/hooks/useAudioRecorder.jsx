@@ -52,8 +52,10 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 sum += dataArray[i];
             }
             const average = sum / bufferLength;
+            console.log('Average:', average);
 
             if (average < silenceThreshold.current) {
+                console.log('Silence detected:', average);
                 if (!silenceTimerRef.current) {
                     silenceStartTimeRef.current = Date.now();
                     console.log('Silence detected, starting timer...');
@@ -63,9 +65,11 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     return;
                 }
             } else {
+                console.log('Audio detected:', average);
                 silenceStartTimeRef.current = null;
             }
             silenceTimerRef.current = requestAnimationFrame(checkSilence);
+            console.log('Silence timer:', silenceTimerRef.current);
         };
         silenceTimerRef.current = requestAnimationFrame(checkSilence);
     }, [isRecording, stopRecording]);
