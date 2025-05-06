@@ -103,6 +103,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             };
             console.log('Starting recording...');
             mediaRecorderRef.current.start();
+            isRecording = true;
             setIsRecording(true);
             console.log('isRecording is equal to:', isRecording);
             detectSilence(stream);
