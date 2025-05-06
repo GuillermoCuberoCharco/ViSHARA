@@ -40,7 +40,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         const dataArray = new Uint8Array(bufferLength);
 
         const checkSilence = () => {
-            console.log('Checking for silence...', isRecordingRef.current);
             if (!isRecordingRef.current) {
                 console.log('Recording stopped, stopping silence detection...');
                 cancelAnimationFrame(silenceTimerRef.current);
@@ -55,7 +54,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 sum += dataArray[i];
             }
             const average = sum / bufferLength;
-            console.log('Average:', average);
 
             if (average < silenceThreshold.current) {
                 console.log('Silence detected:', average);
@@ -72,7 +70,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     }
                 }
             } else {
-                console.log('Audio detected:', average);
                 silenceStartTimeRef.current = null;
             }
             silenceTimerRef.current = requestAnimationFrame(checkSilence);
@@ -84,6 +81,12 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         try {
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;
+
+            if (!navigator.mediaDevices || !window.MediaRecorder) {
+                console.error('MediaDevices or MediaRecorder API not supported');
+                return;
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorderRef.current = new MediaRecorder(stream, {
                 mimeType: AUDIO_SETTINGS.mimeType,
@@ -112,14 +115,10 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 }
                 stream.getTracks().forEach(track => track.stop());
             };
-            console.log('Starting recording...');
             isRecordingRef.current = true;
             mediaRecorderRef.current.start();
             setIsRecording(true);
-            console.log('isRecording is equal to:', isRecordingRef.current);
             detectSilence(stream);
-
-            console.log('Max recording time:', AUDIO_SETTINGS.maxRecordingTime);
         } catch (error) {
             console.error('Error starting recording:', error);
         }
@@ -127,6 +126,13 @@ const useAudioRecorder = (onTranscriptionComplete) => {
 
     const handleTranscribe = async (audioBlob) => {
         try {
+
+            if (!audioBlob || audioBlob.size === 0) {
+                console.warn('Received invalid or empty audio blob:', audioBlob);
+                return;
+            }
+            console.log('Transcribing audio blob of size:', audioBlob.size, 'bytes');
+
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
 
@@ -137,6 +143,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     setTranscribedText(response.data);
                     if (onTranscriptionComplete) {
                         onTranscriptionComplete(response.data);
+                        console.log('Transcription complete:', response.data);
                     }
                 }
             };
@@ -171,8 +178,16 @@ const useAudioRecorder = (onTranscriptionComplete) => {
     };
 
     const handleAudioStop = (blob) => {
-        if (blob) {
-            setAudioSrc(URL.createObjectURL(blob));
+        if (blob && blob.size > 0) {
+            try {
+                setAudioSrc(URL.createObjectURL(blob));
+            } catch (error) {
+                console.error('Error creating audio URL:', error);
+                setAudioSrc(null);
+            }
+        } else {
+            console.warn('Received invalid or empty blob:', blob);
+            setAudioSrc(null);
         }
     };
 
