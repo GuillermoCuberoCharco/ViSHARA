@@ -15,7 +15,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
     const silenceTimerRef = useRef(null);
     const silenceStartTimeRef = useRef(null);
     const silenceThreshold = useRef(AUDIO_SETTINGS.silenceThreshold);
-    const silenceDuration = useRef(AUDIO_SETTINGS.silenceDuration);
+    const silenceDurationRef = useRef(AUDIO_SETTINGS.silenceDuration);
     const isRecordingRef = useRef(false);
 
     const stopRecording = useCallback(() => {
@@ -64,7 +64,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     console.log('Silence detected, starting timer at:', silenceStartTimeRef.current);
                 } else {
                     const silenceDuration = Date.now() - silenceStartTimeRef.current;
-                    console.log('Silence duration:', silenceDuration, 'ms of', silenceDuration.current, 'ms');
+                    console.log('Silence duration:', silenceDuration, 'ms of', silenceDurationRef.current, 'ms');
                     if (silenceDuration > silenceDuration.current) {
                         console.log('Silence duration exceeded, stopping recording...');
                         stopRecording();
