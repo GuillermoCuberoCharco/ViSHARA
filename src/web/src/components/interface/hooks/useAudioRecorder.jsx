@@ -40,6 +40,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         const checkSilence = () => {
             console.log('Checking for silence...');
             if (!isRecording) {
+                console.log('Recording stopped, stopping silence detection...');
                 cancelAnimationFrame(silenceTimerRef.current);
                 silenceTimerRef.current = null;
                 return;
@@ -88,12 +89,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     audioChunksRef.current.push(event.data);
                 }
             };
-            const maxRecordingTime = setTimeout(() => {
-                if (isRecording) {
-                    stopRecording();
-                    console.log('Max recording time exceeded, stopping recording...');
-                }
-            }, AUDIO_SETTINGS.maxRecordingTime);
             mediaRecorderRef.current.onstop = async () => {
                 clearTimeout(maxRecordingTime);
                 const audioBlob = new Blob(audioChunksRef.current, { type: AUDIO_SETTINGS.mimeType });
@@ -106,9 +101,18 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 }
                 stream.getTracks().forEach(track => track.stop());
             };
+            console.log('Starting recording...');
             mediaRecorderRef.current.start();
             setIsRecording(true);
             detectSilence(stream);
+
+            const maxRecordingTime = setTimeout(() => {
+                if (isRecording) {
+                    stopRecording();
+                    console.log('Max recording time exceeded, stopping recording...');
+                }
+            }, AUDIO_SETTINGS.maxRecordingTime);
+            console.log('Max recording time:', AUDIO_SETTINGS.maxRecordingTime);
         } catch (error) {
             console.error('Error starting recording:', error);
         }
