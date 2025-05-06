@@ -166,36 +166,20 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
     };
 
     return (
-        <div>
-            <div style={{
-                position: 'fixed',
-                bottom: '10px',
-                left: '10px',
-                backgroundColor: 'rgba(0,0,0,0.7)',
-                color: 'white',
-                padding: '5px 10px',
-                borderRadius: '5px',
-                fontSize: '12px',
-                zIndex: 1000
-            }}>
-                Estado cámara: {connectionStatus} | Frames: {frameSent}
-            </div>
-
-            <div style={{ position: 'absolute', opacity: 0.1, pointerEvents: 'none' }}>
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    width="320"
-                    height="240"
-                />
-                <canvas
-                    ref={canvasRef}
-                    width="320"
-                    height="240"
-                />
-            </div>
+        <div style={{ position: 'absolute', opacity: 0.1, pointerEvents: 'none' }}>
+            <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                width="320"
+                height="240"
+            />
+            <canvas
+                ref={canvasRef}
+                width="320"
+                height="240"
+            />
         </div>
     );
 };
