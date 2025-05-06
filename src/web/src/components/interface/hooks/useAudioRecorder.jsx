@@ -65,7 +65,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 } else {
                     const silenceDuration = Date.now() - silenceStartTimeRef.current;
                     console.log('Silence duration:', silenceDuration, 'ms of', silenceDurationRef.current, 'ms');
-                    if (silenceDuration > silenceDuration.current) {
+                    if (silenceDuration >= silenceDurationRef.current) {
                         console.log('Silence duration exceeded, stopping recording...');
                         stopRecording();
                         return;
