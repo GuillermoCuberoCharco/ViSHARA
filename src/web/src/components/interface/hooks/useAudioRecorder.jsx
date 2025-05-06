@@ -38,6 +38,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         const dataArray = new Uint8Array(bufferLength);
 
         const checkSilence = () => {
+            console.log('Checking for silence...');
             if (!isRecording) {
                 cancelAnimationFrame(silenceTimerRef.current);
                 silenceTimerRef.current = null;
@@ -86,6 +87,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             const maxRecordingTime = setTimeout(() => {
                 if (isRecording) {
                     stopRecording();
+                    console.log('Max recording time exceeded, stopping recording...');
                 }
             }, AUDIO_SETTINGS.maxRecordingTime);
             mediaRecorderRef.current.onstop = async () => {
