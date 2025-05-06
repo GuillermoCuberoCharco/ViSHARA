@@ -59,20 +59,23 @@ const useAudioRecorder = (onTranscriptionComplete) => {
 
             if (average < silenceThreshold.current) {
                 console.log('Silence detected:', average);
-                if (!silenceTimerRef.current) {
+                if (!silenceStartTimeRef.current) {
                     silenceStartTimeRef.current = Date.now();
-                    console.log('Silence detected, starting timer...');
-                } else if (Date.now() - silenceStartTimeRef.current > silenceDuration.current) {
-                    console.log('Silence duration exceeded, stopping recording...');
-                    stopRecording();
-                    return;
+                    console.log('Silence detected, starting timer at:', silenceStartTimeRef.current);
+                } else {
+                    const silenceDuration = Date.now() - silenceStartTimeRef.current;
+                    console.log('Silence duration:', silenceDuration, 'ms of', silenceDuration.current, 'ms');
+                    if (silenceDuration > silenceDuration.current) {
+                        console.log('Silence duration exceeded, stopping recording...');
+                        stopRecording();
+                        return;
+                    }
                 }
             } else {
                 console.log('Audio detected:', average);
                 silenceStartTimeRef.current = null;
             }
             silenceTimerRef.current = requestAnimationFrame(checkSilence);
-            console.log('Silence timer:', silenceTimerRef.current);
         };
         silenceTimerRef.current = requestAnimationFrame(checkSilence);
     }, [stopRecording]);
