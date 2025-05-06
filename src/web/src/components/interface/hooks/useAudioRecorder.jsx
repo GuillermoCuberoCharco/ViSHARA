@@ -16,9 +16,11 @@ const useAudioRecorder = (onTranscriptionComplete) => {
     const silenceStartTimeRef = useRef(null);
     const silenceThreshold = useRef(AUDIO_SETTINGS.silenceThreshold);
     const silenceDuration = useRef(AUDIO_SETTINGS.silenceDuration);
+    const isRecordingRef = useRef(false);
 
     const stopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && isRecording) {
+        if (mediaRecorderRef.current && isRecordingRef.current) {
+            isRecordingRef.current = false;
             mediaRecorderRef.current.stop()
             setIsRecording(false);
 
@@ -27,7 +29,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 silenceTimerRef.current = null;
             }
         }
-    }, [isRecording]);
+    }, []);
 
     const detectSilence = useCallback((stream) => {
         if (!audioContextRef.current || !analyserRef.current) return;
@@ -38,8 +40,8 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         const dataArray = new Uint8Array(bufferLength);
 
         const checkSilence = () => {
-            console.log('Checking for silence...', isRecording);
-            if (!isRecording) {
+            console.log('Checking for silence...', isRecordingRef.current);
+            if (!isRecordingRef.current) {
                 console.log('Recording stopped, stopping silence detection...');
                 cancelAnimationFrame(silenceTimerRef.current);
                 silenceTimerRef.current = null;
@@ -73,7 +75,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             console.log('Silence timer:', silenceTimerRef.current);
         };
         silenceTimerRef.current = requestAnimationFrame(checkSilence);
-    }, [isRecording, stopRecording]);
+    }, [stopRecording]);
 
     const startRecording = useCallback(async () => {
         try {
@@ -89,6 +91,12 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                     audioChunksRef.current.push(event.data);
                 }
             };
+            const maxRecordingTime = setTimeout(() => {
+                if (isRecordingRef.current) {
+                    stopRecording();
+                    console.log('Max recording time exceeded, stopping recording...');
+                }
+            }, AUDIO_SETTINGS.maxRecordingTime);
             mediaRecorderRef.current.onstop = async () => {
                 clearTimeout(maxRecordingTime);
                 const audioBlob = new Blob(audioChunksRef.current, { type: AUDIO_SETTINGS.mimeType });
@@ -102,23 +110,17 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 stream.getTracks().forEach(track => track.stop());
             };
             console.log('Starting recording...');
+            isRecordingRef.current = true;
             mediaRecorderRef.current.start();
-            isRecording = true;
             setIsRecording(true);
-            console.log('isRecording is equal to:', isRecording);
+            console.log('isRecording is equal to:', isRecordingRef.current);
             detectSilence(stream);
 
-            const maxRecordingTime = setTimeout(() => {
-                if (isRecording) {
-                    stopRecording();
-                    console.log('Max recording time exceeded, stopping recording...');
-                }
-            }, AUDIO_SETTINGS.maxRecordingTime);
             console.log('Max recording time:', AUDIO_SETTINGS.maxRecordingTime);
         } catch (error) {
             console.error('Error starting recording:', error);
         }
-    }, [detectSilence, isRecording, stopRecording]);
+    }, [detectSilence, stopRecording]);
 
     const handleTranscribe = async (audioBlob) => {
         try {
