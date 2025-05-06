@@ -38,7 +38,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         const dataArray = new Uint8Array(bufferLength);
 
         const checkSilence = () => {
-            console.log('Checking for silence...');
+            console.log('Checking for silence...', isRecording);
             if (!isRecording) {
                 console.log('Recording stopped, stopping silence detection...');
                 cancelAnimationFrame(silenceTimerRef.current);
@@ -104,6 +104,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             console.log('Starting recording...');
             mediaRecorderRef.current.start();
             setIsRecording(true);
+            console.log('isRecording is equal to:', isRecording);
             detectSilence(stream);
 
             const maxRecordingTime = setTimeout(() => {
