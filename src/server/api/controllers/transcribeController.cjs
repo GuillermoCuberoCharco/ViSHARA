@@ -17,7 +17,7 @@ async function handleTranscribe(req, res) {
         res.status(200).json(transcription);
     } catch (error) {
         console.error('Error transcribing audio:', error);
-        res.status(500).json({ error: 'Error transcribing audio' })
+        res.status(500).json({ error: 'Error transcribing audio' });
     }
 }
 
