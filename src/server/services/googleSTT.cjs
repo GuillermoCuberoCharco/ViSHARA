@@ -25,7 +25,7 @@ async function transcribeAudio(audioContent) {
         encoding: encoding,
         sampleRateHertz: sampleRateHertz,
         languageCode: languageCode,
-        audioChannelCount: 2,
+        audioChannelCount: 1,
     };
     const audio = {
         content: audioContent,
@@ -37,6 +37,11 @@ async function transcribeAudio(audioContent) {
     };
 
     const [response] = await client.recognize(request);
+
+    if (!response || !response.results || response.results.length === 0) {
+        console.log('No transcription results returned');
+        return;
+    }
 
     const transcription = response.results
         .map(result => result.alternatives[0].transcript)

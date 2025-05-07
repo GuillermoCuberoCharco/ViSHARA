@@ -85,7 +85,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 return;
             }
 
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 48000 } });
             mediaRecorderRef.current = new MediaRecorder(stream, {
                 mimeType: AUDIO_SETTINGS.mimeType,
                 audioBitsPerSecond: AUDIO_SETTINGS.audioBitsPerSecond
@@ -139,6 +139,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
                 const response = await axios.post(`${SERVER_URL}/api/transcribe`, { audio: base64Audio });
+                console.log('Audio sended to server for transcription');
                 if (response.data) {
                     setTranscribedText(response.data);
                     if (onTranscriptionComplete) {
