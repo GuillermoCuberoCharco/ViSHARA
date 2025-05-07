@@ -56,13 +56,11 @@ const useAudioRecorder = (onTranscriptionComplete) => {
             const average = sum / bufferLength;
 
             if (average < silenceThreshold.current) {
-                console.log('Silence detected:', average);
                 if (!silenceStartTimeRef.current) {
                     silenceStartTimeRef.current = Date.now();
                     console.log('Silence detected, starting timer at:', silenceStartTimeRef.current);
                 } else {
                     const silenceDuration = Date.now() - silenceStartTimeRef.current;
-                    console.log('Silence duration:', silenceDuration, 'ms of', silenceDurationRef.current, 'ms');
                     if (silenceDuration >= silenceDurationRef.current) {
                         console.log('Silence duration exceeded, stopping recording...');
                         stopRecording();
@@ -116,7 +114,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 stream.getTracks().forEach(track => track.stop());
             };
             isRecordingRef.current = true;
-            mediaRecorderRef.current.start();
+            mediaRecorderRef.current.start(100);
             setIsRecording(true);
             detectSilence(stream);
         } catch (error) {
@@ -131,10 +129,12 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 console.warn('Received invalid or empty audio blob:', audioBlob);
                 return;
             }
-            console.log('Transcribing audio blob of size:', audioBlob.size, 'bytes');
+
+            const actualBlob = audioBlob.blob || audioBlob;
+            console.log('Transcribing audio blob of size:', actualBlob.size, 'bytes');
 
             const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
+            reader.readAsDataURL(actualBlob);
 
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
@@ -177,7 +177,8 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         setAudioSrc('');
     };
 
-    const handleAudioStop = (blob) => {
+    const handleAudioStop = (data) => {
+        const blob = data.blob || data;
         if (blob && blob.size > 0) {
             try {
                 setAudioSrc(URL.createObjectURL(blob));
