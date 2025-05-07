@@ -33,7 +33,6 @@ const Interface = ({ sharedStream }) => {
         isSpeaking,
         startRecording,
         stopRecording,
-        handleAudioStop,
         handleTranscribe,
         handleSynthesize,
         onStop
@@ -187,7 +186,6 @@ const Interface = ({ sharedStream }) => {
                         isWaitingResponse={isWaitingResponse}
                         onStartRecording={startRecording}
                         onStopRecording={stopRecording}
-                        onAudioStop={handleAudioStop}
                     />
                     <StatusBar
                         isRegistered={isRegistered}

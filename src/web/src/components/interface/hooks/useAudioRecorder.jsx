@@ -106,9 +106,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: AUDIO_SETTINGS.mimeType });
 
                 if (audioChunksRef.current.length > 0) {
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    setAudioSrc(audioUrl);
-
                     await handleTranscribe(audioBlob);
                 }
                 stream.getTracks().forEach(track => track.stop());
@@ -186,21 +183,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         setAudioSrc('');
     };
 
-    const handleAudioStop = (data) => {
-        const blob = data.blob || data;
-        if (blob && blob.size > 0) {
-            try {
-                setAudioSrc(URL.createObjectURL(blob));
-            } catch (error) {
-                console.error('Error creating audio URL:', error);
-                setAudioSrc(null);
-            }
-        } else {
-            console.warn('Received invalid or empty blob:', blob);
-            setAudioSrc(null);
-        }
-    };
-
     const onStop = () => {
         setIsSpeaking(false);
     };
@@ -231,7 +213,6 @@ const useAudioRecorder = (onTranscriptionComplete) => {
         isSpeaking,
         startRecording,
         stopRecording,
-        handleAudioStop,
         handleTranscribe,
         handleSynthesize,
         onStop
