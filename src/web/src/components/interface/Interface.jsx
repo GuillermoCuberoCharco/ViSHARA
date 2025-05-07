@@ -33,9 +33,7 @@ const Interface = ({ sharedStream }) => {
         isSpeaking,
         startRecording,
         stopRecording,
-        handleTranscribe,
-        handleSynthesize,
-        onStop
+        handleSynthesize
     } = useAudioRecorder(() => {
         setIsWaitingResponse(false);
     });
@@ -44,12 +42,13 @@ const Interface = ({ sharedStream }) => {
         setConnectionError(!isConnected);
     }, [isConnected]);
 
-    const handleRobotMessage = (message) => {
+    const handleRobotMessage = async (message) => {
         const animationName = ANIMATION_MAPPINGS[message.state] || 'Attention';
         setAnimationIndex(animations.findIndex((animation) => animation.name === animationName));
 
         if (message.text?.trim()) {
             setMessages((messages) => [...messages, { text: message.text, sender: 'robot' }]);
+            await handleSynthesize(message.text);
         }
         setIsWaitingResponse(false);
     };
