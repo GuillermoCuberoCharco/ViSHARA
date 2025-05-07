@@ -128,6 +128,17 @@ const Interface = ({ sharedStream }) => {
         }
     }, [transcribedText, isConnected, emit]);
 
+    useEffect(() => {
+        if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
+            const timer = setTimeout(() => {
+                startRecording();
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+
+    }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
+
     const handleSendMessage = () => {
         if (newMessage.trim() && isConnected) {
             const messageObject = {

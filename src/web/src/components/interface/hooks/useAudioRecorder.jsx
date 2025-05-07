@@ -165,12 +165,20 @@ const useAudioRecorder = (onTranscriptionComplete) => {
                 const audioContent = response.data.audioContent;
                 const audioSrc = `data:audio/wav;base64,${audioContent}`;
                 setAudioSrc(audioSrc);
+
+                const audio = new Audio(audioSrc);
+                audio.onended = () => setIsSpeaking(false);
+                audio.onerror = (e) => {
+                    console.error('Error playing audio:', e);
+                    setIsSpeaking(false);
+                }
+                await audio.play();
             }
         } catch (error) {
             console.error('Error synthesizing speech:', error);
-        } finally {
             setIsSpeaking(false);
         }
+
     };
 
     handleSynthesize.cancel = () => {
