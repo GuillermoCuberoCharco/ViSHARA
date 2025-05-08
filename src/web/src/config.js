@@ -11,7 +11,7 @@ export const AUDIO_SETTINGS = {
 export const ANIMATION_MAPPINGS = {
     joy: 'Joy',
     joy_blush: 'Blush',
-    neutrañ: 'Hello',
+    neutral: 'Hello',
     sad: 'Sad',
     silly: 'Yes',
     surprise: 'Attention',

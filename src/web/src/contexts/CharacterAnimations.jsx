@@ -1,45 +1,49 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import io from "socket.io-client";
-import { SERVER_URL } from "../config";
+import { ANIMATION_MAPPINGS, SERVER_URL } from "../config";
 export const CharacterAnimationsContext = createContext();
 
 export const CharacterAnimationsProvider = (props) => {
   const [animationIndex, setAnimationIndex] = useState(0);
   const [animations, setAnimations] = useState([]);
+  const [socket, setSocket] = useState(null);
 
-  // Connect to the animation socket and control the animation interchanges
   useEffect(() => {
-    const socket = io(SERVER_URL, {
+    const newSocket = io(SERVER_URL, {
       path: "/animation-socket",
       transports: ["websocket"],
       upgrade: false
     });
 
-    socket.on("connect", () => {
-      console.log("Animation socket connected");
-      socket.emit("register_animation", { client: "animation" });
+    newSocket.on("connect", () => {
+      newSocket.emit("register_animation", { client: "animation" });
     });
 
+    setSocket(newSocket);
+    return () => newSocket.close();
+  }, []);
+
+  useEffect(() => {
+    if (!socket || animations.length === 0) return;
+
     const handleAnimationChange = (message) => {
-      console.log("Received animation message:", message.state);
-      if (message.state) {
+      if (message && message.state) {
+        console.log("Received animation state:", message.state);
         const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
-        const animationIndex = animations.findIndex((animation) => animation === animationName);
-        if (animationIndex !== -1) {
-          setAnimationIndex(animationIndex);
+        const index = animations.findIndex((animation) => animation === animationName);
+
+        if (index !== -1) {
+          setAnimationIndex(index);
         }
       }
     };
 
-    try {
-      socket.on("animation_state", handleAnimationChange);
-    } catch (error) {
-      console.error("Invalid JSON", error);
-    }
+    socket.on("animation_state", handleAnimationChange);
 
-    return () => socket.close();
-  }, [animations, setAnimationIndex]);
-
+    return () => {
+      socket.off("animation_state", handleAnimationChange);
+    };
+  }, [socket, animations]);
 
   return (
     <CharacterAnimationsContext.Provider
