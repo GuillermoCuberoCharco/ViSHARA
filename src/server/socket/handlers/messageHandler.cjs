@@ -48,6 +48,7 @@ function setupMessageHandlers(io) {
                     });
 
                     if (response.robot_mood) {
+                        console.log('Emitting animation state:', response.robot_mood);
                         io.of('/animation-socket').emit('animation_state', {
                             state: response.robot_mood
                         });
