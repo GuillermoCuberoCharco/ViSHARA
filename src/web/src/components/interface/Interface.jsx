@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React, { useEffect, useRef, useState } from 'react';
-import { ANIMATION_MAPPINGS } from '../../config';
 import { useCharacterAnimations } from '../../contexts/CharacterAnimations';
 import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
@@ -43,9 +42,6 @@ const Interface = ({ sharedStream }) => {
     }, [isConnected]);
 
     const handleRobotMessage = async (message) => {
-        const animationName = ANIMATION_MAPPINGS[message.state] || 'Attention';
-        setAnimationIndex(animations.findIndex((animation) => animation.name === animationName));
-
         if (message.text?.trim()) {
             setMessages((messages) => [...messages, { text: message.text, sender: 'robot' }]);
             await handleSynthesize(message.text);

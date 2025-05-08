@@ -46,6 +46,12 @@ function setupMessageHandlers(io) {
                         text: response.text,
                         state: response.robot_mood
                     });
+
+                    if (response.robot_mood) {
+                        io.of('/animation-socket').emit('animation_state', {
+                            state: response.robot_mood
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Error processing message:', error);

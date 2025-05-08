@@ -21,21 +21,18 @@ export const CharacterAnimationsProvider = (props) => {
     });
 
     const handleAnimationChange = (message) => {
+      console.log("Received animation message:", message.state);
       if (message.state) {
-        const animationIndex = animations.findIndex((animation) => animation === message.state);
+        const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
+        const animationIndex = animations.findIndex((animation) => animation === animationName);
         if (animationIndex !== -1) {
           setAnimationIndex(animationIndex);
         }
       }
-
-      if (message.emotions) {
-        console.log("Emotions detected:", message.emotions);
-      }
     };
 
     try {
-      socket.on("watson_message", handleAnimationChange);
-      socket.on("wizard_message", handleAnimationChange);
+      socket.on("animation_state", handleAnimationChange);
     } catch (error) {
       console.error("Invalid JSON", error);
     }

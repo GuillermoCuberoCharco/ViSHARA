@@ -6,8 +6,8 @@ function setupAnimationHandlers(io) {
             if (data.client === 'animation') {
                 socket.emit('registration_success', { status: 'ok' });
             }
-        })
-    })
+        });
+    });
 }
 
 module.exports = { setupAnimationHandlers };
