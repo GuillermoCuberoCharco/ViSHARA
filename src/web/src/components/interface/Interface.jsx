@@ -173,55 +173,45 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
     };
 
     return (
-        <div className="interface-container">
-            <div className="model-container">
-                <Canvas>
-                    <Experience
-                        animationIndex={animationIndex}
-                        setAnimations={setAnimations}
+        <div className="chat-wrapper">
+            <button
+                className="toggle-chat-button"
+                onClick={() => setIsChatVisible(!isChatVisible)}
+            >
+                {isChatVisible ? '🗨️ Ocultar chat' : '🗨️ Mostrar chat'}
+            </button>
+            <ChatWindow
+                messages={messages}
+                newMessage={newMessage}
+                messagesContainerRef={messagesContainerRef}
+                isChatVisible={isChatVisible}
+                onMessageSend={handleSendMessage}
+                onInputChange={(e) => setNewMessage(e.target.value)}
+            >
+                <div className="chat-controls">
+                    <AudioControls
+                        isRecording={isRecording}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
                     />
-                </Canvas>
-            </div>
-            <div className="chat-wrapper">
-                <button
-                    className="toggle-chat-button"
-                    onClick={() => setIsChatVisible(!isChatVisible)}
-                >
-                    {isChatVisible ? '🗨️ Ocultar chat' : '🗨️ Mostrar chat'}
-                </button>
-                <ChatWindow
-                    messages={messages}
-                    newMessage={newMessage}
-                    messagesContainerRef={messagesContainerRef}
-                    isChatVisible={isChatVisible}
-                    onMessageSend={handleSendMessage}
-                    onInputChange={(e) => setNewMessage(e.target.value)}
-                >
-                    <div className="chat-controls">
-                        <AudioControls
-                            isRecording={isRecording}
-                            isSpeaking={isSpeaking}
-                            isWaitingResponse={isWaitingResponse}
-                            onStartRecording={startRecording}
-                            onStopRecording={stopRecording}
-                        />
-                        <StatusBar
-                            isRegistered={isRegistered}
-                            connectionError={connectionError}
-                            isSpeaking={isSpeaking}
-                            isWaitingResponse={isWaitingResponse}
-                            audioSrc={audioSrc}
-                            faceDetected={faceDetected}
-                        />
-                        <FaceDetection
-                            onFaceDetected={handleFaceDetected}
-                            onFaceLost={handleFaceLost}
-                            stream={sharedStream}
-                        />
-                    </div>
-                </ChatWindow>
-                <audio src={audioSrc} autoPlay />
-            </div>
+                    <StatusBar
+                        isRegistered={isRegistered}
+                        connectionError={connectionError}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        audioSrc={audioSrc}
+                        faceDetected={faceDetected}
+                    />
+                    <FaceDetection
+                        onFaceDetected={handleFaceDetected}
+                        onFaceLost={handleFaceLost}
+                        stream={sharedStream}
+                    />
+                </div>
+            </ChatWindow>
+            <audio src={audioSrc} autoPlay />
         </div>
     );
 };
