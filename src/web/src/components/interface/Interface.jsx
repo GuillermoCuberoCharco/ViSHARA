@@ -21,7 +21,7 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
-    const socketEventsConfigured = useRef(false);
+    const waitTimer = useRef(null);
 
     // Audio hooks and handlers
     const {
@@ -76,17 +76,18 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
     }, []);
 
     useEffect(() => {
-        const checkInterval = setInterval(() => {
-            if (socket && !socketEventsConfigured.current) {
-                socket.on('robot_message', handleRobotMessage);
-                socket.on('wizard_message', handleWizardMessage);
-                socket.on('client_message', handleClientMessage);
-                socketEventsConfigured.current = true;
-            };
-        }, 5000);
+        if (socket) {
+            socket.on('robot_message', handleRobotMessage);
+            socket.on('wizard_message', handleWizardMessage);
+            socket.on('client_message', handleClientMessage);
 
-        return () => clearInterval(checkInterval);
-    }, [socket, handleRobotMessage, handleWizardMessage, handleClientMessage]);
+            return () => {
+                socket.off('robot_message', handleRobotMessage);
+                socket.off('wizard_message', handleWizardMessage);
+                socket.off('client_message', handleClientMessage);
+            };
+        }
+    }, [socket])
 
     const handleFaceDetected = () => {
         setFaceDetected(true);
