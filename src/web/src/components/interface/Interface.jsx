@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ANIMATION_MAPPINGS } from "../../config";
 import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
@@ -40,8 +40,9 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         setConnectionError(!isConnected);
     }, [isConnected]);
 
-    const handleRobotMessage = useCallback(async (message) => {
+    const handleRobotMessage = async (message) => {
         if (message.state) {
+            console.log("Received robot state:", message.state);
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
             if (index !== -1) {
@@ -50,13 +51,14 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         }
 
         if (message.text?.trim()) {
+            console.log("Received robot message:", message.text);
             setMessages((messages) => [...messages, { text: message.text, sender: 'robot' }]);
             await handleSynthesize(message.text);
         }
         setIsWaitingResponse(false);
-    }, [animations, setAnimationIndex, handleSynthesize]);
+    };
 
-    const handleWizardMessage = useCallback(async (message) => {
+    const handleWizardMessage = async (message) => {
         if (message.state) {
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
@@ -67,13 +69,13 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
         await handleSynthesize(message.text);
         setIsWaitingResponse(false);
-    }, [animations, setAnimationIndex, handleSynthesize]);
+    };
 
-    const handleClientMessage = useCallback((message) => {
+    const handleClientMessage = (message) => {
         if (message.text?.trim()) {
             setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
         }
-    }, []);
+    };
 
     useEffect(() => {
         if (socket) {
