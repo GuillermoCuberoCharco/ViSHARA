@@ -4,12 +4,13 @@ import React, { useEffect, useState } from "react";
 import Experience from "./components/experience/Experience";
 import Interface from "./components/interface/Interface";
 import WebSocketVideoComponent from "./components/WebSocketVideo";
-import { CharacterAnimationsProvider } from "./contexts/CharacterAnimations";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
 function App() {
   const [sharedStream, setSharedStream] = useState(null);
   const [isStreamReady, setIsStreamReady] = useState(false);
+  const [animationIndex, setAnimationIndex] = useState(0);
+  const [animations, setAnimations] = useState([]);
 
   const webSocketHandlers = {
     handleRegistrationSuccess: () => {
@@ -34,14 +35,22 @@ function App() {
 
   return (
     <WebSocketProvider handlers={webSocketHandlers}>
-      <CharacterAnimationsProvider>
-        <Canvas camera={{ position: [1.5, 1.5, 0.5], fov: 50 }} shadows>
-          <Sky sunPosition={[100, -50, 100]} />
-          <Experience />
-        </Canvas>
-        <WebSocketVideoComponent onStreamReady={handleStreamReady} />
-        {isStreamReady && <Interface sharedStream={sharedStream} />}
-      </CharacterAnimationsProvider>
+      <Canvas camera={{ position: [1.5, 1.5, 0.5], fov: 50 }} shadows>
+        <Sky sunPosition={[100, -50, 100]} />
+        <Experience
+          animationIndex={animationIndex}
+          setAnimations={setAnimations}
+        />
+      </Canvas>
+      <WebSocketVideoComponent onStreamReady={handleStreamReady} />
+      {isStreamReady && (
+        <Interface
+          sharedStream={sharedStream}
+          animationIndex={animationIndex}
+          setAnimationIndex={setAnimationIndex}
+          animations={animations}
+        />
+      )}
     </WebSocketProvider>
   );
 

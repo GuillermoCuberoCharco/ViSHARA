@@ -1,12 +1,10 @@
 import { useAnimations, useGLTF } from "@react-three/drei";
 import React, { useRef } from "react";
-import { useCharacterAnimations } from "../../contexts/CharacterAnimations";
 
-const GlbViewer = () => {
+const GlbViewer = ({ animationIndex, setAnimations }) => {
   const group = useRef();
   const { nodes, materials, animations } = useGLTF('/models/SHARA3.gltf');
   const { actions } = useAnimations(animations, group);
-  const { animationIndex, setAnimations } = useCharacterAnimations();
 
   React.useEffect(() => {
     if (actions) {

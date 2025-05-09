@@ -2,7 +2,7 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import React from "react";
 import GlbViewer from "./LoadModel";
 
-const Experience = () => {
+const Experience = ({ animationIndex, setAnimations }) => {
   return (
     <>
       <OrbitControls />
@@ -14,7 +14,10 @@ const Experience = () => {
         shadow-mapSize-height={1024}
       />
       <group position={[0, -1, 0]}>
-        <GlbViewer />
+        <GlbViewer
+          animationIndex={animationIndex}
+          setAnimations={setAnimations}
+        />
       </group>
       <mesh
         rotation={[-0.5 * Math.PI, 0, 0]}
