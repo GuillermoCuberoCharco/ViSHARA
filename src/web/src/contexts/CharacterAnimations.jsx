@@ -37,6 +37,7 @@ export const CharacterAnimationsProvider = (props) => {
 
   useEffect(() => {
     console.log("Setting up animation state listener");
+    if (!socket) return;
     socket.on("animation_state", handleAnimationChange);
     return () => {
       socket.off("animation_state", handleAnimationChange);
