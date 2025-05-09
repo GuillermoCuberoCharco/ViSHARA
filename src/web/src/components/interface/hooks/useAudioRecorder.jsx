@@ -17,6 +17,16 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const silenceThreshold = useRef(AUDIO_SETTINGS.silenceThreshold);
     const silenceDurationRef = useRef(AUDIO_SETTINGS.silenceDuration);
     const isRecordingRef = useRef(false);
+    const isWaitingResponseRef = useRef(isWaitingResponse);
+
+    useEffect(() => {
+        isWaitingResponseRef.current = isWaitingResponse;
+
+        if (isWaitingResponseRef.current && isRecordingRef.current) {
+            console.log('Waiting for response, stopping recording...');
+            stopRecording();
+        }
+    }, [isWaitingResponse])
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecordingRef.current) {
@@ -32,7 +42,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     }, []);
 
     const detectSilence = useCallback((stream) => {
-        if (!audioContextRef.current || !analyserRef.current || isWaitingResponse) return;
+        if (!audioContextRef.current || !analyserRef.current || isWaitingResponseRef.current) return;
 
         const source = audioContextRef.current.createMediaStreamSource(stream);
         source.connect(analyserRef.current);
@@ -40,7 +50,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
         const dataArray = new Uint8Array(bufferLength);
 
         const checkSilence = () => {
-            if (!isRecordingRef.current) {
+            if (!isRecordingRef.current || isWaitingResponseRef.current) {
                 console.log('Recording stopped, stopping silence detection...');
                 cancelAnimationFrame(silenceTimerRef.current);
                 silenceTimerRef.current = null;
@@ -76,7 +86,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     }, [stopRecording]);
 
     const startRecording = useCallback(async () => {
-        if (isWaitingResponse) return;
+        if (isWaitingResponse.current || isRecordingRef.current || isSpeaking) return;
         try {
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;
@@ -206,6 +216,12 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (isRecording) {
+            setTranscribedText(null);
+        }
+    }, [isRecording])
 
     return {
         isRecording,
