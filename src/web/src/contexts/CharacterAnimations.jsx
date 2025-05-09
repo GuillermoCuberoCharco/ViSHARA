@@ -23,23 +23,21 @@ export const CharacterAnimationsProvider = (props) => {
     return () => newSocket.close();
   }, []);
 
-  useEffect(() => {
-    if (!socket || animations.length === 0) return;
+  const handleAnimationChange = (message) => {
+    if (message && message.state) {
+      console.log("Received animation state:", message.state);
+      const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
+      const index = animations.findIndex((animation) => animation === animationName);
 
-    const handleAnimationChange = (message) => {
-      if (message && message.state) {
-        console.log("Received animation state:", message.state);
-        const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
-        const index = animations.findIndex((animation) => animation === animationName);
-
-        if (index !== -1) {
-          setAnimationIndex(index);
-        }
+      if (index !== -1) {
+        setAnimationIndex(index);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
+    console.log("Setting up animation state listener");
     socket.on("animation_state", handleAnimationChange);
-
     return () => {
       socket.off("animation_state", handleAnimationChange);
     };
