@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AUDIO_SETTINGS, SERVER_URL } from '../../../config';
 
-const useAudioRecorder = (onTranscriptionComplete) => {
+const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const [isRecording, setIsRecording] = useState(false);
     const [audioSrc, setAudioSrc] = useState(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -76,6 +76,7 @@ const useAudioRecorder = (onTranscriptionComplete) => {
     }, [stopRecording]);
 
     const startRecording = useCallback(async () => {
+        if (isWaitingResponse) return;
         try {
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;

@@ -5,7 +5,6 @@ import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
 import FaceDetection from '../FaceDetection';
 import useAudioRecorder from './hooks/useAudioRecorder';
-import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';
 
@@ -34,7 +33,7 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         handleSynthesize
     } = useAudioRecorder(() => {
         setIsWaitingResponse(false);
-    });
+    }, isWaitingResponse);
 
     useEffect(() => {
         setConnectionError(!isConnected);
@@ -189,13 +188,6 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
-                    <AudioControls
-                        isRecording={isRecording}
-                        isSpeaking={isSpeaking}
-                        isWaitingResponse={isWaitingResponse}
-                        onStartRecording={startRecording}
-                        onStopRecording={stopRecording}
-                    />
                     <StatusBar
                         isRegistered={isRegistered}
                         connectionError={connectionError}
