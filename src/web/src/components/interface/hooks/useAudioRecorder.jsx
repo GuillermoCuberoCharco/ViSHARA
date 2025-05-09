@@ -32,7 +32,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     }, []);
 
     const detectSilence = useCallback((stream) => {
-        if (!audioContextRef.current || !analyserRef.current) return;
+        if (!audioContextRef.current || !analyserRef.current || isWaitingResponse) return;
 
         const source = audioContextRef.current.createMediaStreamSource(stream);
         source.connect(analyserRef.current);
