@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ANIMATION_MAPPINGS } from "../../config";
 import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
 import FaceDetection from '../FaceDetection';
 import useAudioRecorder from './hooks/useAudioRecorder';
+import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';
 
@@ -20,7 +21,7 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
-    const waitTimer = useRef(null);
+    const socketEventsConfigured = useRef(false);
 
     // Audio hooks and handlers
     const {
@@ -39,7 +40,7 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         setConnectionError(!isConnected);
     }, [isConnected]);
 
-    const handleRobotMessage = async (message) => {
+    const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
@@ -53,9 +54,9 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
             await handleSynthesize(message.text);
         }
         setIsWaitingResponse(false);
-    };
+    }, [animations, setAnimationIndex, handleSynthesize]);
 
-    const handleWizardMessage = async (message) => {
+    const handleWizardMessage = useCallback(async (message) => {
         if (message.state) {
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
@@ -66,27 +67,26 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
         setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
         await handleSynthesize(message.text);
         setIsWaitingResponse(false);
-    };
+    }, [animations, setAnimationIndex, handleSynthesize]);
 
-    const handleClientMessage = (message) => {
+    const handleClientMessage = useCallback((message) => {
         if (message.text?.trim()) {
             setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        if (socket) {
-            socket.on('robot_message', handleRobotMessage);
-            socket.on('wizard_message', handleWizardMessage);
-            socket.on('client_message', handleClientMessage);
-
-            return () => {
-                socket.off('robot_message', handleRobotMessage);
-                socket.off('wizard_message', handleWizardMessage);
-                socket.off('client_message', handleClientMessage);
+        const checkInterval = setInterval(() => {
+            if (socket && !socketEventsConfigured.current) {
+                socket.on('robot_message', handleRobotMessage);
+                socket.on('wizard_message', handleWizardMessage);
+                socket.on('client_message', handleClientMessage);
+                socketEventsConfigured.current = true;
             };
-        }
-    }, [socket, animations])
+        }, 5000);
+
+        return () => clearInterval(checkInterval);
+    }, [socket, handleRobotMessage, handleWizardMessage, handleClientMessage]);
 
     const handleFaceDetected = () => {
         setFaceDetected(true);
@@ -188,6 +188,13 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
+                    <AudioControls
+                        isRecording={isRecording}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
+                    />
                     <StatusBar
                         isRegistered={isRegistered}
                         connectionError={connectionError}
