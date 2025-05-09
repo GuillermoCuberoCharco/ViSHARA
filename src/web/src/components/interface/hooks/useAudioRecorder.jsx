@@ -217,12 +217,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
         };
     }, []);
 
-    useEffect(() => {
-        if (isRecording) {
-            setTranscribedText(null);
-        }
-    }, [isRecording])
-
     return {
         isRecording,
         transcribedText,
