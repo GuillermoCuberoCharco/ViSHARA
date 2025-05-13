@@ -9,7 +9,7 @@ import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';
 
-const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => {
+const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => {
     // Main states
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -218,8 +218,8 @@ const Interface = ({ sharedStream, animationIndex, setAnimationIndex, animations
     );
 };
 
-Interface.propTypes = {
+UI.propTypes = {
     sharedStream: PropTypes.instanceOf(MediaStream)
 };
 
-export default Interface;
+export default UI;

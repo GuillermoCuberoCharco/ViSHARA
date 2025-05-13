@@ -2,7 +2,7 @@ import { Sky } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React, { useEffect, useState } from "react";
 import Experience from "./components/experience/Experience";
-import Interface from "./components/interface/Interface";
+import UI from "./components/UI/UI";
 import WebSocketVideoComponent from "./components/WebSocketVideo";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 
@@ -44,7 +44,7 @@ function App() {
       </Canvas>
       <WebSocketVideoComponent onStreamReady={handleStreamReady} />
       {isStreamReady && (
-        <Interface
+        <UI
           sharedStream={sharedStream}
           animationIndex={animationIndex}
           setAnimationIndex={setAnimationIndex}
