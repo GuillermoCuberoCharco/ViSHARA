@@ -80,11 +80,13 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     useEffect(() => {
         if (socket) {
             socket.on('robot_message', handleRobotMessage);
+            socket.on('openai_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
 
             return () => {
                 socket.off('robot_message', handleRobotMessage);
+                socket.off('openai_message', handleRobotMessage);
                 socket.off('wizard_message', handleWizardMessage);
                 socket.off('client_message', handleClientMessage);
             };
