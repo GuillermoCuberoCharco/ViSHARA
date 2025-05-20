@@ -21,7 +21,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
-    const waitTimer = useRef(null);
 
     // Audio hooks and handlers
     const {
@@ -35,10 +34,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     } = useAudioRecorder(() => {
         setIsWaitingResponse(false);
     }, isWaitingResponse);
-
-    useEffect(() => {
-        setConnectionError(!isConnected);
-    }, [isConnected]);
 
     const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
@@ -76,20 +71,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
     };
 
-    useEffect(() => {
-        if (socket) {
-            socket.on('robot_message', handleRobotMessage);
-            socket.on('wizard_message', handleWizardMessage);
-            socket.on('client_message', handleClientMessage);
-
-            return () => {
-                socket.off('robot_message', handleRobotMessage);
-                socket.off('wizard_message', handleWizardMessage);
-                socket.off('client_message', handleClientMessage);
-            };
-        }
-    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
-
     const handleFaceDetected = () => {
         setFaceDetected(true);
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
@@ -101,6 +82,31 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setFaceDetected(false);
         if (isRecording) {
             stopRecording();
+        }
+    };
+
+    const handleSendMessage = () => {
+        if (newMessage.trim() && isConnected) {
+            const messageObject = {
+                type: "client_message",
+                text: newMessage,
+                proactive_question: "Ninguna",
+                username: "Desconocido"
+            };
+
+            const success = emit('client_message', messageObject);
+
+            if (success) {
+                setIsWaitingResponse(success);
+                setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
+                setNewMessage('');
+                setTimeout(scrollToBottom, 100);
+            } else {
+                setMessages((messages) => [...messages, {
+                    text: "No se pudo enviar el mensaje. Comprueba tu conexión.",
+                    sender: 'robot'
+                }]);
+            }
         }
     };
 
@@ -121,6 +127,27 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             audioElement.onended = () => handleSynthesize.cancel();
         }
     }, [audioSrc, handleSynthesize]);
+
+    useEffect(() => {
+        setConnectionError(!isConnected);
+    }, [isConnected]);
+
+    useEffect(() => {
+        if (socket) {
+            socket.off('robot_message');
+            socket.off('wizard_message');
+            socket.off('client_message');
+            socket.on('robot_message', handleRobotMessage);
+            socket.on('wizard_message', handleWizardMessage);
+            socket.on('client_message', handleClientMessage);
+
+            return () => {
+                socket.off('robot_message');
+                socket.off('wizard_message');
+                socket.off('client_message');
+            };
+        }
+    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
     useEffect(() => {
         if (transcribedText && isConnected) {
@@ -152,30 +179,28 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
 
     }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
 
-    const handleSendMessage = () => {
-        if (newMessage.trim() && isConnected) {
-            const messageObject = {
-                type: "client_message",
-                text: newMessage,
-                proactive_question: "Ninguna",
-                username: "Desconocido"
-            };
+    useEffect(() => {
+        if (isWaitingResponse) {
+            const timeout = setTimeout(() => {
+                console.warn('No response received after 15 seconds - resetting waiting state');
+                setIsWaitingResponse(false);
+            }, 15000);
 
-            const success = emit('client_message', messageObject);
-
-            if (success) {
-                setIsWaitingResponse(success);
-                setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
-                setNewMessage('');
-                setTimeout(scrollToBottom, 100);
-            } else {
-                setMessages((messages) => [...messages, {
-                    text: "No se pudo enviar el mensaje. Comprueba tu conexión.",
-                    sender: 'robot'
-                }]);
-            }
+            return () => clearTimeout(timeout);
         }
-    };
+    }, [isWaitingResponse]);
+
+    useEffect(() => {
+        if (socket && isConnected) {
+            const pingInterval = setInterval(() => {
+                socket.emit('ping', {}, (response) => {
+                    console.log('Ping response:', response);
+                });
+            }, 30000);
+
+            return () => clearInterval(pingInterval);
+        }
+    }, [socket, isConnected]);
 
     return (
         <div className="chat-wrapper">

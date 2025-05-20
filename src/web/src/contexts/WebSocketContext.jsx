@@ -20,96 +20,113 @@ export const WebSocketProvider = ({ children, handlers }) => {
     useEffect(() => {
         console.log('Initializing WebSocket connection at:', SERVER_URL);
 
-        const newSocket = io(SERVER_URL, {
-            path: '/message-socket',
-            transports: ['websocket', 'polling'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            timeout: 20000,
-            forceNew: true,
-            autoConnect: true
+        if (!socketRef.current || !socketRef.current.connected) {
+
+            const newSocket = io(SERVER_URL, {
+                path: '/message-socket',
+                transports: ['websocket', 'polling'],
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000,
+                autoConnect: true
+            });
+
+            socketRef.current = newSocket;
+        }
+
+        const socket = socketRef.current;
+
+        socket.removeAllListeners();
+
+        socket.on('connect', () => {
+            console.log('WebSocket connected with id:', newSocket.id);
+            setIsConnected(true);
+            socket.emit('register_client', { client: 'web' });
         });
 
-        socketRef.current = newSocket;
+        socket.on('disconnect', (reason) => {
+            console.log('WebSocket disconnected:', reason);
+            setIsConnected(false);
+            setIsRegistered(false);
 
-        const setupEventListeners = () => {
-            console.log('Setting up event listeners...');
-
-            newSocket.on('connect', () => {
-                console.log('WebSocket connected with id:', newSocket.id);
-                setIsConnected(true);
-                newSocket.emit('register_client', { client: 'web' });
-            });
-
-            newSocket.on('disconnect', (reason) => {
-                console.log('WebSocket disconnected:', reason);
-                setIsConnected(false);
-                setIsRegistered(false);
-
-                setTimeout(() => {
-                    if (socketRef.current) {
-                        newSocket.connect();
-                    }
-                }, 1000);
-            });
-
-            newSocket.on('reconnect', () => {
-                console.log('WebSocket reconnected');
-                setIsConnected(true);
-                newSocket.emit('register_client', { client: 'web' });
-            });
-
-            newSocket.on('registration_success', (data) => {
-                console.log('WebSocket registered successfully');
-                setIsRegistered(true);
-                if (handlers && handlers.handleRegistrationSuccess) {
-                    handlers.handleRegistrationSuccess();
+            setTimeout(() => {
+                if (socket.current && !socket.connected) {
+                    socket.connect();
                 }
-            });
+            }, 1000);
+        });
 
-            if (handlers) {
-                if (handlers.handleRobotMessage) {
-                    newSocket.on('robot_message', (message) => {
-                        console.log('Received robot message:', message);
+        socket.on('registration_success', (data) => {
+            console.log('WebSocket registered successfully');
+            setIsRegistered(true);
+            if (handlers && handlers.handleRegistrationSuccess) {
+                handlers.handleRegistrationSuccess();
+            }
+        });
+
+        if (handlers) {
+            if (handlers.handleRobotMessage) {
+                socket.on('robot_message', (message) => {
+                    console.log('Received robot message:', message);
+                    try {
                         handlers.handleRobotMessage(message);
-                    });
-                }
-
-                if (handlers.handleWizardMessage) {
-                    newSocket.on('wizard_message', (message) => {
-                        console.log('Received wizard message:', message);
-                        handlers.handleWizardMessage(message);
-                    });
-                }
-
-                if (handlers.handleClientMessage) {
-                    newSocket.on('client_message', (message) => {
-                        console.log('Sended client message:', message);
-                        handlers.handleClientMessage(message);
-                    });
-                }
-
-                if (handlers.handleConnectError) {
-                    newSocket.on('connect_error', (error) => {
-                        console.error('WebSocket connection error:', error);
-                        handlers.handleConnectError(error);
-                    });
-                }
+                    } catch (error) {
+                        console.error('Error handling robot message:', error);
+                    }
+                });
             }
 
-            newSocket.on('reconnect_attempt', (attemptNumber) => {
-                console.log(`Reconnecting... Attempt ${attemptNumber}`);
-            });
-        };
+            if (handlers.handleWizardMessage) {
+                socket.on('wizard_message', (message) => {
+                    console.log('Received wizard message:', message);
+                    try {
+                        handlers.handleWizardMessage(message);
+                    } catch (error) {
+                        console.error('Error handling wizard message:', error);
+                    }
+                });
+            }
 
-        setupEventListeners();
+            if (handlers.handleClientMessage) {
+                socket.on('client_message', (message) => {
+                    console.log('Sended client message:', message);
+                    try {
+                        handlers.handleClientMessage(message);
+                    } catch (error) {
+                        console.error('Error handling client message:', error);
+                    }
+                });
+            }
+
+            if (handlers.handleConnectError) {
+                socket.on('connect_error', (error) => {
+                    console.error('WebSocket connection error:', error);
+                    try {
+                        handlers.handleConnectError(error);
+                    } catch (error) {
+                        console.error('Error handling error message:', error);
+                    }
+                });
+            }
+        }
+
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`Reconnecting... Attempt ${attemptNumber}`);
+        });
+
+        socket.on('reconnect', () => {
+            console.log('Reconnected to WebSocket');
+            socket.emit('register_client', { client: 'web' });
+        });
+
+        socket.on('error', (error) => {
+            console.error('WebSocket error:', error);
+        });
 
         return () => {
             console.log('Cleaning up WebSocket connection...');
             if (socketRef.current) {
                 socketRef.current.removeAllListeners();
-                socketRef.current.disconnect();
-                socketRef.current = null;
             }
         };
     }, [handlers]);

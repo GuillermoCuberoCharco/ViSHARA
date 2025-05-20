@@ -68,8 +68,10 @@ function setupMessageHandlers(io) {
             }
         });
 
-        socket.on('ping', () => {
-            socket.emit('pong');
+        socket.on('ping', (data, callback) => {
+            if (typeof callback === 'function') {
+                callback({ timestamp: new Date().now() });
+            }
         });
 
         socket.on('disconnect', () => {
