@@ -39,7 +39,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
         socket.removeAllListeners();
 
         socket.on('connect', () => {
-            console.log('WebSocket connected with id:', newSocket.id);
+            console.log('WebSocket connected with id:', socket.id);
             setIsConnected(true);
             socket.emit('register_client', { client: 'web' });
         });
