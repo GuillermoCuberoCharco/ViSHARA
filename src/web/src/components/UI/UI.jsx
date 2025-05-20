@@ -33,7 +33,8 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     } = useAudioRecorder((transcribedText) => {
         if (transcribedText && transcribedText.trim()) {
             setNewMessage(transcribedText);
-            setTimeout(() => handleSendMessage(transcribedText), 0);
+            console.log("Received transcribed text:", transcribedText);
+            handleSendMessage(transcribedText);
         }
         setIsWaitingResponse(false);
     }, isWaitingResponse);
