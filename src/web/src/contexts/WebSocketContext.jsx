@@ -38,7 +38,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
             newSocket.on('connect', () => {
                 console.log('WebSocket connected with id:', newSocket.id);
                 setIsConnected(true);
-                socketRef.current.emit('register_client', { client: 'web' });
+                newSocket.emit('register_client', { client: 'web' });
             });
 
             newSocket.on('disconnect', (reason) => {
@@ -48,7 +48,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
 
                 setTimeout(() => {
                     if (socketRef.current) {
-                        socketRef.current.connect();
+                        newSocket.connect();
                     }
                 }, 1000);
             });
@@ -56,7 +56,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
             newSocket.on('reconnect', () => {
                 console.log('WebSocket reconnected');
                 setIsConnected(true);
-                socketRef.current.emit('register_client', { client: 'web' });
+                newSocket.emit('register_client', { client: 'web' });
             });
 
             newSocket.on('registration_success', (data) => {
