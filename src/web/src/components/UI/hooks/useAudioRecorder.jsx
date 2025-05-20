@@ -154,10 +154,9 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 const response = await axios.post(`${SERVER_URL}/api/transcribe`, { audio: base64Audio });
                 console.log('Audio sended to server for transcription');
                 if (response.data) {
-                    setTranscribedText(response.data);
+                    const transcribedText = response.data;
                     if (onTranscriptionComplete) {
-                        onTranscriptionComplete(response.data);
-                        console.log('Transcription complete:', response.data);
+                        onTranscriptionComplete(transcribedText);
                     }
                 }
             };
