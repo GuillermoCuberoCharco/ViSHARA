@@ -21,18 +21,20 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
-    const isProcessingTranscription = useRef(false);
 
     // Audio hooks and handlers
     const {
         isRecording,
-        transcribedText,
         audioSrc,
         isSpeaking,
         startRecording,
         stopRecording,
         handleSynthesize
-    } = useAudioRecorder(() => {
+    } = useAudioRecorder((transcribedText) => {
+        if (transcribedText && transcribedText.trim()) {
+            setNewMessage(transcribedText);
+            setTimeout(() => handleSendMessage(transcribedText), 0);
+        }
         setIsWaitingResponse(false);
     }, isWaitingResponse);
 
@@ -86,11 +88,13 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
     };
 
-    const handleSendMessage = () => {
-        if (newMessage.trim() && isConnected) {
+    const handleSendMessage = (text = null) => {
+        const messageText = text || newMessage.trim();
+
+        if (messageText && isConnected) {
             const messageObject = {
                 type: "client_message",
-                text: newMessage,
+                text: messageText,
                 proactive_question: "Ninguna",
                 username: "Desconocido"
             };
@@ -99,7 +103,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
 
             if (success) {
                 setIsWaitingResponse(success);
-                setMessages((messages) => [...messages, { text: newMessage, sender: 'client' }]);
+                setMessages((messages) => [...messages, { text: messageText, sender: 'client' }]);
                 setNewMessage('');
                 setTimeout(scrollToBottom, 100);
             } else {
@@ -149,26 +153,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             };
         }
     }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
-
-    useEffect(() => {
-        if (transcribedText && isConnected && !isProcessingTranscription.current) {
-            isProcessingTranscription.current = true;
-            setNewMessage(transcribedText);
-            setMessages(prev => [...prev, { text: newMessage, sender: 'client' }]);
-            handleSendMessage();
-            // const messageObject = {
-            //     type: "client_message",
-            //     text: transcribedText,
-            //     proactive_question: "Ninguna",
-            //     username: "Desconocido"
-            // };
-            // const success = emit('client_message', messageObject);
-            // setIsWaitingResponse(success);
-            setTimeout(() => {
-                isProcessingTranscription.current = false;
-            }, 500);
-        }
-    }, [transcribedText, isConnected, emit]);
 
     useEffect(() => {
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
