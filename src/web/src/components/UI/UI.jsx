@@ -32,9 +32,30 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         handleSynthesize
     } = useAudioRecorder((transcribedText) => {
         if (transcribedText && transcribedText.trim()) {
-            setNewMessage(transcribedText);
+            messageText = transcribedText;
             console.log("Received transcribed text:", transcribedText);
-            handleSendMessage(transcribedText);
+            if (messageText && isConnected) {
+                const messageObject = {
+                    type: "client_message",
+                    text: messageText,
+                    proactive_question: "Ninguna",
+                    username: "Desconocido"
+                };
+
+                const success = emit('client_message', messageObject);
+
+                if (success) {
+                    setIsWaitingResponse(success);
+                    setMessages((messages) => [...messages, { text: messageText, sender: 'client' }]);
+                    setNewMessage('');
+                    setTimeout(scrollToBottom, 100);
+                } else {
+                    setMessages((messages) => [...messages, {
+                        text: "No se pudo enviar el mensaje. Comprueba tu conexión.",
+                        sender: 'robot'
+                    }]);
+                }
+            }
         }
         setIsWaitingResponse(false);
     }, isWaitingResponse);
