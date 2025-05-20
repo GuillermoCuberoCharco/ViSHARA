@@ -138,6 +138,10 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     }, [transcribedText, isConnected, emit]);
 
     useEffect(() => {
+        console.log("isWaitingResponse:", isWaitingResponse);
+        console.log("isRecording:", isRecording);
+        console.log("isSpeaking:", isSpeaking);
+        console.log("faceDetected:", faceDetected);
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
             const timer = setTimeout(() => {
                 startRecording();

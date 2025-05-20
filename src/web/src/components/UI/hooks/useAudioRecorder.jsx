@@ -175,7 +175,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 setAudioSrc(audioSrc);
 
                 const audio = new Audio(audioSrc);
-                audio.onended = () => setIsSpeaking(false);
                 audio.onerror = (e) => {
                     console.error('Error playing audio:', e);
                     setIsSpeaking(false);
