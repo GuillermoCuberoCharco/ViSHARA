@@ -53,6 +53,25 @@ function setupMessageHandlers(io) {
             }
         });
 
+        socket.on('message', (message) => {
+            try {
+                console.log('Received wizard message:', message);
+                socket.broadcast.emit('wizard_message', {
+                    text: message.text,
+                    state: message.state
+                });
+
+                socket.emit('message_received', { status: 'ok' });
+            } catch (error) {
+                console.error('Error processing message:', error);
+                socket.emit('error', { message: 'Error processing message' });
+            }
+        });
+
+        socket.on('ping', () => {
+            socket.emit('pong');
+        });
+
         socket.on('disconnect', () => {
             console.log('Client disconnected from message socket');
         });

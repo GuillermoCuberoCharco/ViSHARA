@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ANIMATION_MAPPINGS } from "../../config";
 import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
@@ -40,7 +40,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setConnectionError(!isConnected);
     }, [isConnected]);
 
-    const handleRobotMessage = async (message) => {
+    const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
             console.log("Received robot state:", message.state);
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
@@ -56,9 +56,9 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             await handleSynthesize(message.text);
         }
         setIsWaitingResponse(false);
-    };
+    }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
-    const handleWizardMessage = async (message) => {
+    const handleWizardMessage = useCallback(async (message) => {
         if (message.state) {
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
@@ -69,7 +69,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
         await handleSynthesize(message.text);
         setIsWaitingResponse(false);
-    };
+    }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
     const handleClientMessage = (message) => {
         if (message.text?.trim()) {
@@ -80,18 +80,16 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     useEffect(() => {
         if (socket) {
             socket.on('robot_message', handleRobotMessage);
-            socket.on('openai_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
 
             return () => {
                 socket.off('robot_message', handleRobotMessage);
-                socket.off('openai_message', handleRobotMessage);
                 socket.off('wizard_message', handleWizardMessage);
                 socket.off('client_message', handleClientMessage);
             };
         }
-    }, [socket])
+    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
     const handleFaceDetected = () => {
         setFaceDetected(true);
