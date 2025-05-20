@@ -32,7 +32,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         handleSynthesize
     } = useAudioRecorder((transcribedText) => {
         if (transcribedText && transcribedText.trim()) {
-            messageText = transcribedText;
+            const messageText = transcribedText;
             console.log("Received transcribed text:", transcribedText);
             if (messageText && isConnected) {
                 const messageObject = {
