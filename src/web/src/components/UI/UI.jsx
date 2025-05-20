@@ -154,15 +154,15 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         if (transcribedText && isConnected && !isProcessingTranscription.current) {
             isProcessingTranscription.current = true;
             setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
-
-            const messageObject = {
-                type: "client_message",
-                text: transcribedText,
-                proactive_question: "Ninguna",
-                username: "Desconocido"
-            };
-            const success = emit('client_message', messageObject);
-            setIsWaitingResponse(success);
+            handleSendMessage();
+            // const messageObject = {
+            //     type: "client_message",
+            //     text: transcribedText,
+            //     proactive_question: "Ninguna",
+            //     username: "Desconocido"
+            // };
+            // const success = emit('client_message', messageObject);
+            // setIsWaitingResponse(success);
             setTimeout(() => {
                 isProcessingTranscription.current = false;
             }, 500);
@@ -170,10 +170,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     }, [transcribedText, isConnected, emit]);
 
     useEffect(() => {
-        console.log("isWaitingResponse:", isWaitingResponse);
-        console.log("isRecording:", isRecording);
-        console.log("isSpeaking:", isSpeaking);
-        console.log("faceDetected:", faceDetected);
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
             const timer = setTimeout(() => {
                 startRecording();
@@ -183,17 +179,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
 
     }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
-
-    useEffect(() => {
-        if (isWaitingResponse) {
-            const timeout = setTimeout(() => {
-                console.warn('No response received after 15 seconds - resetting waiting state');
-                setIsWaitingResponse(false);
-            }, 15000);
-
-            return () => clearTimeout(timeout);
-        }
-    }, [isWaitingResponse]);
 
     return (
         <div className="chat-wrapper">
