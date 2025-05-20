@@ -29,6 +29,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         transcribedText,
         audioSrc,
         isSpeaking,
+        setIsSpeaking,
         startRecording,
         stopRecording,
         handleSynthesize
@@ -212,7 +213,13 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                     />
                 </div>
             </ChatWindow>
-            <audio src={audioSrc} autoPlay />
+            <audio
+                src={audioSrc}
+                autoPlay
+                onEnded={() => {
+                    setIsSpeaking(false);
+                }}
+            />
         </div>
     );
 };
