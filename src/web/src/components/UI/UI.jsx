@@ -153,7 +153,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     useEffect(() => {
         if (transcribedText && isConnected && !isProcessingTranscription.current) {
             isProcessingTranscription.current = true;
-            setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
+            setNewMessage(transcribedText);
             handleSendMessage();
             // const messageObject = {
             //     type: "client_message",
