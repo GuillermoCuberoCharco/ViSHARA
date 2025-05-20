@@ -190,18 +190,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
     }, [isWaitingResponse]);
 
-    useEffect(() => {
-        if (socket && isConnected) {
-            const pingInterval = setInterval(() => {
-                socket.emit('ping', {}, (response) => {
-                    console.log('Ping response:', response);
-                });
-            }, 30000);
-
-            return () => clearInterval(pingInterval);
-        }
-    }, [socket, isConnected]);
-
     return (
         <div className="chat-wrapper">
             <button
