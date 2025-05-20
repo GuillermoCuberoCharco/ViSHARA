@@ -8,15 +8,13 @@ const AudioControls = ({
     isSpeaking,
     isWaitingResponse,
     onStartRecording,
-    onStopRecording,
-    onAudioStop
+    onStopRecording
 }) => (
     <div className="audio-controls">
         <div className="sound-wave-container">
             <ReactMic
                 record={isRecording}
                 className="sound-wave"
-                onStop={onAudioStop}
                 onData={() => { }}
                 strokeColor="#000000"
                 backgroundColor="#FF4081"
@@ -41,8 +39,7 @@ AudioControls.propTypes = {
     isSpeaking: PropTypes.bool.isRequired,
     isWaitingResponse: PropTypes.bool.isRequired,
     onStartRecording: PropTypes.func.isRequired,
-    onStopRecording: PropTypes.func.isRequired,
-    onAudioStop: PropTypes.func.isRequired
+    onStopRecording: PropTypes.func.isRequired
 };
 
 export default AudioControls;

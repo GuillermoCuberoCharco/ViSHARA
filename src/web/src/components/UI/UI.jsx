@@ -21,6 +21,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
+    const isProcessingTranscription = useRef(false);
 
     // Audio hooks and handlers
     const {
@@ -150,7 +151,8 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
     useEffect(() => {
-        if (transcribedText && isConnected) {
+        if (transcribedText && isConnected && !isProcessingTranscription.current) {
+            isProcessingTranscription.current = true;
             setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
 
             const messageObject = {
@@ -161,6 +163,9 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             };
             const success = emit('client_message', messageObject);
             setIsWaitingResponse(success);
+            setTimeout(() => {
+                isProcessingTranscription.current = false;
+            }, 500);
         }
     }, [transcribedText, isConnected, emit]);
 
