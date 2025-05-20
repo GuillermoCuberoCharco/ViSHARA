@@ -82,11 +82,11 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
 
-            // return () => {
-            //     socket.off('robot_message', handleRobotMessage);
-            //     socket.off('wizard_message', handleWizardMessage);
-            //     socket.off('client_message', handleClientMessage);
-            // };
+            return () => {
+                socket.off('robot_message', handleRobotMessage);
+                socket.off('wizard_message', handleWizardMessage);
+                socket.off('client_message', handleClientMessage);
+            };
         }
     }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
