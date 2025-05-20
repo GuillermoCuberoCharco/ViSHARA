@@ -42,7 +42,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
 
     const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
-            console.log("Received robot state:", message.state);
             const animationName = ANIMATION_MAPPINGS[message.state] || "Attention";
             const index = animations.findIndex((animation) => animation === animationName);
             if (index !== -1) {
@@ -83,11 +82,11 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
 
-            return () => {
-                socket.off('robot_message', handleRobotMessage);
-                socket.off('wizard_message', handleWizardMessage);
-                socket.off('client_message', handleClientMessage);
-            };
+            // return () => {
+            //     socket.off('robot_message', handleRobotMessage);
+            //     socket.off('wizard_message', handleWizardMessage);
+            //     socket.off('client_message', handleClientMessage);
+            // };
         }
     }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
