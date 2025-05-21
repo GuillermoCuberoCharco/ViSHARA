@@ -37,6 +37,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
 
     useEffect(() => {
         if (transcribedText && isConnected) {
+            console.log("Sending message:", transcribedText);
             const messageObject = {
                 type: "client_message",
                 text: transcribedText,
