@@ -1,8 +1,12 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
+import axios from 'axios';
+import * as faceapi from 'face-api.js';
 import React, { useEffect, useRef, useState } from 'react';
+import { SERVER_URL } from '../../src/config';
 
 const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
+    // FACE DETECTION REFFERENCES
     const videoRef = useRef(null);
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
@@ -10,31 +14,122 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const [isStreamReady, setIsStreamReady] = useState(false);
     const [isFaceDetected, setIsFaceDetected] = useState(false);
 
-    useEffect(() => {
-        const initializeModel = async () => {
-            try {
-                console.log('Initializing TensorFlow...');
-                await tf.ready();
-                await tf.setBackend('webgl');
-                console.log('TensorFlow initialized with backend:', tf.getBackend());
+    // FACE RECOGNITION REFFERENCES
+    const faceapiModelsRef = useRef(null);
+    const lastFaceSentRef = useRef(null);
+    const recognizedUserIdRef = useRef(null);
 
-                console.log('Loading BlazeFace model...');
-                modelRef.current = await blazeface.load({
-                    maxFaces: 1,
-                    inputWidth: 128,
-                    inputHeight: 128,
-                    iouThreshold: 0.3,
-                    scoreThreshold: 0.75
-                });
+    const loadFaceApiModels = async () => {
+        try {
+            console.log('Loading Face API models...');
 
-                console.log('BlazeFace model loaded successfully');
-                setIsModelLoaded(true);
-            } catch (error) {
-                console.error('Error during initialization:', error);
+            const MODEL_URL = '../../public/models';
+
+            await Promise.all([
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+            ]);
+
+            faceapiModelsRef.current = true;
+            console.log('Face API models loaded successfully');
+        } catch (error) {
+            console.error('Error loading Face API models:', error);
+        }
+    };
+
+    const loadBlazeFaceModels = async () => {
+        try {
+            console.log('Initializing TensorFlow...');
+            await tf.ready();
+            await tf.setBackend('webgl');
+            console.log('TensorFlow initialized with backend:', tf.getBackend());
+
+            console.log('Loading BlazeFace model...');
+            modelRef.current = await blazeface.load({
+                maxFaces: 1,
+                inputWidth: 128,
+                inputHeight: 128,
+                iouThreshold: 0.3,
+                scoreThreshold: 0.75
+            });
+
+            console.log('BlazeFace model loaded successfully');
+            setIsModelLoaded(true);
+        } catch (error) {
+            console.error('Error loading BlaceFace models:', error);
+        }
+    };
+
+    const extractFacialFeatures = async () => {
+        try {
+            if (!faceapiModelsRef.current) {
+                console.log('Face API models not loaded');
+                return;
             }
-        };
 
-        initializeModel();
+            const video = videoRef.current;
+
+            const detections = await faceapi.detectSingleFace(video)
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            if (!detections) {
+                console.log('Facial features not detected');
+                return null;
+            }
+
+            const faceDescriptor = Array.from(detections.descriptor);
+            console.log('Facial features extracted:', faceDescriptor);
+
+            return faceDescriptor;
+        } catch (error) {
+            console.error('Error extracting facial features:', error);
+            return null;
+        }
+    };
+
+    const sendFacialFeaturesToServer = async () => {
+        try {
+            const now = Date.now();
+            if (now - lastFaceSentRef.current < 5000) return;
+
+            lastFaceSentRef.current = now;
+
+            const faceDescriptor = await extractFacialFeatures();
+            if (!faceDescriptor) {
+                console.log('Facial features not detected in sendFacialFeaturesToServer');
+                return;
+            }
+
+            const payload = {
+                faceDescriptor: faceDescriptor,
+                userId: recognizedUserIdRef.current || null
+            };
+
+            const response = await axios.post(`${SERVER_URL}/api/recognize-face`, payload);
+
+            if (response.data && response.data.userId) {
+                const isNewUser = response.data.isNewUser;
+
+                if (isNewUser) {
+                    console.log('New user detected:', response.data.userId);
+                } else if (!recognizedUserIdRef.current) {
+                    console.log('Recognized user with ID:', response.data.userId);
+                } else if (recognizedUserIdRef.current !== response.data.userId) {
+                    console.log('User switched from', recognizedUserIdRef.current, 'to', response.data.userId);
+                }
+
+                recognizedUserIdRef.current = response.data.userId;
+            }
+        } catch (error) {
+            console.error('Error sending face to server:', error);
+        }
+    };
+
+    useEffect(() => {
+        loadBlazeFaceModels();
+        loadFaceApiModels();
 
         return () => {
             if (detectionRef.current) {
@@ -72,21 +167,6 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     useEffect(() => {
         if (!isModelLoaded || !isStreamReady || !videoRef.current) return;
 
-        // const sendFaceToServer = async (canvasElem) => {
-        //     canvasElem.toBlob(async (blob) => {
-        //         const formData = new FormData();
-        //         formData.append('frame', blob, 'face.png');
-        //         try {
-        //             const res = await axios.post(`${SERVER_URL}/recognize`, formData, {
-        //                 headers: { 'Content-Type': 'multipart/form-data' }
-        //             });
-        //             console.log('Server response:', res.data);
-        //         } catch (error) {
-        //             console.error('Error sending face to server:', error);
-        //         }
-        //     }, 'image/png');
-        // };
-
         const detectFace = async () => {
             if (!videoRef.current || videoRef.current.readyState !== 4) return;
 
@@ -98,15 +178,19 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 const predictions = await modelRef.current.estimateFaces(video, false);
 
                 if (predictions && predictions.length > 0) {
-                    // console.log('Face detected:', predictions[0]);
                     if (!isFaceDetected) {
                         setIsFaceDetected(true);
                         onFaceDetected();
+                    }
+
+                    if (faceapiModelsRef.current) {
+                        await sendFacialFeaturesToServer();
                     }
                 } else {
                     if (isFaceDetected) {
                         setIsFaceDetected(false);
                         onFaceLost();
+                        recognizedUserIdRef.current = null;
                     }
                 }
             } catch (error) {
