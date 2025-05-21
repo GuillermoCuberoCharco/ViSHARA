@@ -157,6 +157,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                     setTranscribedText(response.data);
                     if (onTranscriptionComplete) {
                         onTranscriptionComplete(transcribedText);
+                        console.log('Transcription completed:', transcribedText);
                     }
                 }
             };
