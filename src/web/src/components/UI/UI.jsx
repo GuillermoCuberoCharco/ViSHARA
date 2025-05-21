@@ -27,39 +27,26 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         isRecording,
         audioSrc,
         isSpeaking,
+        transcribedText,
         startRecording,
         stopRecording,
         handleSynthesize
-    } = useAudioRecorder((transcribedText) => {
-        if (transcribedText && transcribedText.trim()) {
-            sendTranscription(transcribedText);
-        }
+    } = useAudioRecorder(() => {
         setIsWaitingResponse(false);
     }, isWaitingResponse);
 
-    const sendTranscription = (text) => {
-        console.log("Sending transcription to server:", text);
-        if (text && isConnected) {
+    useEffect(() => {
+        if (transcribedText && isConnected) {
             const messageObject = {
                 type: "client_message",
-                text: text,
+                text: transcribedText,
                 proactive_question: "Ninguna",
                 username: "Desconocido"
             };
             const success = emit('client_message', messageObject);
-            if (success) {
-                setIsWaitingResponse(success);
-                setMessages((messages) => [...messages, { text: text, sender: 'client' }]);
-                setNewMessage('');
-                setTimeout(scrollToBottom, 100);
-            } else {
-                setMessages((messages) => [...messages, {
-                    text: "No se pudo enviar el mensaje. Comprueba tu conexión.",
-                    sender: 'robot'
-                }]);
-            }
+            setIsWaitingResponse(success);
         }
-    };
+    }, [transcribedText, isConnected, emit]);
 
     const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
