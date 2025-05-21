@@ -1,10 +1,10 @@
 const express = require('express');
-const { handleFaceRecognition, handleListUsers } = require('../controllers/faceRecognitionController.cjs');
+const { handleFaceRecognition, handleListUsers, upload } = require('../controllers/faceRecognitionController.cjs');
 
 const router = express.Router();
 
 function setupFaceRecognitionRoutes() {
-    router.post('/', express.json({ limit: '1mb' }), handleFaceRecognition);
+    router.post('/', upload.single('face'), handleFaceRecognition);
     router.get('/users', handleListUsers);
 
     return router;

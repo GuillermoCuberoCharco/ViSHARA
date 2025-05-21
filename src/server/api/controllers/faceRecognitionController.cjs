@@ -1,14 +1,18 @@
 const { recogniceFace, listAllUsers } = require('../../services/faceRecognitionService.cjs');
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 async function handleFaceRecognition(req, res) {
     try {
-        const { faceDescriptor, userId } = req.body;
-
-        if (!faceDescriptor || !Array.isArray(faceDescriptor)) {
-            return res.status(400).json({ error: 'Invalid face descriptor.' });
+        if (!req.file) {
+            return res.status(400).json({ error: 'No face image.' });
         }
 
-        const result = await recogniceFace(faceDescriptor, userId);
+        const knownUserId = req.body.userId || null;
+
+        const result = await recogniceFace(req.file.buffer, knownUserId);
         if (result.error) {
             return res.status(500).json({ error: result.error });
         }
@@ -38,5 +42,6 @@ function handleListUsers(req, res) {
 
 module.exports = {
     handleFaceRecognition,
-    handleListUsers
+    handleListUsers,
+    upload
 };

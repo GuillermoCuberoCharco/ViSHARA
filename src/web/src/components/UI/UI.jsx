@@ -166,6 +166,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
 
     useEffect(() => {
+        // No intentes quitar este useEffect o el timer del useEffect
         if (transcribedText && isConnected && !sendingTranscriptionRef.current) {
             sendingTranscriptionRef.current = true;
             console.log("Sending Transcription:", transcribedText);

@@ -1,7 +1,6 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
 import axios from 'axios';
-import * as faceapi from 'face-api.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { SERVER_URL } from '../../src/config';
 
@@ -15,28 +14,9 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const [isFaceDetected, setIsFaceDetected] = useState(false);
 
     // FACE RECOGNITION REFFERENCES
-    const faceapiModelsRef = useRef(null);
+    const canvasRef = useRef(document.createElement('canvas'));
     const lastFaceSentRef = useRef(null);
     const recognizedUserIdRef = useRef(null);
-
-    const loadFaceApiModels = async () => {
-        try {
-            console.log('Loading Face API models...');
-
-            const MODEL_URL = '/models';
-
-            await Promise.all([
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-            ]);
-
-            faceapiModelsRef.current = true;
-            console.log('Face API models loaded successfully');
-        } catch (error) {
-            console.error('Error loading Face API models:', error);
-        }
-    };
 
     const loadBlazeFaceModels = async () => {
         try {
@@ -61,67 +41,61 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
     };
 
-    const extractFacialFeatures = async () => {
-        try {
-            if (!faceapiModelsRef.current) {
-                console.log('Face API models not loaded');
-                return;
-            }
-
-            const video = videoRef.current;
-
-            const detections = await faceapi.detectSingleFace(video)
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-
-            if (!detections) {
-                console.log('Facial features not detected');
-                return null;
-            }
-
-            const faceDescriptor = Array.from(detections.descriptor);
-            console.log('Facial features extracted:', faceDescriptor);
-
-            return faceDescriptor;
-        } catch (error) {
-            console.error('Error extracting facial features:', error);
-            return null;
-        }
-    };
-
-    const sendFacialFeaturesToServer = async () => {
+    const sendFaceToServer = async () => {
         try {
             const now = Date.now();
             if (now - lastFaceSentRef.current < 5000) return;
 
             lastFaceSentRef.current = now;
 
-            const faceDescriptor = await extractFacialFeatures();
-            if (!faceDescriptor) {
-                console.log('Facial features not detected in sendFacialFeaturesToServer');
-                return;
-            }
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
 
-            const payload = {
-                faceDescriptor: faceDescriptor,
-                userId: recognizedUserIdRef.current || null
-            };
+            // FACE COORDINATES
+            const face = predictions[0];
+            const startX = face.topLeft[0];
+            const startY = face.topLeft[1];
+            const width = face.bottomRight[0] - startX;
+            const height = face.bottomRight[1] - startY;
+            // ADD PADDING TO FACE
+            const padding = Math.min(width, height) * 0.2;
+            const cropStartX = Math.max(0, startX - padding);
+            const cropStartY = Math.max(0, startY - padding);
+            const cropWidth = width + (padding * 2);
+            const cropHeight = height + (padding * 2);
 
-            const response = await axios.post(`${SERVER_URL}/api/recognize-face`, payload);
+            ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
 
-            if (response.data && response.data.userId) {
-                const isNewUser = response.data.isNewUser;
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('face', blob, 'face.jpg');
 
-                if (isNewUser) {
-                    console.log('New user detected:', response.data.userId);
-                } else if (!recognizedUserIdRef.current) {
-                    console.log('Recognized user with ID:', response.data.userId);
-                } else if (recognizedUserIdRef.current !== response.data.userId) {
-                    console.log('User switched from', recognizedUserIdRef.current, 'to', response.data.userId);
+                if (recognizedUserIdRef.current) {
+                    formData.append('userId', recognizedUserIdRef.current);
                 }
 
-                recognizedUserIdRef.current = response.data.userId;
-            }
+                const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data && response.data.userId) {
+                    const isNewUser = response.data.isNewUser;
+
+                    if (isNewUser) {
+                        console.log('New user detected:', response.data.userId);
+                    } else if (!recognizedUserIdRef.current) {
+                        console.log('Recognized user with ID:', response.data.userId);
+                    } else if (recognizedUserIdRef.current !== response.data.userId) {
+                        console.log('User switched from', recognizedUserIdRef.current, 'to', response.data.userId);
+                    }
+
+                    recognizedUserIdRef.current = response.data.userId;
+                }
+            }, 'image/jpeg', 0.8);
+
         } catch (error) {
             console.error('Error sending face to server:', error);
         }
@@ -129,7 +103,6 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
 
     useEffect(() => {
         loadBlazeFaceModels();
-        loadFaceApiModels();
 
         return () => {
             if (detectionRef.current) {
@@ -183,9 +156,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                         onFaceDetected();
                     }
 
-                    if (faceapiModelsRef.current) {
-                        await sendFacialFeaturesToServer();
-                    }
+                    await sendFaceToServer();
                 } else {
                     if (isFaceDetected) {
                         setIsFaceDetected(false);
