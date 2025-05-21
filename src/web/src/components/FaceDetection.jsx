@@ -23,7 +23,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         try {
             console.log('Loading Face API models...');
 
-            const MODEL_URL = '../../public/models';
+            const MODEL_URL = '/models';
 
             await Promise.all([
                 faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
