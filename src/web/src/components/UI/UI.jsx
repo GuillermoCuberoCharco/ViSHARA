@@ -36,24 +36,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setIsWaitingResponse(false);
     }, isWaitingResponse);
 
-    useEffect(() => {
-        if (transcribedText && isConnected && !sendingTranscriptionRef.current) {
-            sendingTranscriptionRef.current = true;
-            console.log("Sending Transcription:", transcribedText);
-            setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
-            const messageObject = {
-                type: "client_message",
-                text: transcribedText,
-                proactive_question: "Ninguna",
-                username: "Desconocido"
-            };
-            const success = emit('client_message', messageObject);
-            setIsWaitingResponse(success);
-            setTimeout(() => {
-                sendingTranscriptionRef.current = false;
-            }, 1000)
-        }
-    }, [transcribedText, isConnected, emit]);
+
 
     const handleRobotMessage = useCallback(async (message) => {
         if (message.state) {
@@ -181,6 +164,25 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
 
     }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
+
+    useEffect(() => {
+        if (transcribedText && isConnected && !sendingTranscriptionRef.current) {
+            sendingTranscriptionRef.current = true;
+            console.log("Sending Transcription:", transcribedText);
+            setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
+            const messageObject = {
+                type: "client_message",
+                text: transcribedText,
+                proactive_question: "Ninguna",
+                username: "Desconocido"
+            };
+            const success = emit('client_message', messageObject);
+            setIsWaitingResponse(success);
+            setTimeout(() => {
+                sendingTranscriptionRef.current = false;
+            }, 1000)
+        }
+    }, [transcribedText, isConnected, emit]);
 
     return (
         <div className="chat-wrapper">
