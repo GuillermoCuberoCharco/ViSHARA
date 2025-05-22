@@ -69,11 +69,9 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             if (average < silenceThreshold.current) {
                 if (!silenceStartTimeRef.current) {
                     silenceStartTimeRef.current = Date.now();
-                    console.log('Silence detected, starting timer at:', silenceStartTimeRef.current);
                 } else {
                     const silenceDuration = Date.now() - silenceStartTimeRef.current;
                     if (silenceDuration >= silenceDurationRef.current) {
-                        console.log('Silence duration exceeded, stopping recording...');
                         stopRecording();
                         return;
                     }
@@ -92,10 +90,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;
 
-            if (!navigator.mediaDevices || !window.MediaRecorder) {
-                console.error('MediaDevices or MediaRecorder API not supported');
-                return;
-            }
+            if (!navigator.mediaDevices || !window.MediaRecorder) return;
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 48000 } });
             mediaRecorderRef.current = new MediaRecorder(stream, {
@@ -108,11 +103,9 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 }
             };
             const maxRecordingTime = setTimeout(() => {
-                if (isRecordingRef.current) {
-                    stopRecording();
-                    console.log('Max recording time exceeded, stopping recording...');
-                }
+                if (isRecordingRef.current) stopRecording();
             }, AUDIO_SETTINGS.maxRecordingTime);
+
             mediaRecorderRef.current.onstop = async () => {
                 clearTimeout(maxRecordingTime);
                 const audioBlob = new Blob(audioChunksRef.current, { type: AUDIO_SETTINGS.mimeType });
@@ -136,10 +129,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
             if (isTranscribingRef.current) return;
 
-            if (!audioBlob || audioBlob.size === 0) {
-                console.warn('Received invalid or empty audio blob:', audioBlob);
-                return;
-            }
+            if (!audioBlob || audioBlob.size === 0) return;
 
             isTranscribingRef.current = true;
 
