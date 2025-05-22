@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SERVER_URL } from '../../src/config';
 
 const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
-    // FACE DETECTION REFFERENCES
+    // FACE DETECTION REFERENCES
     const videoRef = useRef(null);
     const modelRef = useRef(null);
     const detectionRef = useRef(null);
@@ -41,7 +41,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
     };
 
-    const sendFaceToServer = async () => {
+    const sendFaceToServer = async (predictions) => {
         try {
             const now = Date.now();
             if (now - lastFaceSentRef.current < 5000) return;
@@ -156,7 +156,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                         onFaceDetected();
                     }
 
-                    await sendFaceToServer();
+                    await sendFaceToServer(predictions);
                 } else {
                     if (isFaceDetected) {
                         setIsFaceDetected(false);
