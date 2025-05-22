@@ -114,7 +114,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                     const { userId, isNewUser, confidence, processingTime } = response.data;
                     console.log('Face recognized:', userId, 'confidence:', confidence, 'processingTime:', processingTime);
 
-                    const wasNewUser = currentUserIdRef.current !== userId;
+                    const wasNewUser = isNewUser;
                     currentUserIdRef.current = userId;
                     lastRecognizedUserRef.current = userId;
 

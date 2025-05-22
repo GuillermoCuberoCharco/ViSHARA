@@ -139,7 +139,7 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
         const newDescriptor = await extractFaceDescriptor(faceBuffer);
         if (!newDescriptor) return { error: 'No face detected in the image.' };
 
-        console.lof('Database has', faceDatabase.users.length, 'users')
+        console.log('Database has', faceDatabase.users.length, 'users')
 
         if (knownUserId) {
             const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
