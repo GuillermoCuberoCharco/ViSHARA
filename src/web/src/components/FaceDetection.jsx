@@ -100,7 +100,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 const formData = new FormData();
                 formData.append('face', blob, 'face.jpg');
 
-                if (currentUserIdRef.current && currentUserIdRef.current === lastRecognizedUserIdRef.current) {
+                if (currentUserIdRef.current && currentUserIdRef.current === lastRecognizedUserRef.current) {
                     formData.append('userId', currentUserIdRef.current);
                 }
 
