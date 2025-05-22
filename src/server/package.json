@@ -34,7 +34,8 @@
     "socket.io": "^4.8.1",
     "ws": "^8.18.0",
     "@vladmandic/face-api": "^1.7.13",
-    "openai": "4.86.1"
+    "openai": "4.86.1",
+    "@tensorflow/tfjs-node": "^4.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
