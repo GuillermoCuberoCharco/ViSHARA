@@ -46,8 +46,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
     };
 
-    const isGoodQuality = (predictions, video) => {
-        const face = predictions[0];
+    const isGoodQuality = (face, video) => {
         const startX = face.topLeft[0];
         const startY = face.topLeft[1];
         const width = face.bottomRight[0] - startX;
@@ -70,7 +69,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             const video = videoRef.current;
             const face = predictions[0];
 
-            if (!isGoodQuality(predictions, video)) return;
+            if (!isGoodQuality(face, video)) return;
 
             lastFaceSentRef.current = now;
             const canvas = canvasRef.current;
