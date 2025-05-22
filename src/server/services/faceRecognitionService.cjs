@@ -18,9 +18,8 @@ let modelLoaded = false;
 
 async function initFaceApi() {
     try {
-        if (modelLoaded) {
-            return;
-        }
+        if (modelLoaded) return;
+
         await fs.mkdir(MODELS_PATH, { recursive: true });
 
         await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_PATH);
@@ -81,9 +80,41 @@ function calculateSimilarity(descriptor1, descriptor2) {
     const distance = Math.sqrt(sum);
 
     // Convertir distancia a similitud (0-1)
-    // 0.6 es un umbral común para face-api.js
-    const similarity = Math.max(0, 1 - distance / 0.6);
+    // 0.5 es un umbral un poco estricto para face-api.js (lo más común es 0.6)
+    const similarity = Math.max(0, 1 - distance / 0.5);
     return similarity;
+}
+
+function averageDescriptors(descriptors) {
+    if (!descriptors || descriptors.length === 0) return null;
+    if (descriptors.length === 1) return descriptors[0];
+
+    const averaged = new Array(descriptors[0].length).fill(0);
+
+    for (const descriptor of descriptors) {
+        for (let i = 0; i < descriptor.length; i++) {
+            averaged[i] += descriptor[i];
+        }
+    }
+    for (let i = 0; i < averaged.length; i++) {
+        averaged[i] /= descriptors.length;
+    }
+    return averaged;
+}
+
+function isDescriptorValid(descriptor, existingDescriptors = []) {
+    if (!descriptor || !Array.isArray(descriptor)) return false;
+
+    const magnitude = Math.sqrt(descriptor.reduce((sum, val) => sum + val * val, 0));
+    if (magnitude < 0.1 || magnitude > 10) return false;
+
+    if (existingDescriptors.length > 0) {
+        const avgSimilarity = existingDescriptors.reduce((sum, existing) => sum + calculateSimilarity(descriptor, existing), 0) / existingDescriptors.length;
+
+        return avgSimilarity > 0.4 && avgSimilarity < 0.95;
+    }
+
+    return true;
 }
 
 async function extractFaceDescriptor(imageBuffer) {
@@ -92,10 +123,7 @@ async function extractFaceDescriptor(imageBuffer) {
 
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
 
-        if (!detections) {
-            console.log('No face detected in the image.');
-            return null;
-        }
+        if (!detections) return null;
 
         return Array.from(detections.descriptor);
     } catch (error) {
@@ -106,29 +134,36 @@ async function extractFaceDescriptor(imageBuffer) {
 
 async function recogniceFace(faceBuffer, knownUserId = null) {
     try {
-        if (!modelLoaded) {
-            await initFaceApi();
-        }
+        if (!modelLoaded) await initFaceApi();
+
+        const newDescriptor = await extractFaceDescriptor(faceBuffer);
+        if (!newDescriptor) return { error: 'No face detected in the image.' };
 
         if (knownUserId) {
             const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
 
             if (userIndex >= 0) {
-                const newDescriptor = await extractFaceDescriptor(faceBuffer);
-                if (newDescriptor) {
-                    faceDatabase.users[userIndex].descriptor = newDescriptor;
+                const user = faceDatabase.users[userIndex];
+
+                if (isDescriptorValid(newDescriptor, user.descriptorHistory || [user.descriptor])) {
+                    if (!user.descriptorHistory) user.descriptorHistory = [user.descriptor];
+
+                    user.descriptorHistory.push(newDescriptor);
+
+                    if (user.descriptorHistory.length > 5) {
+                        user.descriptorHistory = user.descriptorHistory.slice(-5);
+                    }
+
+                    user.descriptor = averageDescriptors(user.descriptorHistory);
+
+                    console.log(`User ${knownUserId} updated in the database with ${user.descriptorHistory.length} samples.`);
                 }
-                faceDatabase.users[userIndex].metadata.lastSeen = new Date().toISOString();
-                faceDatabase.users[userIndex].metadata.visits += 1;
-                console.log(`User ${knownUserId} updated in the database. (${faceDatabase.users[userIndex].metadata.visits} visits)`);
+
+                user.metadata.lastSeen = new Date().toISOString();
+                user.metadata.visits += 1;
                 await saveDatabaseToFile();
                 return { userId: knownUserId, isNewUser: false };
             }
-        }
-
-        const faceDescriptor = await extractFaceDescriptor(faceBuffer);
-        if (!faceDescriptor) {
-            return { error: 'No face detected in the image.' };
         }
 
         let bestMatch = null;
@@ -137,26 +172,40 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
         for (const user of faceDatabase.users) {
             if (!user.descriptor) continue;
 
-            const similarity = calculateSimilarity(faceDescriptor, user.descriptor);
-            if (similarity > 0.6 && similarity > highetSimilarity) {
+            const similarity = calculateSimilarity(newDescriptor, user.descriptor);
+            console.log(`Similarity with ${user.userId}: ${similarity.toFixed(3)}`);
+            if (similarity > 0.7 && similarity > highetSimilarity) {
                 highetSimilarity = similarity;
                 bestMatch = user;
             }
         }
 
         if (bestMatch) {
-            bestMatch.descriptor = faceDescriptor;
+            if (isDescriptorValid(newDescriptor, bestMatch.descriptorHistory || [bestMatch.descriptor])) {
+
+                if (!bestMatch.descriptorHistory) bestMatch.descriptorHistory = [bestMatch.descriptor];
+
+                bestMatch.descriptorHistory.push(newDescriptor);
+
+                if (bestMatch.descriptorHistory.length > 5) {
+                    bestMatch.descriptorHistory = bestMatch.descriptorHistory.slice(-5);
+                }
+
+                bestMatch.descriptor = averageDescriptors(bestMatch.descriptorHistory);
+                console.log(`User ${bestMatch.userId} descriptor improved in the database with ${bestMatch.descriptorHistory.length} samples.`);
+            }
+
             bestMatch.metadata.lastSeen = new Date().toISOString();
             bestMatch.metadata.visits += 1;
-
-            console.log(`User ${bestMatch.userId} recognized. (${bestMatch.metadata.visits} visits)`);
             await saveDatabaseToFile();
             return { userId: bestMatch.userId, isNewUser: false, similarity: highetSimilarity };
         } else {
+            if (!isDescriptorValid(newDescriptor)) return { error: 'Invalid face descriptor.' };
+
             const newUserId = `user${faceDatabase.nextId++}`;
             faceDatabase.users.push({
                 userId: newUserId,
-                descriptor: faceDescriptor,
+                descriptor: newDescriptor,
                 metadata: {
                     createdAt: new Date().toISOString(),
                     lastSeen: new Date().toISOString(),

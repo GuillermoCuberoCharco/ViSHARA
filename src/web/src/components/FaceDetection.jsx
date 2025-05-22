@@ -18,6 +18,11 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const lastFaceSentRef = useRef(null);
     const recognizedUserIdRef = useRef(null);
 
+    const consecutiveDetectionsRef = useRef(0);
+    const consecutiveLossesRef = useRef(0);
+    const lastDetectionTimeRef = useRef(null);
+    const userConfirmedRef = useRef(false);
+
     const loadBlazeFaceModels = async () => {
         try {
             console.log('Initializing TensorFlow...');
@@ -28,10 +33,10 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             console.log('Loading BlazeFace model...');
             modelRef.current = await blazeface.load({
                 maxFaces: 1,
-                inputWidth: 128,
-                inputHeight: 128,
+                inputWidth: 256,
+                inputHeight: 256,
                 iouThreshold: 0.3,
-                scoreThreshold: 0.75
+                scoreThreshold: 0.8
             });
 
             console.log('BlazeFace model loaded successfully');
@@ -41,19 +46,37 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
     };
 
+    const isGoodQuality = (predictions, video) => {
+        const face = predictions[0];
+        const startX = face.topLeft[0];
+        const startY = face.topLeft[1];
+        const width = face.bottomRight[0] - startX;
+        const height = face.bottomRight[1] - startY;
+
+        if (width < 80 || height < 80) return false;
+
+        if (startX < 0 || startY < 0 || startX + width > video.videoWidth || startY + height > video.videoHeight) return false;
+
+        return true;
+    };
+
     const sendFaceToServer = async (predictions) => {
         try {
             const now = Date.now();
-            if (now - lastFaceSentRef.current < 5000) return;
+            const sendInterval = userConfirmedRef.current ? 10000 : 5000;
 
-            lastFaceSentRef.current = now;
+            if (now - lastFaceSentRef.current < sendInterval) return;
 
             const video = videoRef.current;
+            const face = predictions[0];
+
+            if (!isGoodQuality(predictions, video)) return;
+
+            lastFaceSentRef.current = now;
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
 
             // FACE COORDINATES
-            const face = predictions[0];
             const startX = face.topLeft[0];
             const startY = face.topLeft[1];
             const width = face.bottomRight[0] - startX;
@@ -65,7 +88,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             const cropWidth = width + (padding * 2);
             const cropHeight = height + (padding * 2);
 
-            ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 150, 150);
+            ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 200, 200);
 
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
@@ -86,15 +109,15 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
 
                     if (isNewUser) {
                         console.log('New user detected:', response.data.userId);
-                    } else if (!recognizedUserIdRef.current) {
-                        console.log('Recognized user with ID:', response.data.userId);
-                    } else if (recognizedUserIdRef.current !== response.data.userId) {
-                        console.log('User switched from', recognizedUserIdRef.current, 'to', response.data.userId);
+                        userConfirmedRef.current = false;
+                    } else {
+                        console.log('User recognized:', response.data.userId, 'similarity:', response.data.similarity);
+                        userConfirmedRef.current = true;
                     }
 
                     recognizedUserIdRef.current = response.data.userId;
                 }
-            }, 'image/jpeg', 0.8);
+            }, 'image/jpeg', 0.9);
 
         } catch (error) {
             console.error('Error sending face to server:', error);
@@ -149,19 +172,36 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 if (video.paused || video.ended) return;
 
                 const predictions = await modelRef.current.estimateFaces(video, false);
+                const now = Date.now();
 
-                if (predictions && predictions.length > 0) {
-                    if (!isFaceDetected) {
+                if (predictions && predictions.length > 0 && isGoodQuality(predictions[0], video)) {
+                    consecutiveDetectionsRef.current++;
+                    consecutiveLossesRef.current = 0;
+                    lastDetectionTimeRef.current = now;
+
+                    if (!isFaceDetected && consecutiveDetectionsRef.current >= 2) {
                         setIsFaceDetected(true);
                         onFaceDetected();
                     }
-
-                    await sendFaceToServer(predictions);
-                } else {
                     if (isFaceDetected) {
+                        await sendFaceToServer(predictions);
+                    }
+                } else {
+                    consecutiveDetectionsRef.current = 0;
+                    consecutiveLossesRef.current++;
+                    const timeSinceLastDetection = lastDetectionTimeRef.current ? now - lastDetectionTimeRef.current : Infinity;
+
+                    if (isFaceDetected && consecutiveLossesRef.current >= 3 && timeSinceLastDetection > 10000) {
+                        console.log('Face confirmed lost after', consecutiveLossesRef.current, 'losses and ', timeSinceLastDetection, 'ms')
                         setIsFaceDetected(false);
                         onFaceLost();
-                        recognizedUserIdRef.current = null;
+
+                        setTimeout(() => {
+                            if (!isFaceDetected) {
+                                recognizedUserIdRef.current = null;
+                                userConfirmedRef.current = false;
+                            }
+                        }, 5000);
                     }
                 }
             } catch (error) {
