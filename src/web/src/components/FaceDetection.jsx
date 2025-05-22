@@ -16,12 +16,13 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     // FACE RECOGNITION REFFERENCES
     const canvasRef = useRef(document.createElement('canvas'));
     const lastFaceSentRef = useRef(null);
-    const recognizedUserIdRef = useRef(null);
+    const currentUserIdRef = useRef(null);
+    const lastRecognizedUserRef = useRef(null);
 
     const consecutiveDetectionsRef = useRef(0);
     const consecutiveLossesRef = useRef(0);
     const lastDetectionTimeRef = useRef(null);
-    const userConfirmedRef = useRef(false);
+    const recognitionCountRef = useRef(false);
 
     const loadBlazeFaceModels = async () => {
         try {
@@ -52,9 +53,13 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         const width = face.bottomRight[0] - startX;
         const height = face.bottomRight[1] - startY;
 
-        if (width < 80 || height < 80) return false;
+        if (width < 100 || height < 100) return false;
 
         if (startX < 0 || startY < 0 || startX + width > video.videoWidth || startY + height > video.videoHeight) return false;
+
+        const aspectRatio = width / height;
+
+        if (aspectRatio < 0.7 || aspectRatio > 1.4) return false;
 
         return true;
     };
@@ -62,7 +67,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const sendFaceToServer = async (predictions) => {
         try {
             const now = Date.now();
-            const sendInterval = userConfirmedRef.current ? 10000 : 5000;
+            const sendInterval = currentUserIdRef.current ? 8000 : 3000;
 
             if (now - lastFaceSentRef.current < sendInterval) return;
 
@@ -72,6 +77,8 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             if (!isGoodQuality(face, video)) return;
 
             lastFaceSentRef.current = now;
+            recognitionCountRef.current++;
+
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
 
@@ -84,8 +91,8 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             const padding = Math.min(width, height) * 0.2;
             const cropStartX = Math.max(0, startX - padding);
             const cropStartY = Math.max(0, startY - padding);
-            const cropWidth = width + (padding * 2);
-            const cropHeight = height + (padding * 2);
+            const cropWidth = Math.min(width + (padding * 2), video.videoWidth - cropStartX);
+            const cropHeight = Math.min(height + (padding * 2), video.videoHeight - cropStartY);
 
             ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 200, 200);
 
@@ -93,8 +100,8 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 const formData = new FormData();
                 formData.append('face', blob, 'face.jpg');
 
-                if (recognizedUserIdRef.current) {
-                    formData.append('userId', recognizedUserIdRef.current);
+                if (currentUserIdRef.current && currentUserIdRef.current === lastRecognizedUserIdRef.current) {
+                    formData.append('userId', currentUserIdRef.current);
                 }
 
                 const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
@@ -104,19 +111,20 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 });
 
                 if (response.data && response.data.userId) {
-                    const isNewUser = response.data.isNewUser;
+                    const { userId, isNewUser, confidence, processingTime } = response.data;
+                    console.log('Face recognized:', userId, 'confidence:', confidence, 'processingTime:', processingTime);
 
-                    if (isNewUser) {
-                        console.log('New user detected:', response.data.userId);
-                        userConfirmedRef.current = false;
-                    } else {
-                        console.log('User recognized:', response.data.userId, 'similarity:', response.data.similarity);
-                        userConfirmedRef.current = true;
+                    const wasNewUser = currentUserIdRef.current !== userId;
+                    currentUserIdRef.current = userId;
+                    lastRecognizedUserRef.current = userId;
+
+                    if (wasNewUser) {
+                        console.log(`New user detected: now tracking ${userId}`);
                     }
-
-                    recognizedUserIdRef.current = response.data.userId;
+                } else {
+                    console.log('No valid response from server for face recognition');
                 }
-            }, 'image/jpeg', 0.9);
+            }, 'image/jpeg', 0.92);
 
         } catch (error) {
             console.error('Error sending face to server:', error);
@@ -134,10 +142,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     }, []);
 
     useEffect(() => {
-        if (!stream || !videoRef.current) {
-            console.log('Detection prerequisites not met');
-            return;
-        }
+        if (!stream || !videoRef.current) return;
 
         console.log('Setting up video stream...');
 
@@ -197,10 +202,11 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
 
                         setTimeout(() => {
                             if (!isFaceDetected) {
-                                recognizedUserIdRef.current = null;
-                                userConfirmedRef.current = false;
+                                currentUserIdRef.current = null;
+                                lastRecognizedUserRef.current = null;
+                                recognitionCountRef.current = 0;
                             }
-                        }, 5000);
+                        }, 3000);
                     }
                 }
             } catch (error) {
@@ -211,7 +217,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             }
         };
 
-        detectionRef.current = setInterval(detectFace, 5000);
+        detectionRef.current = setInterval(detectFace, 1500);
 
         return () => {
             if (detectionRef.current) {
