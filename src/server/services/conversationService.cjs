@@ -14,7 +14,7 @@ const conversationDatabase = {
 
 async function initConversationService() {
     try {
-        await fs.mkdir(DB_DIR, { recursive: true });
+        await fs.promises.mkdir(DB_DIR, { recursive: true });
         await loadConversationsFromFile();
         console.log('Conversation database initialized.');
     } catch (error) {
@@ -201,7 +201,7 @@ async function cleanupOldConversations(daysOld = 90) {
             const user = conversationDatabase.users[userId];
             const originalCount = user.sessions.length;
 
-            user.sessions = user.sessions.filter(sessions => new Date(session.startedAt) > cutoffDate);
+            user.sessions = user.sessions.filter(session => new Date(session.startedAt) > cutoffDate);
 
             const cleanedCount = originalCount - user.sessions.length;
             totalCleaned += cleanedCount;
