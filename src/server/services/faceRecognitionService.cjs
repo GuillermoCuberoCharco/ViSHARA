@@ -226,10 +226,10 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
                 },
             });
 
-            console.log(`New unknwon user ${newUserId} added to the database.`);
+            console.log(`New unknwon user ${tempUserId} added to the database.`);
             await saveDatabaseToFile();
             return {
-                userId: newUserId,
+                userId: tempUserId,
                 userName: 'unknwon',
                 isNewUser: true,
                 needsIdentification: true,

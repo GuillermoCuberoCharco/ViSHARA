@@ -6,7 +6,7 @@ const upload = multer({ storage: storage });
 
 let messageIo = null;
 function setMessageSocketRef(io) {
-    messageIo = io;
+    messageIo = io.messageIo;
 }
 
 async function handleFaceRecognition(req, res) {
