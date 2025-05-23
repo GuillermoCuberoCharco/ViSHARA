@@ -40,8 +40,8 @@ async function loadConversationsFromFile() {
 
 async function saveConversationsToFile() {
     try {
-        await fs.mkdir(DB_DIR, { recursive: true });
-        await fs.writeFile(CONVERSATIONS_FILE, JSON.stringify(conversationDatabase, null, 2), 'utf8');
+        await fs.promises.mkdir(DB_DIR, { recursive: true });
+        await fs.promises.writeFile(CONVERSATIONS_FILE, JSON.stringify(conversationDatabase, null, 2), 'utf8');
     } catch (error) {
         console.error('Error saving conversations to file:', error);
     }
@@ -150,7 +150,15 @@ function getConversationContext(userId, maxMessages = MAX_CONTENT_MESSAGES) {
 }
 
 function getUserConversationHistory(userId) {
-    if (!conversationDatabase.users[userId]) return [];
+    if (!conversationDatabase.users[userId]) {
+        return {
+            totalSessions: 0,
+            totalMessages: 0,
+            firstConversation: null,
+            lastConversation: null,
+            currentSessionActive: false
+        };
+    }
 
     const user = conversationDatabase.users[userId];
     const totalMessages = user.sessions.reduce((total, session) => total + session.messages.length, 0);
@@ -193,7 +201,7 @@ async function endCurrentSession(userId) {
 async function cleanupOldConversations(daysOld = 90) {
     try {
         const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate - daysOld);
+        cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
         let totalCleaned = 0;
 
@@ -243,8 +251,6 @@ function getConversationStats() {
 
     return stats;
 }
-
-initConversationService();
 
 module.exports = {
     initConversationService,

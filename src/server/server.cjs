@@ -5,7 +5,7 @@ const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
 const { setMessageSocketRef } = require('./api/controllers/faceRecognitionController.cjs');
-const { initConversationService, cleanupOldConversations } = require('./services/conversationService.cjs');
+const { initConversationService, cleanupOldConversations, saveConversationsToFile } = require('./services/conversationService.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app
@@ -75,7 +75,6 @@ process.on('SIGINT', async () => {
 
     try {
         // Save conversations before closing up
-        const { saveConversationsToFile } = require('./services/conversationService.cjs');
         await saveConversationsToFile();
         console.log('Conversations saved before shutdown');
     } catch (error) {
@@ -92,7 +91,6 @@ process.on('SIGTERM', async () => {
     console.log('Received SIGTERM, shutting down gracefully...');
 
     try {
-        const { saveConversationsToFile } = require('./services/conversationService.cjs');
         await saveConversationsToFile();
         console.log('Conversations saved before shutdown');
     } catch (error) {
