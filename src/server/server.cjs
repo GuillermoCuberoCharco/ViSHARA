@@ -5,6 +5,7 @@ const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
 const { setMessageSocketRef } = require('./api/controllers/faceRecognitionController.cjs');
+const { initConversationService, cleanupOldConversations } = require('./services/conversationService.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app
@@ -31,9 +32,23 @@ console.log('API routes configured');
 faceService.startCameraService(app, io.videoIo);
 console.log('Camera service initialized');
 
+// Initialize conversation service
+async function initializeConversationHistory() {
+    try {
+        await initConversationService();
+        console.log('Conversation service initialized');
+        await cleanupOldConversations(90);
+        console.log('Old conversations cleanup completed');
+    } catch (error) {
+        console.error('Error initializing conversation service: ', error);
+    }
+}
+
 // Configure sockets
 setupSockets(io);
 console.log('Sockets configured');
+
+initializeConversationHistory();
 
 // Start the server
 server.listen(config.port, () => {
@@ -53,4 +68,39 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('SIGINT', async () => {
+    console.log('Received SIGINT, shutting down gracefully...');
+
+    try {
+        // Save conversations before closing up
+        const { saveConversationsToFile } = require('./services/conversationService.cjs');
+        await saveConversationsToFile();
+        console.log('Conversations saved before shutdown');
+    } catch (error) {
+        console.error('Error saving conversations during shutdown:', error);
+    }
+
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
+});
+
+process.on('SIGTERM', async () => {
+    console.log('Received SIGTERM, shutting down gracefully...');
+
+    try {
+        const { saveConversationsToFile } = require('./services/conversationService.cjs');
+        await saveConversationsToFile();
+        console.log('Conversations saved before shutdown');
+    } catch (error) {
+        console.error('Error saving conversations during shutdown:', error);
+    }
+
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
 });

@@ -1,5 +1,6 @@
 const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName } = require('../../services/faceRecognitionService.cjs');
+const { startNewSession, addMessage, getConversationContext, endCurrentSession, getUserConversationHistory } = require('../../services/conversationService.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -18,18 +19,34 @@ function setupMessageHandlers(io) {
             socket.emit('registration_success', { status: 'ok' });
         });
 
-        socket.on('user_detected', (userData) => {
+        socket.on('user_detected', async (userData) => {
             console.log('User detected:', userData);
 
             let session = userSessions.get(socket.id);
+            const previousUserId = session?.currentUserId;
             if (!session) {
                 session = {};
                 console.log('Creating new session for socket:', socket.id);
             }
 
+            if (previousUserId && previousUserId !== userData.userId) await endCurrentSession(previousUserId);
+
             session.currentUserId = userData.userId;
             session.lastFaceUpdate = Date.now();
             userSessions.set(socket.id, session);
+
+            if (userData.userId !== previousUserId) {
+                const sessionId = startNewSession(userData.userId);
+                session.conversationSessionId = sessionId;
+
+                const conversationHistory = getUserConversationHistory(userData.userId);
+                console.log(`User conversation history loaded`);
+
+                const contextMessages = getConversationContext(userData.userId, 5);
+                if (contextMessages.length > 0) {
+                    console.log(`Loaded ${contextMessages.length} previous messages for context`);
+                }
+            }
 
             console.log('Session updated:', session);
 
@@ -46,6 +63,22 @@ function setupMessageHandlers(io) {
             }
         });
 
+        socket.on('user_lost', async (userData) => {
+            console.log('User lost:', userData);
+
+            if (userData.userId) {
+                await endCurrentSession(userData.userId);
+                console.log(`Session ended for lost user: ${userData.userId}`);
+            }
+
+            const session = userSessions.get(socket.id);
+            if (session && session.currentUserId === userData.userId) {
+                session.currentUserId = null;
+                session.conversationSessionId = null;
+                userSessions.set(socket.id, session);
+            }
+        })
+
         socket.on('client_message', async (message) => {
             try {
                 const parsed = typeof message === 'string' ? JSON.parse(message) : message;
@@ -59,6 +92,13 @@ function setupMessageHandlers(io) {
 
                 const session = userSessions.get(socket.id) || {};
                 const currentUserId = session.currentUserId;
+
+                if (currentUserId) {
+                    await addMessage(currentUserId, 'user', inputText, {
+                        socketId: socket.id,
+                        messageType: 'client_message'
+                    });
+                }
 
                 let context = {
                     username: parsed.username || 'Desconocido',
@@ -78,6 +118,13 @@ function setupMessageHandlers(io) {
                             session.currentUserId = result.newUserId;
                             userSessions.set(socket.id, session);
                         }
+
+                        if (currentUserId) {
+                            await addMessage(currentUserId, 'user', inputText, {
+                                messageType: 'identification_response',
+                                extractedName: result.userName
+                            });
+                        }
                     } else {
                         context.proactive_question = 'who_are_you';
                     }
@@ -88,12 +135,18 @@ function setupMessageHandlers(io) {
                     }
                 }
 
-                console.log('Processing message with context:', context);
+                let conversationHistory = [];
+                if (currentUserId) conversationHistory = getConversationContext(currentUserId, 15);
 
-                const response = await getOpenAIResponse(inputText, context);
+                console.log('Processing message with context:', context);
+                console.log('Conversation history loaded:', conversationHistory.length, 'messages');
+
+                const response = await getOpenAIResponse(inputText, context, conversationHistory);
 
                 if (response.text?.trim()) {
                     console.log('Sending robot response:', response);
+
+                    if (currentUserId) await addMessage(currentUserId, 'assistant', response.text, { mood: response.robot_mood, messageType: 'robot_response' });
 
                     socket.emit('robot_message', {
                         text: response.text,
@@ -111,9 +164,15 @@ function setupMessageHandlers(io) {
             }
         });
 
-        socket.on('message', (message) => {
+        socket.on('message', async (message) => {
             try {
                 console.log('Received wizard message:', message);
+
+                const session = userSessions.get(socket.id) || {};
+                const currentUserId = session.currentUserId;
+
+                if (currentUserId && message.text?.trim()) await addMessage(currentUserId, 'wizard', message.text, { state: message.state, messageType: 'wizard_message', socketId: socket.id });
+
                 socket.broadcast.emit('wizard_message', {
                     text: message.text,
                     state: message.state
@@ -126,11 +185,13 @@ function setupMessageHandlers(io) {
             }
         });
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             console.log('Client disconnected from message socket');
 
             const session = userSessions.get(socket.id);
             if (session && session.currentUserId) {
+                await endCurrentSession(session.currentUserId);
+
                 const pending = pendingIdentifications.get(session.currentUserId);
                 if (pending && pending.socketId === socket.id) {
                     pendingIdentifications.delete(session.currentUserId);
@@ -143,13 +204,22 @@ function setupMessageHandlers(io) {
 
 async function sendProactiveIdentification(socket, userId) {
     try {
+
+        const conversationHistory = getConversationContext(userId, 10);
+
         const response = await getOpenAIResponse('', {
             username: 'Desconocido',
             proactive_question: 'who_are_you'
-        });
+        }, conversationHistory);
 
         if (response.text?.trim()) {
             console.log(`Sending identification request for user ${userId}:`, response.text);
+
+            await addMessage(userId, 'assistant', response.text, {
+                mood: response.robot_mood,
+                messageType: 'proactive_identification'
+            });
+
             const pending = pendingIdentifications.get(userId);
             if (pending) {
                 pending.waitingForName = true;

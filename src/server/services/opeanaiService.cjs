@@ -8,25 +8,47 @@ const openai = new OpenAI({
 
 const SYSTEM_PROMPT = loadPrompt();
 
-async function getOpenAIResponse(input, context = {}) {
+async function getOpenAIResponse(input, context = {}, conversationHistory = []) {
     const now = new Date();
     const formattedDate = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-    const message = [
-        { role: "system", content: SYSTEM_PROMPT },
-        //...get_full_conversation_history(), // For historical context, future feature
-        {
-            role: "user", content: JSON.stringify({
-                user_input: input,
-                timestamp: formattedDate,
-                username: context.username || "Desconocido",
-                proactive_question: context.proactive_question || "Ninguna"
-            })
-        }
-    ];
-
     try {
-        console.log("Sending message to OpenAI:", JSON.stringify(message[1].content));
+        let getConversationContext = "";
+        if (conversationHistory && conversationHistory.length > 0) {
+            conversationContext = "\n\nHISTORIAL DE CONVERSACIONES ANTERIORES:\n";
+            conversationContext += "=== CONVERSACIONES PREVIAS ===\n";
+
+            conversationHistory.forEach((msg, index) => {
+                const role = msg.role === 'user' ? 'USUARIO' : 'SHARA';
+                const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleString('es-ES') : '';
+                conversationContext += `[${timestamp}] ${role}: ${msg.content}\n`;
+            });
+
+            conversationContext += "=== FIN DEL HISTORIAL ===\n";
+            conversationContext += "INTRUCCIONES: Usa este historial para recordar conversaciones anteriores y hacer la conversación más personal y coherente. Puedes referenciar temas, experiencias o información que el usuario haya compartido contigo anteriormente. Hazlo de manera natural, no como si estuvieras leyendo una lista.\n\n";
+        }
+
+        const enhancedSystemPrompt = SYSTEM_PROMPT + conversationContext;
+
+        const message = [
+            { role: "system", content: enhancedSystemPrompt },
+            {
+                role: "user", content: JSON.stringify({
+                    user_input: input,
+                    timestamp: formattedDate,
+                    username: context.username || "Desconocido",
+                    proactive_question: context.proactive_question || "Ninguna"
+                })
+            }
+        ];
+
+        console.log("Sending message to OpenAI with conversation history:", {
+            inputLength: input.length,
+            historyMessages: conversationHistory.length,
+            username: context.username,
+            proactiveQuestion: context.proactive_question
+        });
+
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: message,
@@ -51,7 +73,7 @@ async function getOpenAIResponse(input, context = {}) {
         return {
             continue: false,
             robot_mood: "Sad",
-            text: ""
+            text: "Lo siento, he tenido un pequeño problema técnico. ¿Podrías repetir lo que me dijiste?"
         };
     }
 }
