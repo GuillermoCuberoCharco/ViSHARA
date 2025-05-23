@@ -141,7 +141,7 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
 
         console.log('Database has', faceDatabase.users.length, 'users')
 
-        if (knownUserId) {
+        if (knownUserId && knownUserId !== 'unknwon') {
             const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
 
             if (userIndex >= 0) {
@@ -161,7 +161,13 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
                     user.metadata.lastSeen = new Date().toISOString();
                     user.metadata.visits += 1;
                     await saveDatabaseToFile();
-                    return { userId: knownUserId, isNewUser: false, distance: distance };
+                    return {
+                        userId: knownUserId,
+                        userName: user.userName || knownUserId,
+                        isNewUser: false,
+                        distance: distance,
+                        needsIdentification: !user.userName
+                    };
                 }
             }
         }
@@ -195,24 +201,40 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
 
             await saveDatabaseToFile();
 
-            return { userId: bestMatch.userId, isNewUser: false, distance: lowestDistance, totalVisits: bestMatch.metadata.visits };
+            return {
+                userId: bestMatch.userId,
+                userName: bestMatch.userName || bestMatch.userId,
+                isNewUser: false,
+                distance: lowestDistance,
+                totalVisits: bestMatch.metadata.visits,
+                needsIdentification: !bestMatch.userName
+            };
         } else {
 
-            const newUserId = `user${faceDatabase.nextId++}`;
+            const tempUserId = `temp${faceDatabase.nextId++}`;
+
             faceDatabase.users.push({
-                userId: newUserId,
+                userId: tempUserId,
+                userName: null,
                 descriptor: newDescriptor,
                 descriptorHistory: [newDescriptor],
                 metadata: {
                     createdAt: new Date().toISOString(),
                     lastSeen: new Date().toISOString(),
-                    visits: 1
+                    visits: 1,
+                    isTemporary: true
                 },
             });
 
-            console.log(`New user ${newUserId} added to the database.`);
+            console.log(`New unknwon user ${newUserId} added to the database.`);
             await saveDatabaseToFile();
-            return { userId: newUserId, isNewUser: true, totalUsers: faceDatabase.users.length };
+            return {
+                userId: newUserId,
+                userName: 'unknwon',
+                isNewUser: true,
+                needsIdentification: true,
+                totalUsers: faceDatabase.users.length
+            };
         }
     } catch (error) {
         console.error('Error recognizing face:', error);
@@ -220,17 +242,59 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
     }
 }
 
+async function updateUserName(userId, userName) {
+    try {
+        const userIndex = faceDatabase.users.findIndex(u => u.userId === userId);
+
+        if (userIndex >= 0) {
+            const user = faceDatabase.users[userIndex];
+
+            if (user.metadata.isTemporary) {
+                const newUserId = `user${faceDatabase.nextId++}`;
+                user.userId = newUserId;
+                user.metadata.isTemporary = false;
+            }
+
+            user.userName = userName;
+            user.metadata.idetifiedAt = new Date().toISOString();
+            await saveDatabaseToFile();
+            return {
+                success: true,
+                userId: user.userId,
+                userName: user.userName,
+                oldUserId: user.userId
+            };
+        }
+
+        return {
+            success: false,
+            error: 'User not found.'
+        };
+    } catch (error) {
+        console.error('Error updating user name:', error);
+        return {
+            success: false,
+            error: 'Internal server error.'
+        };
+    }
+}
+
+function findUserByName(userName) {
+    return faceDatabase.users.find(u => u.userName && u.userName.toLowerCase() === userName.toLowerCase());
+}
+
 function debugDatabase() {
     console.log('DATABASE DEBUG:');
     console.log('Total users:', faceDatabase.users.length);
     faceDatabase.users.forEach(user => {
-        console.log(`- ${user.userId}: ${user.metadata.visits} visits, descriptor length: ${user.descriptor ? user.descriptor.length : 'null'}`);
+        console.log(`- ${user.userId} (${user.userName || 'unnamed'}): ${user.metadata.visits} visits, descriptor length: ${user.descriptor ? user.descriptor.length : 'null'}`);
     })
 }
 
 function listAllUsers() {
     return faceDatabase.users.map(user => ({
         userId: user.userId,
+        userName: user.userName,
         ...user.metadata,
         descriptorSamples: user.descriptorHistory.length ? user.descriptorHistory.length : 1
     }));
@@ -244,5 +308,7 @@ function listAllUsers() {
 module.exports = {
     recogniceFace,
     listAllUsers,
+    findUserByName,
+    updateUserName,
     debugDatabase
 };

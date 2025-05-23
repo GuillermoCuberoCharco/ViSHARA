@@ -4,6 +4,7 @@ const setupSocketIO = require('./config/socket.cjs');
 const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
+const { setMessageSocketRef } = require('./api/controllers/faceRecognitionController.cjs');
 const config = require('./config/environment.cjs');
 
 // Initialize Express app
@@ -17,6 +18,10 @@ console.log('HTTP server created');
 // Initialize Socket.IO
 const io = setupSocketIO(server);
 console.log('Socket.IO initialized');
+
+// Set the message socket reference
+setMessageSocketRef(io);
+console.log('Message socket reference set');
 
 // Configure API routes
 app.use('/api', setupRoutes());

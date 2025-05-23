@@ -181,7 +181,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             setIsWaitingResponse(success);
             setTimeout(() => {
                 sendingTranscriptionRef.current = false;
-            }, 1000)
+            }, 1500)
         }
     }, [transcribedText, isConnected, emit]);
 

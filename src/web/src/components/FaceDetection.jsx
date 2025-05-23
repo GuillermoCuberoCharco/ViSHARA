@@ -3,6 +3,7 @@ import * as tf from '@tensorflow/tfjs';
 import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import { SERVER_URL } from '../../src/config';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     // FACE DETECTION REFERENCES
@@ -18,11 +19,14 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const lastFaceSentRef = useRef(null);
     const currentUserIdRef = useRef(null);
     const lastRecognizedUserRef = useRef(null);
+    const currentUserDataRef = useRef(null);
 
     const consecutiveDetectionsRef = useRef(0);
     const consecutiveLossesRef = useRef(0);
     const lastDetectionTimeRef = useRef(null);
     const recognitionCountRef = useRef(false);
+
+    const { emit } = useWebSocketContext();
 
     const loadBlazeFaceModels = async () => {
         try {
@@ -111,15 +115,39 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 });
 
                 if (response.data && response.data.userId) {
-                    const { userId, isNewUser, confidence, processingTime } = response.data;
-                    console.log('Face recognized:', userId, 'confidence:', confidence, 'processingTime:', processingTime);
+                    const { userId, userName, isNewUser, needsIdentification, userStatuts, confidence, processingTime } = response.data;
+                    console.log('Face recognized:', userId, userName, isNewUser, needsIdentification, userStatuts, confidence, processingTime);
 
-                    const wasNewUser = isNewUser;
+                    const previousUserId = currentUserIdRef.current;
                     currentUserIdRef.current = userId;
                     lastRecognizedUserRef.current = userId;
 
-                    if (wasNewUser) {
-                        console.log(`New user detected: now tracking ${userId}`);
+                    currentUserDataRef.current = {
+                        userId,
+                        userName,
+                        isNewUser,
+                        needsIdentification,
+                        userStatuts
+                    };
+
+                    if (previousUserId !== userId || needsIdentification) {
+                        console.log('Notifying message system about user detection:', userId, userName, isNewUser, needsIdentification, userStatuts);
+
+                        emit('user_detected', {
+                            userId,
+                            userName,
+                            isNewUser,
+                            needsIdentification,
+                            userStatuts
+                        });
+                    }
+
+                    if (isNewUser) {
+                        console.log(`New user detected: ${userName} (ID: ${userId})`);
+                    } else if (needsIdentification) {
+                        console.log(`User needs identification: (ID: ${userId})`);
+                    } else {
+                        console.log(`User recognized: ${userName} (ID: ${userId})`);
                     }
                 } else {
                     console.log('No valid response from server for face recognition');
@@ -202,8 +230,14 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
 
                         setTimeout(() => {
                             if (!isFaceDetected) {
+                                if (currentUserIdRef.current) {
+                                    emit('user_lost', {
+                                        userId: currentUserIdRef.current
+                                    });
+                                }
                                 currentUserIdRef.current = null;
                                 lastRecognizedUserRef.current = null;
+                                currentUserDataRef.current = null;
                                 recognitionCountRef.current = 0;
                             }
                         }, 3000);
@@ -224,7 +258,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 clearInterval(detectionRef.current);
             }
         };
-    }, [isModelLoaded, stream, onFaceDetected, onFaceLost, isStreamReady, isFaceDetected]);
+    }, [isModelLoaded, stream, onFaceDetected, onFaceLost, isStreamReady, isFaceDetected, emit]);
 
     return (
         <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
