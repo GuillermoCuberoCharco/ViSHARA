@@ -141,7 +141,7 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
 
         console.log('Database has', faceDatabase.users.length, 'users')
 
-        if (knownUserId && knownUserId !== 'unknwon') {
+        if (knownUserId && knownUserId !== 'unknown') {
             const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
 
             if (userIndex >= 0) {
@@ -211,7 +211,7 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
             };
         } else {
 
-            const tempUserId = `temp${faceDatabase.nextId++}`;
+            const tempUserId = `temp_user${Date.now()}`;
 
             faceDatabase.users.push({
                 userId: tempUserId,
@@ -226,11 +226,11 @@ async function recogniceFace(faceBuffer, knownUserId = null) {
                 },
             });
 
-            console.log(`New unknwon user ${tempUserId} added to the database.`);
+            console.log(`New unknown user ${tempUserId} added to the database.`);
             await saveDatabaseToFile();
             return {
                 userId: tempUserId,
-                userName: 'unknwon',
+                userName: 'unknown',
                 isNewUser: true,
                 needsIdentification: true,
                 totalUsers: faceDatabase.users.length

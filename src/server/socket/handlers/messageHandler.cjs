@@ -20,10 +20,18 @@ function setupMessageHandlers(io) {
 
         socket.on('user_detected', (userData) => {
             console.log('User detected:', userData);
-            const session = userSessions.get(socket.id || {});
+
+            let session = userSessions.get(socket.id);
+            if (!session) {
+                session = {};
+                console.log('Creating new session for socket:', socket.id);
+            }
+
             session.currentUserId = userData.userId;
             session.lastFaceUpdate = Date.now();
             userSessions.set(socket.id, session);
+
+            console.log('Session updated:', session);
 
             if (userData.needsIdentification && !pendingIdentifications.has(userData.userId)) {
                 pendingIdentifications.set(userData.userId, {
@@ -34,9 +42,9 @@ function setupMessageHandlers(io) {
 
                 setTimeout(() => {
                     sendProactiveIdentification(socket, userData.userId);
-                }, 2000)
+                }, 2000);
             }
-        })
+        });
 
         socket.on('client_message', async (message) => {
             try {
@@ -49,7 +57,10 @@ function setupMessageHandlers(io) {
                 }
                 console.log('Received message:', inputText);
 
-                const context = {
+                const session = userSessions.get(socket.id) || {};
+                const currentUserId = session.currentUserId;
+
+                let context = {
                     username: parsed.username || 'Desconocido',
                     proactive_question: parsed.proactive_question || 'Ninguna',
                 };
@@ -138,8 +149,7 @@ async function sendProactiveIdentification(socket, userId) {
         });
 
         if (response.text?.trim()) {
-            console.log(`Sending proactive identification for user ${userId}:`, response.text);
-
+            console.log(`Sending identification request for user ${userId}:`, response.text);
             const pending = pendingIdentifications.get(userId);
             if (pending) {
                 pending.waitingForName = true;
@@ -166,22 +176,26 @@ async function processNameResponse(inputText, userId, socket) {
         const extractedName = extractNameFromResponse(inputText);
 
         if (!extractedName) {
-            console.log('Invalid name response:', inputText);
+            console.log('Could not extract name from response:', inputText);
             return { success: false };
         }
 
-        const existingUser = await findUserByName(extractedName);
+        const existingUser = findUserByName(extractedName);
         if (existingUser && existingUser.userId !== userId) {
-            console.log(`User ${existingUser.userName} already exists with ID ${existingUser.userId}`);
+            console.log(`Name ${extractedName} already exists for user ${existingUser.userId}`);
         }
 
         const result = await updateUserName(userId, extractedName);
 
         if (result.success) {
-            console.log(`User ${userId} updated with name ${extractedName}`);
-            return { success: true, userName: extractedName, newUserId: result.newUserId !== userId ? result.newUserId : null };
+            console.log(`Successfully identified user ${userId} as ${extractedName}`);
+            return {
+                success: true,
+                userName: extractedName,
+                newUserId: result.userId !== userId ? result.userId : null
+            };
         } else {
-            console.log(`Failed to update user ${userId} with name ${extractedName}`);
+            console.error('Failed to update user name:', result.error);
             return { success: false };
         }
     } catch (error) {
@@ -190,10 +204,10 @@ async function processNameResponse(inputText, userId, socket) {
     }
 }
 
-function extractNameFromResponse(response) {
+function extractNameFromResponse(text) {
     const patterns = [
         /(?:me llamo|soy|mi nombre es)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)/i,
-        /^([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)$/i,
+        /^([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)$/i, // Solo el nombre
         /(?:llamo|nombre)\s+([a-záéíóúñ]+)/i,
     ];
 
@@ -214,7 +228,7 @@ function extractNameFromResponse(response) {
 }
 
 async function getUserInfo(userId) {
-    return null
+    return null;
 }
 
 module.exports = { setupMessageHandlers };

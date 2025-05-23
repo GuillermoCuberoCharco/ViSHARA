@@ -53,7 +53,7 @@ async function handleFaceRecognition(req, res) {
 
         if (messageIo && (result.isNewUser || result.needsIdentification)) {
             console.log('Sending new user notification to clients');
-            messageIo.emit('user_detected', {
+            messageIo.sockets.emit('user_detected', {
                 userId: result.userId,
                 userName: result.userName,
                 needsIdentification: result.needsIdentification,
