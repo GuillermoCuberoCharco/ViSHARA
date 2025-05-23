@@ -5,7 +5,7 @@ const DB_DIR = path.join(__dirname, '..', 'data');
 const CONVERSATIONS_FILE = path.join(DB_DIR, 'conversations.json');
 
 const MAX_MESSAGES_PER_SESSION = 100;
-const MAX_SESSION_PER_USER = 10;
+const MAX_SESSIONS_PER_USER = 10;
 const MAX_CONTENT_MESSAGES = 100;
 
 const conversationDatabase = {
@@ -14,7 +14,7 @@ const conversationDatabase = {
 
 async function initConversationService() {
     try {
-        await fs.mkdirSync(DB_DIR, { recursive: true });
+        await fs.mkdir(DB_DIR, { recursive: true });
         await loadConversationsFromFile();
         console.log('Conversation database initialized.');
     } catch (error) {
@@ -51,33 +51,34 @@ function startNewSession(userId) {
     if (!conversationDatabase.users[userId]) {
         conversationDatabase.users[userId] = {
             sessions: [],
-            contentMessages: []
+            currentSession: null
         };
     }
 
     const newSession = {
         sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        startedAt: new Date.now().toISOString(),
+        startedAt: new Date().toISOString(),
         messages: [],
         isActive: true
     };
 
     if (conversationDatabase.users[userId].currentSession) {
         const currentSessionId = conversationDatabase.users[userId].currentSession;
-        const currentSession = conversationDatabase.users[userId].sessions.find(session => session.sessionId === currentSessionId);
-        if (currentSession && currentSession.messages.length >= MAX_MESSAGES_PER_SESSION) {
+        const currentSession = conversationDatabase.users[userId].sessions.find(s => s.sessionId === currentSessionId);
+        if (currentSession) {
             currentSession.isActive = false;
-            currentSession.endedAt = new Date.now().toISOString();
+            currentSession.endedAt = new Date().toISOString();
         }
     }
 
     conversationDatabase.users[userId].sessions.push(newSession);
     conversationDatabase.users[userId].currentSession = newSession.sessionId;
-    if (conversationDatabase.users[userId].sessions.length > MAX_SESSION_PER_USER) {
-        conversationDatabase.users[userId].sessions = conversationDatabase.users[userId].sessions.slice(-MAX_SESSION_PER_USER);
+    if (conversationDatabase.users[userId].sessions.length > MAX_SESSIONS_PER_USER) {
+        conversationDatabase.users[userId].sessions = conversationDatabase.users[userId].sessions
+            .slice(-MAX_SESSIONS_PER_USER);
     }
 
-    console.log(`New session started for user ${userId}: ${newSession.sessionId}`);
+    console.log(`New conversation session started for user ${userId}: ${newSession.sessionId}`);
     return newSession.sessionId;
 }
 
@@ -170,21 +171,21 @@ async function endCurrentSession(userId) {
         if (!conversationDatabase.users[userId] || !conversationDatabase.users[userId].currentSession) return false;
 
         const currentSessionId = conversationDatabase.users[userId].currentSession;
-        const session = conversationDatabase.users[userId].sessions.find(session => session.sessionId === currentSessionId);
+        const session = conversationDatabase.users[userId].sessions.find(s => s.sessionId === currentSessionId);
 
         if (session) {
             session.isActive = false;
-            session.endedAt = new Date.now().toISOString();
+            session.endedAt = new Date().toISOString();
             conversationDatabase.users[userId].currentSession = null;
 
             await saveConversationsToFile();
-            console.log(`Current session ended for user ${userId}: ${currentSessionId}`);
+            console.log(`Session ended for user ${userId}: ${currentSessionId}`);
             return true;
         }
 
         return false;
     } catch (error) {
-        console.error('Error ending current session:', error);
+        console.error('Error ending session:', error);
         return false;
     }
 }
