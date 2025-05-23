@@ -13,7 +13,7 @@ async function getOpenAIResponse(input, context = {}, conversationHistory = []) 
     const formattedDate = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
     try {
-        let getConversationContext = "";
+        let conversationContext = "";
         if (conversationHistory && conversationHistory.length > 0) {
             conversationContext = "\n\nHISTORIAL DE CONVERSACIONES ANTERIORES:\n";
             conversationContext += "=== CONVERSACIONES PREVIAS ===\n";
