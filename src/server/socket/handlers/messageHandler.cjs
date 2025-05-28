@@ -1,5 +1,6 @@
 const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName } = require('../../services/faceRecognitionService.cjs');
+const { listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession, getUserConversationHistory } = require('../../services/conversationService.cjs');
 
 const pendingIdentifications = new Map();
@@ -29,10 +30,22 @@ function setupMessageHandlers(io) {
                 console.log('Creating new session for socket:', socket.id);
             }
 
-            if (previousUserId && previousUserId !== userData.userId) await endCurrentSession(previousUserId);
+            if (previousUserId && previousUserId !== userData.userId) {
+                await endCurrentSession(previousUserId);
+
+                if (session.hasGreetedThisSession) {
+                    if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
+                    global.userSessionsEnds.set(previousUserId, Date.now());
+                    console.log(`Session ended for user ${previousUserId}, coldowned until next detection`);
+                }
+            }
 
             session.currentUserId = userData.userId;
             session.lastFaceUpdate = Date.now();
+
+            if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
+            session.lastSessionEnd = global.userSessionsEnds.get(userData.userId);
+
             userSessions.set(socket.id, session);
 
             if (userData.userId !== previousUserId) {
@@ -58,7 +71,38 @@ function setupMessageHandlers(io) {
                 });
 
                 setTimeout(() => {
-                    sendProactiveIdentification(socket, userData.userId);
+                    sendProactiveMessage(socket, userData, 'who_are_you', () => {
+                        const pending = pendingIdentifications.get(userData.userId);
+                        if (pending) {
+                            pending.waitingForName = true;
+                            pendingIdentifications.set(userData.userId, pending);
+                        }
+                    });
+                }, 2000);
+
+            } else if (!userData.needsIdentification && userData.userName && userData.userName !== 'unknown') {
+                console.log(`User ${userData.userId} already identified as ${userData.userName}`);
+                const now = Date.now();
+                const GREETING_COOLDOWN = 10 * 60 * 1000; // 10 minutes
+                const shouldGreet = false;
+
+                if (userData.userId !== previousUserId) {
+                    shouldGreet = true;
+                    session.hasGreetedThisSession = false;
+                    console.log(`New user detected, greeting them: ${userData.userName}`);
+                } else if (!session.hasGreetedThisSession) {
+                    const timeSinceLastSessionEnd = session.lastSessionEnd ? now - session.lastSessionEnd : Infinity;
+
+                    if (timeSinceLastSessionEnd > GREETING_COOLDOWN) shouldGreet = true;
+                }
+            }
+
+            if (shouldGreet) {
+                session.hasGreetedThisSession = true;
+                userSessions.set(socket.id, session);
+
+                setTimeout(() => {
+                    sendProactiveMessage(socket, userData, 'how_are_you');
                 }, 2000);
             }
         });
@@ -73,8 +117,16 @@ function setupMessageHandlers(io) {
 
             const session = userSessions.get(socket.id);
             if (session && session.currentUserId === userData.userId) {
+
+                if (session.hasGreetedThisSession) {
+                    if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
+                    global.userSessionsEnds.set(userData.userId, Date.now());
+                    console.log(`Session ended for user ${userData.userId}, cooldown until next detection`);
+                }
+
                 session.currentUserId = null;
                 session.conversationSessionId = null;
+                session.hasGreetedThisSession = false;
                 userSessions.set(socket.id, session);
             }
         })
@@ -192,6 +244,12 @@ function setupMessageHandlers(io) {
             if (session && session.currentUserId) {
                 await endCurrentSession(session.currentUserId);
 
+                if (session.hasGreetedThisSession) {
+                    if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
+                    global.userSessionsEnds.set(session.currentUserId, Date.now());
+                    console.log(`Session ended for user ${session.currentUserId}, cooldown until next detection`);
+                }
+
                 const pending = pendingIdentifications.get(session.currentUserId);
                 if (pending && pending.socketId === socket.id) {
                     pendingIdentifications.delete(session.currentUserId);
@@ -202,29 +260,25 @@ function setupMessageHandlers(io) {
     });
 }
 
-async function sendProactiveIdentification(socket, userId) {
+async function sendProactiveMessage(socket, userData, proactiveQuestion, callback = null) {
     try {
 
-        const conversationHistory = getConversationContext(userId, 10);
+        const conversationHistory = getConversationContext(userData.userId, 10);
 
         const response = await getOpenAIResponse('', {
-            username: 'Desconocido',
-            proactive_question: 'who_are_you'
+            username: userData.userName || 'Desconocido',
+            proactive_question: proactiveQuestion
         }, conversationHistory);
 
         if (response.text?.trim()) {
-            console.log(`Sending identification request for user ${userId}:`, response.text);
+            console.log(`Sending proactive messsage (${proactiveQuestion}) for user ${userData.userId}:`, response.text);
 
-            await addMessage(userId, 'assistant', response.text, {
+            await addMessage(userData.userId, 'assistant', response.text, {
                 mood: response.robot_mood,
-                messageType: 'proactive_identification'
+                messageType: `proactive_${proactiveQuestion}`,
             });
 
-            const pending = pendingIdentifications.get(userId);
-            if (pending) {
-                pending.waitingForName = true;
-                pendingIdentifications.set(userId, pending);
-            }
+            if (callback && typeof callback === 'function') callback();
 
             socket.emit('robot_message', {
                 text: response.text,
@@ -237,7 +291,7 @@ async function sendProactiveIdentification(socket, userId) {
             });
         }
     } catch (error) {
-        console.error('Error sending proactive identification:', error);
+        console.error(`Error sending proactive message (${proactiveQuestion}):`, error);
     }
 }
 
@@ -277,7 +331,7 @@ async function processNameResponse(inputText, userId, socket) {
 function extractNameFromResponse(text) {
     const patterns = [
         /(?:me llamo|soy|mi nombre es)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)/i,
-        /^([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)$/i, // Solo el nombre
+        /^([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)*)$/i,
         /(?:llamo|nombre)\s+([a-záéíóúñ]+)/i,
     ];
 
@@ -298,7 +352,24 @@ function extractNameFromResponse(text) {
 }
 
 async function getUserInfo(userId) {
-    return null;
+    try {
+        const allUsers = listAllUsers();
+        const user = allUsers.find(u => u.userId === userId);
+
+        if (user) {
+            return {
+                userId: user.userId,
+                userName: user.userName,
+                lastSeen: user.lastSeen,
+                visits: user.visits,
+                isTemporary: user.isTemporary
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting user info:', error);
+        return null;
+    }
 }
 
 module.exports = { setupMessageHandlers };
