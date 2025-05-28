@@ -1,7 +1,7 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tf from '@tensorflow/tfjs';
 import axios from 'axios';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SERVER_URL } from '../../src/config';
 import { useWebSocketContext } from '../contexts/WebSocketContext';
 
@@ -20,11 +20,17 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const currentUserIdRef = useRef(null);
     const lastRecognizedUserRef = useRef(null);
     const currentUserDataRef = useRef(null);
+    const clientIdRef = useRef(`client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+
+    // CONFIRMATION WINDOW STATE
+    const [detectionStatus, setDetectionStatus] = useState('idle'); // idle, collecting, uncertain, confirmed
+    const [detectionProgress, setDetectionProgress] = useState({ current: 0, total: 5 });
+    const [consensusInfo, setConsensusInfo] = useState(null);
 
     const consecutiveDetectionsRef = useRef(0);
     const consecutiveLossesRef = useRef(0);
     const lastDetectionTimeRef = useRef(null);
-    const recognitionCountRef = useRef(false);
+    const recognitionCountRef = useRef(0);
 
     const { emit } = useWebSocketContext();
 
@@ -98,65 +104,111 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             const cropWidth = Math.min(width + (padding * 2), video.videoWidth - cropStartX);
             const cropHeight = Math.min(height + (padding * 2), video.videoHeight - cropStartY);
 
+            canvas.width = 200;
+            canvas.height = 200;
             ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 200, 200);
 
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
                 formData.append('face', blob, 'face.jpg');
+                formData.append('clientId', clientIdRef.current);
 
                 if (currentUserIdRef.current && currentUserIdRef.current === lastRecognizedUserRef.current) {
                     formData.append('userId', currentUserIdRef.current);
                 }
 
-                const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
+                try {
+                    const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            'X-Client-Id': clientIdRef.current
+                        }
+                    });
+
+                    if (response.data) {
+                        handleRecognitionResponse(response.data);
                     }
-                });
-
-                if (response.data && response.data.userId) {
-                    const { userId, userName, isNewUser, needsIdentification, userStatuts, confidence, processingTime } = response.data;
-                    console.log('Face recognized:', userId, userName, isNewUser, needsIdentification, userStatuts, confidence, processingTime);
-
-                    const previousUserId = currentUserIdRef.current;
-                    currentUserIdRef.current = userId;
-                    lastRecognizedUserRef.current = userId;
-
-                    currentUserDataRef.current = {
-                        userId,
-                        userName,
-                        isNewUser,
-                        needsIdentification,
-                        userStatuts
-                    };
-
-                    if (previousUserId !== userId || needsIdentification) {
-                        console.log('Notifying message system about user detection:', userId, userName, isNewUser, needsIdentification, userStatuts);
-
-                        emit('user_detected', {
-                            userId,
-                            userName,
-                            isNewUser,
-                            needsIdentification,
-                            userStatuts
-                        });
-                    }
-
-                    if (isNewUser) {
-                        console.log(`New user detected: ${userName} (ID: ${userId})`);
-                    } else if (needsIdentification) {
-                        console.log(`User needs identification: (ID: ${userId})`);
-                    } else {
-                        console.log(`User recognized: ${userName} (ID: ${userId})`);
-                    }
-                } else {
-                    console.log('No valid response from server for face recognition');
+                } catch (error) {
+                    console.error('Error sending face to server:', error);
+                    setDetectionStatus('idle');
+                    setDetectionProgress({ current: 0, total: 5 });
                 }
             }, 'image/jpeg', 0.92);
 
         } catch (error) {
             console.error('Error sending face to server:', error);
+            setDetectionStatus('idle');
         }
+    };
+
+    const handleRecognitionResponse = (data) => {
+        console.log('Face recognition response:', data);
+
+        if (data.isPreliminary) {
+            setDetectionStatus('collecting');
+            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
+            console.log(`Collecting data: ${data.detectionProgress}/${data.totalRequired}`);
+
+        } else if (data.isUncertain) {
+            setDetectionStatus('uncertain');
+            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
+            setConsensusInfo({
+                message: 'No clear consensus - continuing to collect data.',
+                ration: data.consensusRatio || 0
+            });
+            console.log(`Uncertain recognition - no consensus reached: ${data.detectionProgress}/${data.totalRequired}`);
+
+        } else if (data.isConfirmed) {
+            setDetectionStatus('confirmed');
+            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
+            setConsensusInfo({
+                message: `Confirmed with ${(data.consensusRatio * 100).toFixed(1)}% consensus`,
+                ratio: data.consensusRatio || 1
+            });
+
+            const previusUserId = currentUserIdRef.current;
+            currentUserIdRef.current = data.userId;
+            lastRecognizedUserRef.current = data.userId;
+
+            currentUserDataRef.current = {
+                userId: data.userId,
+                userName: data.userName,
+                isNewUser: data.isNewUser,
+                needsIdentification: data.needsIdentification,
+                userStatus: data.userStatus
+            };
+
+            if (previusUserId !== data.userId || data.needsIdentification) {
+                console.log('Notofying message system about confirmed user detection:', data);
+
+                emit('user_detected', {
+                    userId: data.userId,
+                    userName: data.userName,
+                    isNewUser: data.isNewUser,
+                    needsIdentification: data.needsIdentification,
+                    userStatus: data.userStatus,
+                    consensusRatio: data.consensusRatio
+                });
+            }
+
+            if (data.isNewUser) {
+                console.log(`New user confirmed: ${data.userName} (ID: ${data.userId})`);
+            } else if (data.needsIdentification) {
+                console.log(`User needs identification: (ID: ${data.userId})`);
+            } else {
+                console.log(`User confirmed: ${data.userName} (ID: ${data.userId})`);
+            }
+        }
+    };
+
+    const resetDetectionState = () => {
+        setDetectionStatus('idle');
+        setDetectionProgress({ current: 0, total: 5 });
+        setConsensusInfo(null);
+        currentUserIdRef.current = null;
+        lastRecognizedUserRef.current = null;
+        currentUserDataRef.current = null;
+        recognitionCountRef.current = 0;
     };
 
     useEffect(() => {
@@ -235,10 +287,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                                         userId: currentUserIdRef.current
                                     });
                                 }
-                                currentUserIdRef.current = null;
-                                lastRecognizedUserRef.current = null;
-                                currentUserDataRef.current = null;
-                                recognitionCountRef.current = 0;
+                                resetDetectionState();
                             }
                         }, 3000);
                     }

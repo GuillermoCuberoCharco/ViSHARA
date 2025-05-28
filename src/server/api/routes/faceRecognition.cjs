@@ -1,5 +1,5 @@
 const express = require('express');
-const { handleFaceRecognition, handleListUsers, handleDebugDatabase, handleUpdateUserName, upload } = require('../controllers/faceRecognitionController.cjs');
+const { handleFaceRecognition, handleListUsers, handleDebugDatabase, handleUpdateUserName, handleDetectionStats, upload } = require('../controllers/faceRecognitionController.cjs');
 
 const router = express.Router();
 
@@ -8,6 +8,7 @@ function setupFaceRecognitionRoutes() {
     router.get('/users', handleListUsers);
     router.get('/debug', handleDebugDatabase);
     router.put('/user/name', handleUpdateUserName);
+    router.get('/detection-stats', handleDetectionStats);
 
     return router;
 }
