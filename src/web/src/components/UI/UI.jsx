@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ANIMATION_MAPPINGS } from "../../config";
 import { useWebSocketContext } from '../../contexts/WebSocketContext';
 import '../../styles/InterfaceStyle.css';
@@ -178,10 +178,11 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                 username: "Desconocido"
             };
             const success = emit('client_message', messageObject);
+            setNewMessage('');
             setIsWaitingResponse(success);
             setTimeout(() => {
                 sendingTranscriptionRef.current = false;
-            }, 1500)
+            }, 2000)
         }
     }, [transcribedText, isConnected, emit]);
 
