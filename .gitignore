@@ -10,6 +10,7 @@ vite.config.js.timestamp-*
 src/service/speachTester.cjs
 src/service/audios/
 src/service/uploads/
+src/server/services/testing
 
 # Logs
 logs
