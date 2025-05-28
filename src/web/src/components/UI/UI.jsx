@@ -127,13 +127,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     }, [messages]);
 
     useEffect(() => {
-        const audioElement = document.querySelector('audio');
-        if (audioElement) {
-            audioElement.onended = () => handleSynthesize.cancel();
-        }
-    }, [audioSrc, handleSynthesize]);
-
-    useEffect(() => {
         setConnectionError(!isConnected);
     }, [isConnected]);
 
@@ -225,10 +218,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                     />
                 </div>
             </ChatWindow>
-            <audio
-                src={audioSrc}
-                autoPlay
-            />
         </div>
     );
 };

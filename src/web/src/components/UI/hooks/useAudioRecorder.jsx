@@ -175,19 +175,27 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 audio.onerror = (e) => {
                     console.error('Error playing audio:', e);
                     setIsSpeaking(false);
+                    setAudioSrc(null);
                 }
+
+                audio.onended = () => {
+                    setIsSpeaking(false);
+                    setAudioSrc(null);
+                }
+
                 await audio.play();
             }
         } catch (error) {
             console.error('Error synthesizing speech:', error);
             setIsSpeaking(false);
+            setAudioSrc(null);
         }
 
     };
 
     handleSynthesize.cancel = () => {
         setIsSpeaking(false);
-        setAudioSrc('');
+        setAudioSrc(null);
     };
 
     const onStop = () => {
