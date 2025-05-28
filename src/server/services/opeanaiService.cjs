@@ -50,7 +50,7 @@ async function getOpenAIResponse(input, context = {}, conversationHistory = []) 
         });
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4.1 nano",
+            model: "gpt-4o-mini",
             messages: message,
             response_format: { type: "json_object" },
             temperature: 1,
