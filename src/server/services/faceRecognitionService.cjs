@@ -146,7 +146,7 @@ function cleanupExpiredSessions() {
 }
 
 function analyzeDetectionConsensus(detections) {
-    if (detectionSessions.length === 0) return null;
+    if (detections.length === 0) return null;
 
     const userCounts = {};
     let totalDetections = 0;
