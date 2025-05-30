@@ -24,7 +24,6 @@ function setupMessageHandlers(io) {
             console.log('User detected:', userData);
 
             let session = userSessions.get(socket.id);
-            const previousUserName = session?.currentUserName;
             const previousUserId = session?.currentUserId;
 
             if (!session) {
@@ -43,7 +42,6 @@ function setupMessageHandlers(io) {
             }
 
             session.currentUserId = userData.userId;
-            session.currentUserName = userData.userName || 'unknown';
             session.lastFaceUpdate = Date.now();
 
             if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
@@ -63,23 +61,19 @@ function setupMessageHandlers(io) {
 
             console.log('Session updated:', session);
 
-            const currentUserName = userData.userName || 'unknown';
-            const userNameChanged = currentUserName !== previousUserName;
-
-            if (userData.needsIdentification && !pendingIdentifications.has('unknown')) {
-                pendingIdentifications.set('unknown', {
+            if (userData.needsIdentification && !pendingIdentifications.has(userData.userId)) {
+                pendingIdentifications.set(userData.userId, {
                     socketId: socket.id,
                     waitingForName: false,
-                    tempUserId: userData.userId,
-                    userName: 'unknown'
+                    userId: userData.userId
                 });
 
                 setTimeout(() => {
                     sendProactiveMessage(socket, userData, 'who_are_you', () => {
-                        const pending = pendingIdentifications.get('unknown');
+                        const pending = pendingIdentifications.get(userData.userId);
                         if (pending) {
                             pending.waitingForName = true;
-                            pendingIdentifications.set('unknown', pending);
+                            pendingIdentifications.set(userData.userId, pending);
                         }
                     });
                 }, 2000);
@@ -90,11 +84,11 @@ function setupMessageHandlers(io) {
                 const GREETING_COOLDOWN = 10 * 60 * 1000; // 10 minutes
                 const shouldGreet = false;
 
-                if (userNameChanged && currentUserName !== 'unknown') {
+                if (userData.userId !== previousUserId) {
                     shouldGreet = true;
                     session.hasGreetedThisSession = false;
                     console.log(`New user detected, greeting them: ${userData.userName}`);
-                } else if (!session.hasGreetedThisSession && currentUserName !== 'unknown') {
+                } else if (!session.hasGreetedThisSession) {
                     const timeSinceLastSessionEnd = session.lastSessionEnd ? now - session.lastSessionEnd : Infinity;
 
                     if (timeSinceLastSessionEnd > GREETING_COOLDOWN) shouldGreet = true;
@@ -129,7 +123,6 @@ function setupMessageHandlers(io) {
                 }
 
                 session.currentUserId = null;
-                session.currentUserName = null;
                 session.conversationSessionId = null;
                 session.hasGreetedThisSession = false;
                 userSessions.set(socket.id, session);
@@ -158,18 +151,18 @@ function setupMessageHandlers(io) {
                 }
 
                 let context = {
-                    username: parsed.username || 'unknown',
+                    username: parsed.username || 'Desconocido',
                     proactive_question: parsed.proactive_question || 'Ninguna',
                 };
 
-                const pending = pendingIdentifications.get('unknown');
+                const pending = currentUserId ? pendingIdentifications.get(currentUserId) : null;
                 if (pending && pending.waitingForName) {
                     const result = await processNameResponse(inputText, currentUserId, socket);
                     if (result.success) {
                         context.username = result.userName;
                         context.proactive_question = 'who_are_you_response';
 
-                        pendingIdentifications.delete('unknown');
+                        pendingIdentifications.delete(currentUserId);
 
                         if (result.newUserId) {
                             session.currentUserId = result.newUserId;
@@ -259,9 +252,11 @@ function setupMessageHandlers(io) {
                     console.log(`Session ended for user ${session.currentUserId}, cooldown until next detection`);
                 }
 
-                const pending = pendingIdentifications.get('unknown');
-                if (pending && pending.socketId === socket.id) {
-                    pendingIdentifications.delete('unknown');
+                for (const [userId, pending] of pendingIdentifications.entries()) {
+                    if (pending.socketId === socket.id) {
+                        pendingIdentifications.delete(userId);
+                        break;
+                    }
                 }
             }
             userSessions.delete(socket.id);

@@ -323,7 +323,7 @@ async function performSingleDetection(newDescriptor, knownUserId) {
                 if (distance < EUCLIDEAN_DISTANCE_THRESHOLD) {
                     return {
                         userId: knownUserId,
-                        userName: user.userName || knownUserId,
+                        userName: user.userName || 'unknown',
                         isNewUser: false,
                         distance: distance,
                         needsIdentification: !user.userName
@@ -349,17 +349,34 @@ async function performSingleDetection(newDescriptor, knownUserId) {
         if (bestMatch) {
             return {
                 userId: bestMatch.userId,
-                userName: bestMatch.userName || bestMatch.userId,
+                userName: bestMatch.userName || 'unknown',
                 isNewUser: false,
                 distance: lowestDistance,
                 totalVisits: bestMatch.metadata.visits,
                 needsIdentification: !bestMatch.userName
             };
         } else {
-            const tempUserId = `temp_user${Date.now()}`;
+            const newUserId = `user${faceDatabase.nextId++}`;
+
+            const newUser = {
+                userId: newUserId,
+                userName: null,
+                descriptor: newDescriptor,
+                descriptorHistory: [newDescriptor],
+                metadata: {
+                    createdAt: new Date().toISOString(),
+                    lastSeen: new Date().toISOString(),
+                    visits: 1,
+                    isTemporary: false
+                }
+            };
+
+            faceDatabase.users.push(newUser);
+            console.log(`New user ${newUserId} detected and added to database`);
+            await saveDatabaseToFile();
 
             return {
-                userId: tempUserId,
+                userId: newUserId,
                 userName: 'unknown',
                 isNewUser: true,
                 needsIdentification: true,
@@ -384,86 +401,52 @@ async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionRe
             return { error: 'Valid descriptors required' };
         }
 
-        if (confirmedUserId.startsWith('temp_user')) {
-            const averageDescriptor = averageDescriptors(descriptors);
+        const userIndex = faceDatabase.users.findIndex(u => u.userId === confirmedUserId);
 
-            if (!averageDescriptor) {
-                console.error('Failed to create average descriptor');
-                return { error: 'Failed to create average descriptor' };
+        if (userIndex >= 0) {
+            const user = faceDatabase.users[userIndex];
+
+            if (!user.descriptorHistory || !Array.isArray(user.descriptorHistory)) {
+                user.descriptorHistory = user.descriptor ? [user.descriptor] : [];
             }
 
-            const newUser = {
-                userId: confirmedUserId,
-                userName: null,
-                descriptor: averageDescriptor,
-                descriptorHistory: descriptors.slice(-MAX_DESCRIPTOR_HISTORY),
-                metadata: {
-                    createdAt: new Date().toISOString(),
-                    lastSeen: new Date().toISOString(),
-                    visits: 1,
-                    isTemporary: true
-                }
-            };
+            const validDescriptors = descriptors.filter(desc =>
+                desc && Array.isArray(desc) && desc.length === 128
+            );
 
-            faceDatabase.users.push(newUser);
-            console.log(`New user ${confirmedUserId} confirmed and added to database`);
+            if (validDescriptors.length > 0) {
+                user.descriptorHistory.push(...validDescriptors);
+
+                if (user.descriptorHistory.length > MAX_DESCRIPTOR_HISTORY) {
+                    user.descriptorHistory = user.descriptorHistory.slice(-MAX_DESCRIPTOR_HISTORY);
+                }
+
+                user.descriptor = averageDescriptors(user.descriptorHistory);
+            }
+
+            if (!user.metadata) {
+                user.metadata = {
+                    createdAt: new Date().toISOString(),
+                    visits: 1
+                };
+            }
+
+            user.metadata.lastSeen = new Date().toISOString();
+            user.metadata.visits = (user.metadata.visits || 0) + 1;
+
             await saveDatabaseToFile();
 
             return {
                 userId: confirmedUserId,
-                userName: 'unknown',
-                isNewUser: true,
-                needsIdentification: true,
-                totalUsers: faceDatabase.users.length
+                userName: user.userName || 'unknown',
+                isNewUser: user.metadata.visits === 1,
+                distance: bestDetectionResult?.distance || null,
+                totalVisits: user.metadata.visits,
+                needsIdentification: !user.userName
             };
         } else {
-            const userIndex = faceDatabase.users.findIndex(u => u.userId === confirmedUserId);
-
-            if (userIndex >= 0) {
-                const user = faceDatabase.users[userIndex];
-
-                if (!user.descriptorHistory || !Array.isArray(user.descriptorHistory)) {
-                    user.descriptorHistory = user.descriptor ? [user.descriptor] : [];
-                }
-
-                const validDescriptors = descriptors.filter(desc =>
-                    desc && Array.isArray(desc) && desc.length === 128
-                );
-
-                if (validDescriptors.length > 0) {
-                    user.descriptorHistory.push(...validDescriptors);
-
-                    if (user.descriptorHistory.length > MAX_DESCRIPTOR_HISTORY) {
-                        user.descriptorHistory = user.descriptorHistory.slice(-MAX_DESCRIPTOR_HISTORY);
-                    }
-
-                    user.descriptor = averageDescriptors(user.descriptorHistory);
-                }
-
-                if (!user.metadata) {
-                    user.metadata = {
-                        createdAt: new Date().toISOString(),
-                        visits: 0
-                    };
-                }
-
-                user.metadata.lastSeen = new Date().toISOString();
-                user.metadata.visits = (user.metadata.visits || 0) + 1;
-
-                await saveDatabaseToFile();
-
-                return {
-                    userId: confirmedUserId,
-                    userName: user.userName || confirmedUserId,
-                    isNewUser: false,
-                    distance: bestDetectionResult?.distance || null,
-                    totalVisits: user.metadata.visits,
-                    needsIdentification: !user.userName
-                };
-            } else {
-                console.error(`User ${confirmedUserId} not found in database`);
-                return { error: 'User not found in the database.' };
-            }
+            console.error(`User ${confirmedUserId} not found in database`);
+            return { error: 'User not found in the database.' };
         }
     } catch (error) {
         console.error('Error confirming user identity:', error);
