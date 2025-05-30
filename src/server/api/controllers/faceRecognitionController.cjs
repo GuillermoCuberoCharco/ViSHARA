@@ -23,36 +23,6 @@ const upload = multer({
     }
 });
 
-const uploadMiddleware = (req, res, next) => {
-    const uploadSingle = upload.single('face');
-
-    uploadSingle(req, res, (error) => {
-        if (error) {
-            console.error('Multer error:', {
-                message: error.message,
-                code: error.code,
-                field: error.field,
-                storageErrors: error.storageErrors
-            });
-
-            if (error instanceof multer.MulterError) {
-                if (error.code === 'LIMIT_FILE_SIZE') {
-                    return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
-                }
-                if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-                    return res.status(400).json({ error: 'Unexpected field name. Use "face" as field name.' });
-                }
-            }
-
-            return res.status(400).json({
-                error: 'File upload error: ' + error.message,
-                code: error.code
-            });
-        }
-        next();
-    });
-};
-
 const clientSessions = new Map();
 
 let messageIo = null;
@@ -390,5 +360,5 @@ module.exports = {
     handleUpdateUserName,
     handleDetectionStats,
     setMessageSocketRef,
-    upload: uploadMiddleware
+    upload
 };
