@@ -43,9 +43,7 @@ async function handleFaceRecognition(req, res) {
     const startTime = Date.now();
 
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No face image.' });
-        }
+        if (!req.file) return res.status(400).json({ error: 'No face image.' });
 
         const knownUserId = req.body.userId || null;
         const clientId = req.body.clientId || req.headers['x-client-id'] || `client_${Date.now()}`;
@@ -64,9 +62,7 @@ async function handleFaceRecognition(req, res) {
         const result = await recognizeFaceWithConfirmation(req.file.buffer, sessionId, knownUserId);
         const processingTime = Date.now() - startTime;
 
-        if (result.error) {
-            return res.status(500).json({ error: result.error });
-        }
+        if (result.error) return res.status(500).json({ error: result.error });
 
         let userStatus = 'existing';
         let responseMessage = '';
@@ -122,14 +118,15 @@ async function handleFaceRecognition(req, res) {
 
         const response = {
             userId: result.userId,
-            userName: result.userName,
+            userName: result.userName || 'unknown',
             isNewUser: result.isNewUser || false,
             needsIdentification: result.needsIdentification || false,
             userStatus: userStatus,
             processingTime: processingTime,
             timestamp: new Date().toISOString(),
             sessionId: sessionId,
-            clientId: clientId
+            clientId: clientId,
+            message: responseMessage
         };
 
         if (result.isPreliminary) {
@@ -150,12 +147,22 @@ async function handleFaceRecognition(req, res) {
             response.message = responseMessage;
         }
 
+        console.log('=== FACE RECOGNITION REQUEST END ===');
         res.json(response);
+
     } catch (error) {
         const processingTime = Date.now() - startTime;
-        console.error('Error processing face recognition:', error);
-        console.log('Failed affter:', processingTime, 'ms');
-        res.status(500).json({ error: 'Internal server error in face recognition.' });
+        console.error('=== FACE RECOGNITION ERROR ===');
+        console.error('Error details:', error);
+        console.error('Stack trace:', error.stack);
+        console.error(`Failed after: ${processingTime}ms`);
+        console.error('==============================');
+
+        res.status(500).json({
+            error: 'Internal server error in face recognition.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            processingTime: processingTime
+        });
     }
 }
 

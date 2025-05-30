@@ -172,6 +172,10 @@ function analyzeDetectionConsensus(detections) {
 
     if (hasConsensus) {
         const detectionsForUser = detections.filter(d => d.result.userId === mostDetectedUser);
+        if (detectionsForUser.length === 0) {
+            console.error('No detections found for the most detected user:');
+            return null;
+        }
         const bestDetection = detectionsForUser.reduce((best, current) => {
             if (!best) return current;
             const bestDistance = best.result.distance || Number.MAX_SAFE_INTEGER;
@@ -191,6 +195,8 @@ function analyzeDetectionConsensus(detections) {
 
 async function extractFaceDescriptor(imageBuffer) {
     try {
+        if (!imageBuffer || imageBuffer.length === 0) return null;
+
         const img = await canvas.loadImage(imageBuffer);
 
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
@@ -338,10 +344,25 @@ async function performSingleDetection(newDescriptor, knownUserId) {
 
 async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionResult) {
     try {
+        if (!confirmedUserId) {
+            console.error('confirmedUserId is required');
+            return { error: 'User ID is required' };
+        }
+
+        if (!descriptors || !Array.isArray(descriptors) || descriptors.length === 0) {
+            console.error('Valid descriptors array is required');
+            return { error: 'Valid descriptors required' };
+        }
+
         if (confirmedUserId.startsWith('temp_user')) {
             const averageDescriptor = averageDescriptors(descriptors);
 
-            faceDatabase.users.push({
+            if (!averageDescriptor) {
+                console.error('Failed to create average descriptor');
+                return { error: 'Failed to create average descriptor' };
+            }
+
+            const newUser = {
                 userId: confirmedUserId,
                 userName: null,
                 descriptor: averageDescriptor,
@@ -351,10 +372,11 @@ async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionRe
                     lastSeen: new Date().toISOString(),
                     visits: 1,
                     isTemporary: true
-                },
-            });
+                }
+            };
 
-            console.log(`New user ${confirmedUserId} confirmed added to the database.`);
+            faceDatabase.users.push(newUser);
+            console.log(`New user ${confirmedUserId} confirmed and added to database`);
             await saveDatabaseToFile();
 
             return {
@@ -370,17 +392,33 @@ async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionRe
             if (userIndex >= 0) {
                 const user = faceDatabase.users[userIndex];
 
-                if (!user.descriptorHistory) user.descriptorHistory = [user.descriptor];
-
-                user.descriptorHistory.push(...descriptors);
-
-                if (user.descriptorHistory.length > MAX_DESCRIPTOR_HISTORY) {
-                    user.descriptorHistory = user.descriptorHistory.slice(-MAX_DESCRIPTOR_HISTORY);
+                if (!user.descriptorHistory || !Array.isArray(user.descriptorHistory)) {
+                    user.descriptorHistory = user.descriptor ? [user.descriptor] : [];
                 }
 
-                user.descriptor = averageDescriptors(user.descriptorHistory);
+                const validDescriptors = descriptors.filter(desc =>
+                    desc && Array.isArray(desc) && desc.length === 128
+                );
+
+                if (validDescriptors.length > 0) {
+                    user.descriptorHistory.push(...validDescriptors);
+
+                    if (user.descriptorHistory.length > MAX_DESCRIPTOR_HISTORY) {
+                        user.descriptorHistory = user.descriptorHistory.slice(-MAX_DESCRIPTOR_HISTORY);
+                    }
+
+                    user.descriptor = averageDescriptors(user.descriptorHistory);
+                }
+
+                if (!user.metadata) {
+                    user.metadata = {
+                        createdAt: new Date().toISOString(),
+                        visits: 0
+                    };
+                }
+
                 user.metadata.lastSeen = new Date().toISOString();
-                user.metadata.visits += 1;
+                user.metadata.visits = (user.metadata.visits || 0) + 1;
 
                 await saveDatabaseToFile();
 
@@ -388,22 +426,19 @@ async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionRe
                     userId: confirmedUserId,
                     userName: user.userName || confirmedUserId,
                     isNewUser: false,
-                    distance: bestDetectionResult.distance,
+                    distance: bestDetectionResult?.distance || null,
                     totalVisits: user.metadata.visits,
                     needsIdentification: !user.userName
                 };
+            } else {
+                console.error(`User ${confirmedUserId} not found in database`);
+                return { error: 'User not found in the database.' };
             }
-            return { error: 'User not found in the database.' };
         }
     } catch (error) {
         console.error('Error confirming user identity:', error);
-        return { error: 'Internal server error.' };
+        return { error: 'Internal server error confirming user identity.' };
     }
-}
-
-async function recogniceFace(faceBuffer, knownUserId = null) {
-    const tempSessionId = `legacy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return await recognizeFaceWithConfirmation(faceBuffer, tempSessionId, knownUserId);
 }
 
 async function updateUserName(userId, userName) {
@@ -488,7 +523,6 @@ function getDetectionSessionStats() {
 })();
 
 module.exports = {
-    recogniceFace,
     recognizeFaceWithConfirmation,
     listAllUsers,
     findUserByName,
