@@ -205,7 +205,7 @@ async function extractFaceDescriptor(imageBuffer) {
     }
 }
 
-async function recognicedFaceWithConfirmation(faceBuffer, sessionId, knownUserId = null) {
+async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId = null) {
     try {
         if (!modelLoaded) await initFaceApi();
 
@@ -334,7 +334,7 @@ async function performSingleDetection(newDescriptor, knownUserId) {
 
 async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionResult) {
     try {
-        if (confirmedUserId.startsWih('temp_user')) {
+        if (confirmedUserId.startsWith('temp_user')) {
             const averageDescriptor = averageDescriptors(descriptors);
 
             faceDatabase.users.push({
@@ -399,7 +399,7 @@ async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionRe
 
 async function recogniceFace(faceBuffer, knownUserId = null) {
     const tempSessionId = `legacy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    return await recognicedFaceWithConfirmation(faceBuffer, tempSessionId, knownUserId);
+    return await recognizeFaceWithConfirmation(faceBuffer, tempSessionId, knownUserId);
 }
 
 async function updateUserName(userId, userName) {
@@ -485,7 +485,7 @@ function getDetectionSessionStats() {
 
 module.exports = {
     recogniceFace,
-    recognicedFaceWithConfirmation,
+    recognizeFaceWithConfirmation,
     listAllUsers,
     findUserByName,
     updateUserName,

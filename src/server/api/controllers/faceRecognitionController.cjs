@@ -1,4 +1,4 @@
-const { recognicedFaceWithConfirmation, listAllUsers, debugDatabase, updateUserName } = require('../../services/faceRecognitionService.cjs');
+const { recognizeFaceWithConfirmation, listAllUsers, debugDatabase, updateUserName } = require('../../services/faceRecognitionService.cjs');
 const multer = require('multer');
 
 const storage = multer.memoryStorage();
@@ -14,7 +14,7 @@ function setMessageSocketRef(io) {
 function getOrCreateSessionId(clientId) {
     if (!clientSessions.has(clientId)) {
         const sessionId = `session_${Date.now()}_${clientId}_${Math.random().toString(36).substr(2, 9)}`;
-        clientSesions.set(clientId, {
+        clientSessions.set(clientId, {
             sessionId,
             createdAt: Date.now(),
             lastActivity: Date.now()
@@ -31,7 +31,7 @@ function cleanupClientSessions() {
     const now = Date.now();
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-    for (const [clientId, session] of clientSesions.entries()) {
+    for (const [clientId, session] of clientSessions.entries()) {
         if (now - session.lastActivity > SESSION_TIMEOUT) {
             clientSessions.delete(clientId);
             console.log(`Removed inactive detection session for client ${clientId}: ${session.sessionId}`);
@@ -62,7 +62,7 @@ async function handleFaceRecognition(req, res) {
         }
 
         const sessionId = getOrCreateSessionId(clientId);
-        const result = await recogniceFace(req.file.buffer, knownUserId);
+        const result = await recognizeFaceWithConfirmation(req.file.buffer, knownUserId);
         const processingTime = Date.now() - startTime;
 
         if (result.error) {
