@@ -1,4 +1,4 @@
-const { recognizeFaceWithConfirmation, listAllUsers, debugDatabase, updateUserName } = require('../../services/faceRecognitionService.cjs');
+const { recognizeFaceWithConfirmation, listAllUsers, debugDatabase, updateUserName, getDetectionSessionStats } = require('../../services/faceRecognitionService.cjs');
 const multer = require('multer');
 
 const storage = multer.memoryStorage();

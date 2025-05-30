@@ -149,13 +149,20 @@ function analyzeDetectionConsensus(detections) {
     if (detections.length === 0) return null;
 
     const userCounts = {};
+    let unkwnownUsersCount = 0;
     let totalDetections = 0;
 
     for (const detection of detections) {
         const userId = detection.result.userId;
-        userCounts[userId] = (userCounts[userId] || 0) + 1;
+        if (userId.startsWith('temp_user') || userId === 'unknown') {
+            unkwnownUsersCount++;
+        } else {
+            userCounts[userId] = (userCounts[userId] || 0) + 1;
+        }
         totalDetections++;
     }
+
+    if (unkwnownUsersCount > 0) userCounts['UNKNOWN_USER'] = unkwnownUsersCount;
 
     let mostDetectedUser = null;
     let highestCount = 0;
@@ -171,24 +178,47 @@ function analyzeDetectionConsensus(detections) {
     const hasConsensus = consensusRatio >= MIN_CONSENSUS_THRESHOLD;
 
     if (hasConsensus) {
-        const detectionsForUser = detections.filter(d => d.result.userId === mostDetectedUser);
-        if (detectionsForUser.length === 0) {
-            console.error('No detections found for the most detected user:');
-            return null;
-        }
-        const bestDetection = detectionsForUser.reduce((best, current) => {
-            if (!best) return current;
-            const bestDistance = best.result.distance || Number.MAX_SAFE_INTEGER;
-            const currentDistance = current.result.distance || Number.MAX_SAFE_INTEGER;
-            return currentDistance < bestDistance ? current : best;
-        }, null);
+        if (mostDetectedUser === 'UNKNOWN_USER') {
 
-        return {
-            confirmedUserId: mostDetectedUser,
-            consensusRatio,
-            bestDetection: bestDetection.result,
-            descriptorForAverage: detections.filter(d => d.result.userId === mostDetectedUser).map(d => d.descriptor)
-        };
+            const unknownDetections = detections.filter(d => d.result.userId.startsWith('temp_user') || d.result.userId === 'unknown');
+            if (unknownDetections.length === 0) {
+                console.error('No detections found for the most detected user:');
+                return null;
+            }
+            const newUserId = `temp_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            return {
+                confirmedUserId: newUserId,
+                consensusRatio,
+                bestDetection: {
+                    userId: newUserId,
+                    userName: 'unknown',
+                    isNewUser: true,
+                    needsIdentification: true,
+                    distance: null
+                },
+                descriptorForAverage: unknownDetections.map(d => d.descriptor)
+            };
+        } else {
+
+            const detectionsForUser = detections.filter(d => d.result.userId === mostDetectedUser);
+            if (detectionsForUser.length === 0) {
+                console.error('No detections found for the most detected user:');
+                return null;
+            }
+            const bestDetection = detectionsForUser.reduce((best, current) => {
+                if (!best) return current;
+                const bestDistance = best.result.distance || Number.MAX_SAFE_INTEGER;
+                const currentDistance = current.result.distance || Number.MAX_SAFE_INTEGER;
+                return currentDistance < bestDistance ? current : best;
+            }, null);
+
+            return {
+                confirmedUserId: mostDetectedUser,
+                consensusRatio,
+                bestDetection: bestDetection.result,
+                descriptorForAverage: detections.filter(d => d.result.userId === mostDetectedUser).map(d => d.descriptor)
+            };
+        }
     }
     return null;
 }
