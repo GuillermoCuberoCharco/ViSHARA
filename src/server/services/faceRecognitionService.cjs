@@ -74,7 +74,13 @@ async function saveDatabaseToFile() {
         );
         console.log('Database saved successfully.');
     } catch (error) {
-        console.error('Error saving database:', error);
+        console.error('Critical error saving database:', {
+            message: error.message,
+            stack: error.stack,
+            dbDir: DB_DIR,
+            dbFile: DB_FILE
+        });
+        throw error;
     }
 }
 
@@ -225,37 +231,71 @@ function analyzeDetectionConsensus(detections) {
 
 async function extractFaceDescriptor(imageBuffer) {
     try {
-        if (!imageBuffer || imageBuffer.length === 0) return null;
+        console.log('Extracting face descriptor from image buffer...');
+        if (!imageBuffer || imageBuffer.length === 0) {
+            console.error('Invalid image buffer provided for face descriptor extraction.');
+            return null;
+        }
+
+        console.log(`Processing image buffer of size: ${imageBuffer.length} bytes`);
 
         const img = await canvas.loadImage(imageBuffer);
 
+        console.log(`Image loaded successfully: ${img.width}x${img.height}`);
+
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-        if (!detections) return null;
+        if (!detections) {
+            console.error('No face detected in the image.');
+            return null;
+        }
+        console.log('Face detected successfully.');
 
         const descriptor = Array.from(detections.descriptor);
-        if (!isDescriptorValid(descriptor)) return null;
+        if (!isDescriptorValid(descriptor)) {
+            console.error('Invalid face descriptor extracted from the image.');
+            return null;
+        }
 
+        console.log(`Face descriptor extracted successfully: ${descriptor.length} dimensions`);
         return descriptor;
     } catch (error) {
-        console.error('Error extracting face descriptor:', error);
+        console.error('Error extracting face descriptor:', {
+            message: error.message,
+            stack: error.stack,
+            bufferSize: imageBuffer?.length || 'undefined'
+        });
         return null;
     }
 }
 
 async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId = null) {
     try {
+        console.log('=== FACE RECOGNITION SERVICE START ===');
+        console.log(`SessionId: ${sessionId}, KnownUserId: ${knownUserId || 'none'}`);
+        console.log(`Buffer size: ${faceBuffer?.length || 'undefined'} bytes`);
+
         if (!modelLoaded) await initFaceApi();
         if (!sessionId) return { error: 'Session ID is required.' };
 
         if (Math.random() < 0.1) {
+            console.log('Performing periodic cleanup of expired sessions...');
             cleanupExpiredSessions();
         }
 
+        console.log('Extracting face descriptor from the provided image buffer...');
         const newDescriptor = await extractFaceDescriptor(faceBuffer);
         if (!newDescriptor) return { error: 'No face detected in the image.' };
 
+        console.log('Performing single face detection...');
         const detectionResult = await performSingleDetection(newDescriptor, knownUserId);
+        console.log('Single detection result:', {
+            userId: detectionResult.userId,
+            userName: detectionResult.userName,
+            isNewUser: detectionResult.isNewUser,
+            error: detectionResult.error
+        });
 
+        console.log('Updating detection session with new descriptor...');
         const session = getOrCreateDetectionSession(sessionId);
 
         if (!session.detections) session.detections = [];
@@ -265,6 +305,8 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
             result: detectionResult,
             timestamp: Date.now()
         });
+
+        console.log(`Session ${sessionId} updated with new detection. Total detections: ${session.detections.length}`);
 
         if (session.detections.length < CONFIRMATION_WINDOW_SIZE) {
             return {
@@ -286,6 +328,7 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
 
             session.confirmed = true;
 
+            console.log('=== FACE RECOGNITION SERVICE SUCCESS ===');
             return {
                 ...confirmedResult,
                 isConfirmed: true,
@@ -306,7 +349,15 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
             };
         }
     } catch (error) {
-        console.error('Error recognizing face with confirmation:', error);
+        console.error('=== FACE RECOGNITION SERVICE ERROR ===');
+        console.error('Unexpected error in recognizeFaceWithConfirmation:', {
+            message: error.message,
+            stack: error.stack,
+            sessionId,
+            knownUserId,
+            bufferSize: faceBuffer?.length
+        });
+        console.error('============================================');
         return { error: 'Internal server error.' };
     }
 }
@@ -314,6 +365,7 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
 async function performSingleDetection(newDescriptor, knownUserId) {
     try {
         if (knownUserId && knownUserId !== 'unknown') {
+            console.log(`Checking known user ${knownUserId}...`);
             const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
 
             if (userIndex >= 0) {
@@ -332,6 +384,7 @@ async function performSingleDetection(newDescriptor, knownUserId) {
             }
         }
 
+        console.log(`Searching among ${faceDatabase.users.length} existing users...`);
         let bestMatch = null;
         let lowestDistance = Number.MAX_SAFE_INTEGER;
 
@@ -347,6 +400,7 @@ async function performSingleDetection(newDescriptor, knownUserId) {
         }
 
         if (bestMatch) {
+            console.log(`Best match found: ${bestMatch.userId} with distance ${lowestDistance}`);
             return {
                 userId: bestMatch.userId,
                 userName: bestMatch.userName || 'unknown',
@@ -373,7 +427,16 @@ async function performSingleDetection(newDescriptor, knownUserId) {
 
             faceDatabase.users.push(newUser);
             console.log(`New user ${newUserId} detected and added to database`);
-            await saveDatabaseToFile();
+
+            try {
+                await saveDatabaseToFile();
+            } catch (error) {
+                console.error('Failed to save database after creating new user:', saveError);
+                faceDatabase.users.pop();
+                faceDatabase.nextId--;
+                throw saveError;
+            }
+
 
             return {
                 userId: newUserId,
@@ -384,8 +447,13 @@ async function performSingleDetection(newDescriptor, knownUserId) {
             };
         }
     } catch (error) {
-        console.error('Error performing single detection:', error);
-        return { error: 'Internal server error.' };
+        console.error('Error performing single detection:', {
+            message: error.message,
+            stack: error.stack,
+            knownUserId,
+            descriptorLength: newDescriptor?.length
+        });
+        return { error: 'Internal server error in single detection.' };
     }
 }
 

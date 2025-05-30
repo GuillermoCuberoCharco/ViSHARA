@@ -2,7 +2,56 @@ const { recognizeFaceWithConfirmation, listAllUsers, debugDatabase, updateUserNa
 const multer = require('multer');
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fieldSize: 10 * 1024 * 1024
+    },
+    fileFilter: (req, file, cb) => {
+        console.log('Multer fileFilter:', {
+            fieldname: file.fieldname,
+            mimetype: file.mimetype,
+            size: file.size
+        });
+
+        if (!file.mimetype.startsWith('image/')) {
+            console.error('Invalid file type:', file.mimetype);
+            return cb(new Error('Only image files are allowed'), false);
+        }
+        cb(null, true);
+    }
+});
+
+const uploadMiddleware = (req, res, next) => {
+    const uploadSingle = upload.single('face');
+
+    uploadSingle(req, res, (error) => {
+        if (error) {
+            console.error('Multer error:', {
+                message: error.message,
+                code: error.code,
+                field: error.field,
+                storageErrors: error.storageErrors
+            });
+
+            if (error instanceof multer.MulterError) {
+                if (error.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+                }
+                if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+                    return res.status(400).json({ error: 'Unexpected field name. Use "face" as field name.' });
+                }
+            }
+
+            return res.status(400).json({
+                error: 'File upload error: ' + error.message,
+                code: error.code
+            });
+        }
+        next();
+    });
+};
 
 const clientSessions = new Map();
 
@@ -41,29 +90,77 @@ function cleanupClientSessions() {
 
 async function handleFaceRecognition(req, res) {
     const startTime = Date.now();
+    let processingStep = 'initialization';
 
     try {
-        if (!req.file) return res.status(400).json({ error: 'No face image.' });
+        console.log('=== FACE RECOGNITION REQUEST START ===');
+        console.log('Request headers:', {
+            'content-type': req.headers['content-type'],
+            'content-length': req.headers['content-length'],
+            'x-client-id': req.headers['x-client-id']
+        });
 
+        processingStep = 'file_validation';
+        if (!req.file) {
+            console.error('No file received in request');
+            return res.status(400).json({ error: 'No face image provided.' });
+        }
+
+        console.log('File received:', {
+            fieldname: req.file.fieldname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            bufferLength: req.file.buffer ? req.file.buffer.length : 'no buffer'
+        });
+
+        if (!req.file.buffer || req.file.buffer.length === 0) {
+            console.error('File buffer is empty or invalid');
+            return res.status(400).json({ error: 'Invalid or empty image file.' });
+        }
+
+        processingStep = 'parameter_extraction';
         const knownUserId = req.body.userId || null;
         const clientId = req.body.clientId || req.headers['x-client-id'] || `client_${Date.now()}`;
 
+        console.log('Processing parameters:', {
+            knownUserId,
+            clientId,
+            bodyKeys: Object.keys(req.body)
+        });
+
+        processingStep = 'session_management';
         const sessionId = getOrCreateSessionId(clientId);
 
         console.log('Processing face recognition request:');
         console.log(`- Client ID: ${clientId}`);
         console.log(`- Session ID: ${sessionId}`);
         console.log(`- Known user ID: ${knownUserId || 'none (new detection)'}`);
+        console.log(`- File size: ${req.file.size} bytes`);
 
+        processingStep = 'session_cleanup';
         if (Math.random() < 0.1) {
             cleanupClientSessions();
         }
 
+        processingStep = 'face_recognition';
+        console.log('Calling recognizeFaceWithConfirmation...');
         const result = await recognizeFaceWithConfirmation(req.file.buffer, sessionId, knownUserId);
+        console.log('Face recognition result received:', {
+            userId: result.userId,
+            error: result.error,
+            isPreliminary: result.isPreliminary,
+            isConfirmed: result.isConfirmed,
+            isUncertain: result.isUncertain
+        });
+
         const processingTime = Date.now() - startTime;
 
-        if (result.error) return res.status(500).json({ error: result.error });
+        if (result.error) {
+            console.error('Face recognition service returned error:', result.error);
+            return res.status(500).json({ error: result.error });
+        }
 
+        processingStep = 'response_preparation';
         let userStatus = 'existing';
         let responseMessage = '';
 
@@ -100,22 +197,33 @@ async function handleFaceRecognition(req, res) {
             }
         }
 
+        processingStep = 'socket_notification';
         if (messageIo && result.isConfirmed && (result.isNewUser || result.needsIdentification)) {
-            console.log('Sending confirmed user notification to clients');
-            messageIo.sockets.emit('user_detected', {
-                userId: result.userId,
-                userName: result.userName,
-                needsIdentification: result.needsIdentification,
-                isNewUser: result.isNewUser,
-                consensusRatio: result.consensusRatio
-            });
+            try {
+                console.log('Sending confirmed user notification to clients');
+                messageIo.sockets.emit('user_detected', {
+                    userId: result.userId,
+                    userName: result.userName,
+                    needsIdentification: result.needsIdentification,
+                    isNewUser: result.isNewUser,
+                    consensusRatio: result.consensusRatio
+                });
+            } catch (socketError) {
+                console.error('Error sending socket notification:', socketError);
+            }
         }
 
+        processingStep = 'debug_logging';
         if (Math.random() < 0.05) {
-            debugDatabase();
-            console.log('Detection session stats:', getDetectionSessionStats());
+            try {
+                debugDatabase();
+                console.log('Detection session stats:', getDetectionSessionStats());
+            } catch (debugError) {
+                console.error('Error in debug logging:', debugError);
+            }
         }
 
+        processingStep = 'response_construction';
         const response = {
             userId: result.userId,
             userName: result.userName || 'unknown',
@@ -147,22 +255,37 @@ async function handleFaceRecognition(req, res) {
             response.message = responseMessage;
         }
 
-        console.log('=== FACE RECOGNITION REQUEST END ===');
+        console.log('=== FACE RECOGNITION REQUEST SUCCESS ===');
+        console.log(`Processing time: ${processingTime}ms`);
         res.json(response);
 
     } catch (error) {
         const processingTime = Date.now() - startTime;
         console.error('=== FACE RECOGNITION ERROR ===');
-        console.error('Error details:', error);
-        console.error('Stack trace:', error.stack);
+        console.error(`Error at step: ${processingStep}`);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         console.error(`Failed after: ${processingTime}ms`);
+        console.error('Request info:', {
+            hasFile: !!req.file,
+            fileSize: req.file?.size,
+            bodyKeys: Object.keys(req.body || {}),
+            headers: req.headers
+        });
         console.error('==============================');
 
-        res.status(500).json({
-            error: 'Internal server error in face recognition.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            processingTime: processingTime
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Internal server error in face recognition.',
+                step: processingStep,
+                details: process.env.NODE_ENV === 'development' ? error.message : 'Please check server logs',
+                processingTime: processingTime,
+                timestamp: new Date().toISOString()
+            });
+        }
     }
 }
 
@@ -267,5 +390,5 @@ module.exports = {
     handleUpdateUserName,
     handleDetectionStats,
     setMessageSocketRef,
-    upload
+    upload: uploadMiddleware
 };
