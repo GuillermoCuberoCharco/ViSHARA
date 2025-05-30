@@ -44,8 +44,8 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             console.log('Loading BlazeFace model...');
             modelRef.current = await blazeface.load({
                 maxFaces: 1,
-                inputWidth: 256,
-                inputHeight: 256,
+                inputWidth: 128,
+                inputHeight: 128,
                 iouThreshold: 0.3,
                 scoreThreshold: 0.75
             });
