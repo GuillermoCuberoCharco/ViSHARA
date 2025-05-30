@@ -24,7 +24,9 @@ function setupMessageHandlers(io) {
             console.log('User detected:', userData);
 
             let session = userSessions.get(socket.id);
+            const previousUserName = session?.currentUserName;
             const previousUserId = session?.currentUserId;
+
             if (!session) {
                 session = {};
                 console.log('Creating new session for socket:', socket.id);
@@ -41,6 +43,7 @@ function setupMessageHandlers(io) {
             }
 
             session.currentUserId = userData.userId;
+            session.currentUserName = userData.userName || 'unknown';
             session.lastFaceUpdate = Date.now();
 
             if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
@@ -52,9 +55,6 @@ function setupMessageHandlers(io) {
                 const sessionId = startNewSession(userData.userId);
                 session.conversationSessionId = sessionId;
 
-                const conversationHistory = getUserConversationHistory(userData.userId);
-                console.log(`User conversation history loaded`);
-
                 const contextMessages = getConversationContext(userData.userId, 5);
                 if (contextMessages.length > 0) {
                     console.log(`Loaded ${contextMessages.length} previous messages for context`);
@@ -63,19 +63,23 @@ function setupMessageHandlers(io) {
 
             console.log('Session updated:', session);
 
-            if (userData.needsIdentification && !pendingIdentifications.has(userData.userId)) {
-                pendingIdentifications.set(userData.userId, {
+            const currentUserName = userData.userName || 'unknown';
+            const userNameChanged = currentUserName !== previousUserName;
+
+            if (userData.needsIdentification && !pendingIdentifications.has('unknown')) {
+                pendingIdentifications.set('unknown', {
                     socketId: socket.id,
                     waitingForName: false,
-                    tempUserId: userData.userId
+                    tempUserId: userData.userId,
+                    userName: 'unknown'
                 });
 
                 setTimeout(() => {
                     sendProactiveMessage(socket, userData, 'who_are_you', () => {
-                        const pending = pendingIdentifications.get(userData.userId);
+                        const pending = pendingIdentifications.get('unknown');
                         if (pending) {
                             pending.waitingForName = true;
-                            pendingIdentifications.set(userData.userId, pending);
+                            pendingIdentifications.set('unknown', pending);
                         }
                     });
                 }, 2000);
@@ -86,11 +90,11 @@ function setupMessageHandlers(io) {
                 const GREETING_COOLDOWN = 10 * 60 * 1000; // 10 minutes
                 const shouldGreet = false;
 
-                if (userData.userId !== previousUserId) {
+                if (userNameChanged && currentUserName !== 'unknown') {
                     shouldGreet = true;
                     session.hasGreetedThisSession = false;
                     console.log(`New user detected, greeting them: ${userData.userName}`);
-                } else if (!session.hasGreetedThisSession) {
+                } else if (!session.hasGreetedThisSession && currentUserName !== 'unknown') {
                     const timeSinceLastSessionEnd = session.lastSessionEnd ? now - session.lastSessionEnd : Infinity;
 
                     if (timeSinceLastSessionEnd > GREETING_COOLDOWN) shouldGreet = true;
@@ -125,6 +129,7 @@ function setupMessageHandlers(io) {
                 }
 
                 session.currentUserId = null;
+                session.currentUserName = null;
                 session.conversationSessionId = null;
                 session.hasGreetedThisSession = false;
                 userSessions.set(socket.id, session);
@@ -153,23 +158,27 @@ function setupMessageHandlers(io) {
                 }
 
                 let context = {
-                    username: parsed.username || 'Desconocido',
+                    username: parsed.username || 'unknown',
                     proactive_question: parsed.proactive_question || 'Ninguna',
                 };
 
-                const pending = currentUserId ? pendingIdentifications.get(currentUserId) : null;
+                const pending = pendingIdentifications.get('unknown');
                 if (pending && pending.waitingForName) {
                     const result = await processNameResponse(inputText, currentUserId, socket);
                     if (result.success) {
                         context.username = result.userName;
                         context.proactive_question = 'who_are_you_response';
 
-                        pendingIdentifications.delete(currentUserId);
+                        pendingIdentifications.delete('unknown');
 
                         if (result.newUserId) {
                             session.currentUserId = result.newUserId;
-                            userSessions.set(socket.id, session);
                         }
+
+                        session.currentUserName = result.userName;
+                        userSessions.set(socket.id, session);
+
+                        console.log(`Session updated: user ${session.currentUserId} now identified as ${result.userName}`);
 
                         if (currentUserId) {
                             await addMessage(currentUserId, 'user', inputText, {
@@ -250,9 +259,9 @@ function setupMessageHandlers(io) {
                     console.log(`Session ended for user ${session.currentUserId}, cooldown until next detection`);
                 }
 
-                const pending = pendingIdentifications.get(session.currentUserId);
+                const pending = pendingIdentifications.get('unknown');
                 if (pending && pending.socketId === socket.id) {
-                    pendingIdentifications.delete(session.currentUserId);
+                    pendingIdentifications.delete('unknown');
                 }
             }
             userSessions.delete(socket.id);
