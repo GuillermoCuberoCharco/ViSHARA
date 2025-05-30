@@ -11,9 +11,10 @@ function setupSocketIO(server) {
 
     const corsConfig = {
         origin: origins,
-        methods: config.cors.methods || ['GET', 'POST', 'OPTIONS'],
-        credentials: config.cors.credentials || true,
-        allowedHeaders: config.cors.allowedHeaders || ['Content-Type', 'Authorization']
+        methods: config.cors.methods,
+        credentials: config.cors.credentials,
+        allowedHeaders: config.cors.allowedHeaders,
+        exposedHeaders: config.cors.exposedHeaders || []
     };
 
     console.log('Final CORS configuration:', JSON.stringify(corsConfig));
