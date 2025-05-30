@@ -124,7 +124,7 @@ function isDescriptorValid(descriptor, existingDescriptors = []) {
 function getOrCreateDetectionSession(sessionId) {
     if (!detectionSessions.has(sessionId)) {
         detectionSessions.set(sessionId, {
-            descriptors: [],
+            detections: [],
             lastUpdated: Date.now(),
             confirmed: false
         });
@@ -167,11 +167,12 @@ function analyzeDetectionConsensus(detections) {
         }
     }
 
-    const consesnsusRatio = highestCount / totalDetections;
-    const hasConsensus = consesnsusRatio >= MIN_CONSENSUS_THRESHOLD;
+    const consensusRatio = highestCount / totalDetections;
+    const hasConsensus = consensusRatio >= MIN_CONSENSUS_THRESHOLD;
 
     if (hasConsensus) {
-        const bestDetection = detections.find(d => d.result.userId === mostDetectedUser).reduce((best, current) => {
+        const detectionsForUser = detections.filter(d => d.result.userId === mostDetectedUser);
+        const bestDetection = detectionsForUser.reduce((best, current) => {
             if (!best) return current;
             const bestDistance = best.result.distance || Number.MAX_SAFE_INTEGER;
             const currentDistance = current.result.distance || Number.MAX_SAFE_INTEGER;
@@ -180,7 +181,7 @@ function analyzeDetectionConsensus(detections) {
 
         return {
             confirmedUserId: mostDetectedUser,
-            consesnsusRatio,
+            consensusRatio,
             bestDetection: bestDetection.result,
             descriptorForAverage: detections.filter(d => d.result.userId === mostDetectedUser).map(d => d.descriptor)
         };
@@ -208,6 +209,7 @@ async function extractFaceDescriptor(imageBuffer) {
 async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId = null) {
     try {
         if (!modelLoaded) await initFaceApi();
+        if (!sessionId) return { error: 'Session ID is required.' };
 
         if (Math.random() < 0.1) {
             cleanupExpiredSessions();
@@ -219,6 +221,8 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
         const detectionResult = await performSingleDetection(newDescriptor, knownUserId);
 
         const session = getOrCreateDetectionSession(sessionId);
+
+        if (!session.detections) session.detections = [];
 
         session.detections.push({
             descriptor: newDescriptor,
@@ -249,7 +253,7 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
             return {
                 ...confirmedResult,
                 isConfirmed: true,
-                consensusRatio: consensus.consesnsusRatio,
+                consensusRatio: consensus.consensusRatio,
                 detectionProgress: session.detections.length,
                 totalRequired: CONFIRMATION_WINDOW_SIZE
             };

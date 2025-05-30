@@ -49,20 +49,19 @@ async function handleFaceRecognition(req, res) {
 
         const knownUserId = req.body.userId || null;
         const clientId = req.body.clientId || req.headers['x-client-id'] || `client_${Date.now()}`;
-        const imageSize = req.file.buffer.length;
+
+        const sessionId = getOrCreateSessionId(clientId);
 
         console.log('Processing face recognition request:');
-        console.log(`- Image size: ${imageSize} bytes`);
-        console.log(`- Known user ID: ${knownUserId || 'none (new detection)'}`);
         console.log(`- Client ID: ${clientId}`);
-        console.log(`- MIME type: ${req.file.mimetype}`);
+        console.log(`- Session ID: ${sessionId}`);
+        console.log(`- Known user ID: ${knownUserId || 'none (new detection)'}`);
 
         if (Math.random() < 0.1) {
             cleanupClientSessions();
         }
 
-        const sessionId = getOrCreateSessionId(clientId);
-        const result = await recognizeFaceWithConfirmation(req.file.buffer, knownUserId);
+        const result = await recognizeFaceWithConfirmation(req.file.buffer, sessionId, knownUserId);
         const processingTime = Date.now() - startTime;
 
         if (result.error) {
