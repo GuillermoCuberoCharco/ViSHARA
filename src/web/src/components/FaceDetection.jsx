@@ -44,10 +44,10 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             console.log('Loading BlazeFace model...');
             modelRef.current = await blazeface.load({
                 maxFaces: 1,
-                inputWidth: 128,
-                inputHeight: 128,
+                inputWidth: 256,
+                inputHeight: 256,
                 iouThreshold: 0.3,
-                scoreThreshold: 0.8
+                scoreThreshold: 0.75
             });
 
             console.log('BlazeFace model loaded successfully');
@@ -63,13 +63,16 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         const width = face.bottomRight[0] - startX;
         const height = face.bottomRight[1] - startY;
 
-        if (width < 100 || height < 100) return false;
+        if (width < 120 || height < 120) {
+            console.log(`Face too small: ${width}x${height} (minimum 120x120)`);
+            return false;
+        }
 
         if (startX < 0 || startY < 0 || startX + width > video.videoWidth || startY + height > video.videoHeight) return false;
 
         const aspectRatio = width / height;
 
-        if (aspectRatio < 0.7 || aspectRatio > 1.4) return false;
+        if (aspectRatio < 0.6 || aspectRatio > 1.6) return false;
 
         return true;
     };
@@ -98,15 +101,17 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             const width = face.bottomRight[0] - startX;
             const height = face.bottomRight[1] - startY;
             // ADD PADDING TO FACE
-            const padding = Math.min(width, height) * 0.2;
+            const padding = Math.min(width, height) * 0.4;
             const cropStartX = Math.max(0, startX - padding);
             const cropStartY = Math.max(0, startY - padding);
             const cropWidth = Math.min(width + (padding * 2), video.videoWidth - cropStartX);
             const cropHeight = Math.min(height + (padding * 2), video.videoHeight - cropStartY);
 
-            canvas.width = 200;
-            canvas.height = 200;
-            ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, 200, 200);
+            canvas.width = 400;
+            canvas.height = 400;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
@@ -122,7 +127,8 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                             'X-Client-Id': clientIdRef.current
-                        }
+                        },
+                        timeout: 10000
                     });
 
                     if (response.data) {
@@ -130,10 +136,12 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                     }
                 } catch (error) {
                     console.error('Error sending face to server:', error);
-                    setDetectionStatus('idle');
-                    setDetectionProgress({ current: 0, total: 5 });
+                    if (error.response?.status >= 500) {
+                        setDetectionStatus('idle');
+                        setDetectionProgress({ current: 0, total: 5 });
+                    }
                 }
-            }, 'image/jpeg', 0.92);
+            }, 'image/jpeg', 0.98);
 
         } catch (error) {
             console.error('Error sending face to server:', error);
