@@ -11,7 +11,7 @@ function setMessageSocketRef(io) {
     messageIo = io.messageIo;
 }
 
-function getOrCreateDetectionSessionId(clientId) {
+function getOrCreateSessionId(clientId) {
     if (!clientSessions.has(clientId)) {
         const sessionId = `session_${Date.now()}_${clientId}_${Math.random().toString(36).substr(2, 9)}`;
         clientSesions.set(clientId, {
