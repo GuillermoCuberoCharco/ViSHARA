@@ -117,7 +117,6 @@ async function handleFaceRecognition(req, res) {
         const result = await recognizeFaceWithConfirmation(req.file.buffer, sessionId, knownUserId);
         console.log('Face recognition result received:', {
             userId: result.userId,
-            error: result.error,
             isPreliminary: result.isPreliminary,
             isConfirmed: result.isConfirmed,
             isUncertain: result.isUncertain

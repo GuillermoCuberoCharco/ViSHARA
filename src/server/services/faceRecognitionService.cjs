@@ -10,12 +10,12 @@ const DB_DIR = path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DB_DIR, 'faceDatabase.json');
 
 // CONFIGURATION FOR FACE-API.JS (Based on face-api.js documentation)
-const EUCLIDEAN_DISTANCE_THRESHOLD = 0.6;
+const EUCLIDEAN_DISTANCE_THRESHOLD = 0.45;
 const MIN_DESCRIPTOR_QUALITY = 0.1;
 const MAX_DESCRIPTOR_HISTORY = 3;
 
 const CONFIRMATION_WINDOW_SIZE = 5;
-const MIN_CONSENSUS_THRESHOLD = 0.6;
+const MIN_CONSENSUS_THRESHOLD = 0.8;
 const SESSION_TIMEOUT = 30000;
 
 const faceDatabase = {
@@ -291,8 +291,7 @@ async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId 
         console.log('Single detection result:', {
             userId: detectionResult.userId,
             userName: detectionResult.userName,
-            isNewUser: detectionResult.isNewUser,
-            error: detectionResult.error
+            isNewUser: detectionResult.isNewUser
         });
 
         console.log('Updating detection session with new descriptor...');
