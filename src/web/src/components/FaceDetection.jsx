@@ -166,8 +166,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'X-Client-Id': clientIdRef.current
-                },
-                timeout: 30000
+                }
             });
 
             if (response.data) handleBatchRecognitionResponse(response.data);
