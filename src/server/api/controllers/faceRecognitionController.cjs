@@ -1,22 +1,24 @@
-const { recognizeFaceWithConfirmation, listAllUsers, debugDatabase, updateUserName, getDetectionSessionStats } = require('../../services/faceRecognitionService.cjs');
+const { recognizeFaceWithBatch, listAllUsers, debugDatabase, updateUserName, getDetectionSessionStats } = require('../../services/faceRecognitionService.cjs');
 const multer = require('multer');
 
 const storage = multer.memoryStorage();
-const upload = multer({
+
+const uploadBatch = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
-        fieldSize: 10 * 1024 * 1024
+        fileSize: 10 * 1024 * 1024, // 10MB por archivo
+        fieldSize: 10 * 1024 * 1024,
+        files: 10 // Máximo 10 archivos por lote
     },
     fileFilter: (req, file, cb) => {
-        console.log('Multer fileFilter:', {
+        console.log('Batch fileFilter:', {
             fieldname: file.fieldname,
-            mimetype: file.mimetype,
-            size: file.size
+            originalname: file.originalname,
+            mimetype: file.mimetype
         });
 
         if (!file.mimetype.startsWith('image/')) {
-            console.error('Invalid file type:', file.mimetype);
+            console.error('Invalid file type in batch:', file.mimetype);
             return cb(new Error('Only image files are allowed'), false);
         }
         cb(null, true);
@@ -58,74 +60,74 @@ function cleanupClientSessions() {
     }
 }
 
-async function handleFaceRecognition(req, res) {
+async function handleBatchFaceRecognition(req, res) {
     const startTime = Date.now();
     let processingStep = 'initialization';
 
     try {
-        console.log('=== FACE RECOGNITION REQUEST START ===');
-        console.log('Request headers:', {
-            'content-type': req.headers['content-type'],
-            'content-length': req.headers['content-length'],
-            'x-client-id': req.headers['x-client-id']
-        });
+        console.log('=== BATCH FACE RECOGNITION REQUEST START ===');
 
-        processingStep = 'file_validation';
-        if (!req.file) {
-            console.error('No file received in request');
-            return res.status(400).json({ error: 'No face image provided.' });
+        processingStep = 'files_validation';
+        if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+            console.error('No files received in batch request');
+            return res.status(400).json({ error: 'No face images provided in batch.' });
         }
 
-        console.log('File received:', {
-            fieldname: req.file.fieldname,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            bufferLength: req.file.buffer ? req.file.buffer.length : 'no buffer'
+        console.log(`Batch received: ${req.files.length} files`);
+        req.files.forEach((file, index) => {
+            console.log(`File ${index + 1}:`, {
+                fieldname: file.fieldname,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size
+            });
         });
 
-        if (!req.file.buffer || req.file.buffer.length === 0) {
-            console.error('File buffer is empty or invalid');
-            return res.status(400).json({ error: 'Invalid or empty image file.' });
+        for (let i = 0; i < req.files.length; i++) {
+            const file = req.files[i];
+            if (!file.buffer || file.buffer.length === 0) {
+                console.error(`File ${i + 1} buffer is empty or invalid`);
+                return res.status(400).json({ error: `Invalid or empty image file at position ${i + 1}.` });
+            }
         }
 
         processingStep = 'parameter_extraction';
         const knownUserId = req.body.userId || null;
         const clientId = req.body.clientId || req.headers['x-client-id'] || `client_${Date.now()}`;
+        const sessionId = req.body.sessionId || getOrCreateSessionId(clientId);
 
         console.log('Processing parameters:', {
             knownUserId,
             clientId,
+            sessionId,
+            filesCount: req.files.length,
             bodyKeys: Object.keys(req.body)
         });
-
-        processingStep = 'session_management';
-        const sessionId = getOrCreateSessionId(clientId);
-
-        console.log('Processing face recognition request:');
-        console.log(`- Client ID: ${clientId}`);
-        console.log(`- Session ID: ${sessionId}`);
-        console.log(`- Known user ID: ${knownUserId || 'none (new detection)'}`);
-        console.log(`- File size: ${req.file.size} bytes`);
 
         processingStep = 'session_cleanup';
         if (Math.random() < 0.1) {
             cleanupClientSessions();
         }
 
-        processingStep = 'face_recognition';
-        console.log('Calling recognizeFaceWithConfirmation...');
-        const result = await recognizeFaceWithConfirmation(req.file.buffer, sessionId, knownUserId);
-        console.log('Face recognition result received:', {
+        processingStep = 'batch_face_recognition';
+        console.log('Calling recognizeFaceWithBatch...');
+
+        const faceBuffers = req.files.map(file => file.buffer);
+
+        const result = await recognizeFaceWithBatch(faceBuffers, sessionId, knownUserId);
+
+        console.log('Batch recognition result received:', {
             userId: result.userId,
-            isPreliminary: result.isPreliminary,
             isConfirmed: result.isConfirmed,
-            isUncertain: result.isUncertain
+            isUncertain: result.isUncertain,
+            consensusRatio: result.consensusRatio,
+            isNewUser: result.isNewUser
         });
 
         const processingTime = Date.now() - startTime;
 
         if (result.error) {
-            console.error('Face recognition service returned error:', result.error);
+            console.error('Batch face recognition service returned error:', result.error);
             return res.status(500).json({ error: result.error });
         }
 
@@ -133,32 +135,26 @@ async function handleFaceRecognition(req, res) {
         let userStatus = 'existing';
         let responseMessage = '';
 
-        if (result.isPreliminary) {
-            responseMessage = `Collecting face data: ${result.detectionProgress}/${result.totalRequired}`;
-            console.log(`PRELIMINARY DETECTION - ${responseMessage}`);
-            console.log(`- Current detection: ${result.userId}`);
-        } else if (result.isUncertain) {
+        if (result.isUncertain) {
             userStatus = 'uncertain';
-            responseMessage = `Uncertain identity - no consensus reached (${result.detectionProgress}/${result.totalRequired} frames analyzed)`;
-            console.log(`UNCERTAIN DETECTION - ${responseMessage}`);
+            responseMessage = `Uncertain identity - no consensus reached (${(result.consensusRatio * 100).toFixed(1)}% agreement)`;
+            console.log(`BATCH UNCERTAIN - ${responseMessage}`);
         } else if (result.isConfirmed) {
             if (result.isNewUser) {
                 userStatus = 'new_unknown';
-                responseMessage = `NEW USER CONFIRMED with ${(result.consensusRatio * 100).toFixed(1)}% consensus`;
-                console.log('NEW USER CONFIRMED!');
+                responseMessage = `NEW USER CONFIRMED with ${(result.consensusRatio * 100).toFixed(1)}% consensus from ${req.files.length} images`;
+                console.log('BATCH NEW USER CONFIRMED!');
                 console.log(`- Assigned ID: ${result.userId}`);
                 console.log(`- Consensus ratio: ${(result.consensusRatio * 100).toFixed(1)}%`);
-                console.log(`- Total users in system: ${result.totalUsers || 'unknown'}`);
             } else if (result.needsIdentification) {
                 userStatus = 'existing_unknown';
                 responseMessage = `EXISTING USER CONFIRMED - needs identification (${(result.consensusRatio * 100).toFixed(1)}% consensus)`;
-                console.log('EXISTING USER WITHOUT NAME CONFIRMED!');
+                console.log('BATCH EXISTING USER WITHOUT NAME CONFIRMED!');
                 console.log(`- User ID: ${result.userId}`);
                 console.log(`- Consensus ratio: ${(result.consensusRatio * 100).toFixed(1)}%`);
-                console.log(`- Needs identification: ${result.needsIdentification}`);
             } else {
                 responseMessage = `IDENTIFIED USER CONFIRMED (${(result.consensusRatio * 100).toFixed(1)}% consensus)`;
-                console.log('IDENTIFIED USER CONFIRMED!');
+                console.log('BATCH IDENTIFIED USER CONFIRMED!');
                 console.log(`- User ID: ${result.userId}`);
                 console.log(`- User name: ${result.userName}`);
                 console.log(`- Total visits: ${result.totalVisits}`);
@@ -169,7 +165,7 @@ async function handleFaceRecognition(req, res) {
         processingStep = 'socket_notification';
         if (messageIo && result.isConfirmed && (result.isNewUser || result.needsIdentification)) {
             try {
-                console.log('Sending confirmed user notification to clients');
+                console.log('Sending batch confirmed user notification to clients');
                 messageIo.sockets.emit('user_detected', {
                     userId: result.userId,
                     userName: result.userName,
@@ -179,16 +175,6 @@ async function handleFaceRecognition(req, res) {
                 });
             } catch (socketError) {
                 console.error('Error sending socket notification:', socketError);
-            }
-        }
-
-        processingStep = 'debug_logging';
-        if (Math.random() < 0.05) {
-            try {
-                debugDatabase();
-                console.log('Detection session stats:', getDetectionSessionStats());
-            } catch (debugError) {
-                console.error('Error in debug logging:', debugError);
             }
         }
 
@@ -203,34 +189,29 @@ async function handleFaceRecognition(req, res) {
             timestamp: new Date().toISOString(),
             sessionId: sessionId,
             clientId: clientId,
-            message: responseMessage
+            message: responseMessage,
+            batchSize: req.files.length
         };
 
-        if (result.isPreliminary) {
-            response.isPreliminary = true;
-            response.detectionProgress = result.detectionProgress;
-            response.totalRequired = result.totalRequired;
-            response.message = responseMessage;
-        } else if (result.isUncertain) {
+        if (result.isUncertain) {
             response.isUncertain = true;
-            response.detectionProgress = result.detectionProgress;
-            response.totalRequired = result.totalRequired;
             response.consensusRatio = result.consensusRatio;
-            response.message = responseMessage;
+            response.detectionProgress = req.files.length;
+            response.totalRequired = req.files.length;
         } else if (result.isConfirmed) {
             response.isConfirmed = true;
             response.consensusRatio = result.consensusRatio;
-            response.confidence = result.distance ? (1 - Math.min(result.distance, 1)).toFixed(3) : null;
-            response.message = responseMessage;
+            response.confidence = result.confidence ? (result.confidence * 100).toFixed(1) + '%' : null;
+            response.avgDistance = result.distance ? result.distance.toFixed(3) : null;
         }
 
-        console.log('=== FACE RECOGNITION REQUEST SUCCESS ===');
-        console.log(`Processing time: ${processingTime}ms`);
+        console.log('=== BATCH FACE RECOGNITION SUCCESS ===');
+        console.log(`Processing time: ${processingTime}ms for ${req.files.length} images`);
         res.json(response);
 
     } catch (error) {
         const processingTime = Date.now() - startTime;
-        console.error('=== FACE RECOGNITION ERROR ===');
+        console.error('=== BATCH FACE RECOGNITION ERROR ===');
         console.error(`Error at step: ${processingStep}`);
         console.error('Error details:', {
             message: error.message,
@@ -239,16 +220,15 @@ async function handleFaceRecognition(req, res) {
         });
         console.error(`Failed after: ${processingTime}ms`);
         console.error('Request info:', {
-            hasFile: !!req.file,
-            fileSize: req.file?.size,
+            hasFiles: !!req.files,
+            filesCount: req.files?.length || 0,
             bodyKeys: Object.keys(req.body || {}),
             headers: req.headers
         });
-        console.error('==============================');
 
         if (!res.headersSent) {
             res.status(500).json({
-                error: 'Internal server error in face recognition.',
+                error: 'Internal server error in batch face recognition.',
                 step: processingStep,
                 details: process.env.NODE_ENV === 'development' ? error.message : 'Please check server logs',
                 processingTime: processingTime,
@@ -353,11 +333,11 @@ function handleDetectionStats(req, res) {
 }
 
 module.exports = {
-    handleFaceRecognition,
+    handleBatchFaceRecognition,
     handleListUsers,
     handleDebugDatabase,
     handleUpdateUserName,
     handleDetectionStats,
     setMessageSocketRef,
-    upload
+    uploadBatch
 };

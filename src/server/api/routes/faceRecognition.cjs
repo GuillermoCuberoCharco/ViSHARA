@@ -1,10 +1,10 @@
 const express = require('express');
-const { handleFaceRecognition, handleListUsers, handleDebugDatabase, handleUpdateUserName, handleDetectionStats, upload } = require('../controllers/faceRecognitionController.cjs');
+const { handleBatchFaceRecognition, handleListUsers, handleDebugDatabase, handleUpdateUserName, handleDetectionStats, uploadBatch } = require('../controllers/faceRecognitionController.cjs');
 
 const router = express.Router();
 
 function setupFaceRecognitionRoutes() {
-    router.post('/', upload.single('face'), handleFaceRecognition);
+    router.post('/', uploadBatch.array('faces', 10), handleBatchFaceRecognition);
     router.get('/users', handleListUsers);
     router.get('/debug', handleDebugDatabase);
     router.put('/user/name', handleUpdateUserName);

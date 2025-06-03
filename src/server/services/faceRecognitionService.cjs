@@ -116,7 +116,7 @@ function averageDescriptors(descriptors) {
     return averaged;
 }
 
-function isDescriptorValid(descriptor, existingDescriptors = []) {
+function isDescriptorValid(descriptor) {
     if (!descriptor || !Array.isArray(descriptor)) return false;
 
     if (descriptor.length !== 128) return false;
@@ -130,7 +130,7 @@ function isDescriptorValid(descriptor, existingDescriptors = []) {
 function getOrCreateDetectionSession(sessionId) {
     if (!detectionSessions.has(sessionId)) {
         detectionSessions.set(sessionId, {
-            detections: [],
+            descriptors: [],
             lastUpdated: Date.now(),
             confirmed: false
         });
@@ -151,104 +151,153 @@ function cleanupExpiredSessions() {
     }
 }
 
-function analyzeDetectionConsensus(detections) {
-    if (detections.length === 0) return null;
+function findBestMatchForDescriptor(descriptor, knownUserId = null) {
 
-    const userCounts = {};
-    let unkwnownUsersCount = 0;
-    let totalDetections = 0;
-
-    for (const detection of detections) {
-        const userId = detection.result.userId;
-        if (userId.startsWith('temp_user') || userId === 'unknown') {
-            unkwnownUsersCount++;
-        } else {
-            userCounts[userId] = (userCounts[userId] || 0) + 1;
-        }
-        totalDetections++;
-    }
-
-    if (unkwnownUsersCount > 0) userCounts['UNKNOWN_USER'] = unkwnownUsersCount;
-
-    let mostDetectedUser = null;
-    let highestCount = 0;
-
-    for (const [userId, count] of Object.entries(userCounts)) {
-        if (count > highestCount) {
-            highestCount = count;
-            mostDetectedUser = userId;
+    if (knownUserId && knownUserId !== 'unknown') {
+        const user = faceDatabase.users.find(u => u.userId === knownUserId);
+        if (user) {
+            const distance = calculateEuclideanDistance(descriptor, user.descriptor);
+            if (distance < EUCLIDEAN_DISTANCE_THRESHOLD) {
+                return {
+                    userId: knownUserId,
+                    userName: user.userName || 'unknown',
+                    distance: distance,
+                    confidence: 1 - Math.min(distance, 1),
+                    needsIdentification: !user.userName
+                };
+            }
         }
     }
 
-    const consensusRatio = highestCount / totalDetections;
+    let bestMatch = null;
+    let lowestDistance = Number.MAX_SAFE_INTEGER;
+
+    for (const user of faceDatabase.users) {
+        if (!user.descriptor || !isDescriptorValid(user.descriptor)) continue;
+
+        const distance = calculateEuclideanDistance(descriptor, user.descriptor);
+        if (distance < EUCLIDEAN_DISTANCE_THRESHOLD && distance < lowestDistance) {
+            bestMatch = user;
+            lowestDistance = distance;
+        }
+    }
+
+    if (bestMatch) {
+        return {
+            userId: bestMatch.userId,
+            userName: bestMatch.userName || 'unknown',
+            distance: lowestDistance,
+            needsIdentification: !bestMatch.userName,
+            totalVisits: bestMatch.metadata.visits
+        };
+    }
+
+    return {
+        userId: 'unknown',
+        userName: 'unknown',
+        distance: null,
+        confidence: 0,
+        needsIdentification: true
+    };
+}
+
+function analyzeDescriptorBatch(descriptors, knownUserId = null) {
+    console.log(`\n=== ANALYZING BATCH OF ${descriptors.length} DESCRIPTORS ===`);
+
+    const detectionResults = [];
+
+    descriptors.forEach((descriptor, index) => {
+        const result = findBestMatchForDescriptor(descriptor, knownUserId);
+        detectionResults.push(result);
+        console.log(`Descriptor ${index + 1}: ${result.userId} (distance: ${result.distance ? result.distance.toFixed(3) : 'N/A'})`);
+    });
+
+    const userVotes = {};
+    detectionResults.forEach(result => {
+        const userId = result.userId;
+        if (!userVotes[userId]) {
+            userVotes[userId] = { count: 0, results: [], avgDistance: 0 };
+        }
+        userVotes[userId].count++;
+        userVotes[userId].results.push(result);
+    });
+
+    Object.keys(userVotes).forEach(userId => {
+        const validDistances = userVotes[userId].results
+            .map(r => r.distance)
+            .filter(d => d !== null);
+
+        userVotes[userId].avgDistance = validDistances.length > 0
+            ? validDistances.reduce((sum, d) => sum + d, 0) / validDistances.length
+            : 0;
+    });
+
+    console.log('=== VOTE SUMMARY ===');
+    Object.entries(userVotes).forEach(([userId, vote]) => {
+        console.log(`User ${userId}: ${vote.count} votes, Avg Distance: ${vote.avgDistance.toFixed(3)}`);
+    });
+
+    let winnerUserId = null;
+    let maxVotes = 0;
+
+    Object.entries(userVotes).forEach(([userId, vote]) => {
+        if (vote.count > maxVotes) {
+            maxVotes = vote.count;
+            winnerUserId = userId;
+        }
+    });
+
+    const consensusRatio = maxVotes / descriptors.length;
     const hasConsensus = consensusRatio >= MIN_CONSENSUS_THRESHOLD;
+    console.log(`\n=== CONSENSUS ANALYSIS ===`);
+    console.log(`Winner: ${winnerUserId} with ${maxVotes}/${descriptors.length} votes (${(consensusRatio * 100).toFixed(1)}%)`);
+    console.log(`Consensus reached: ${hasConsensus} (required: ${(MIN_CONSENSUS_THRESHOLD * 100).toFixed(1)}%)`);
 
-    if (hasConsensus) {
-        if (mostDetectedUser === 'UNKNOWN_USER') {
-
-            const unknownDetections = detections.filter(d => d.result.userId.startsWith('temp_user') || d.result.userId === 'unknown');
-            if (unknownDetections.length === 0) {
-                console.error('No detections found for the most detected user:');
-                return null;
-            }
-            const newUserId = `temp_user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            return {
-                confirmedUserId: newUserId,
-                consensusRatio,
-                bestDetection: {
-                    userId: newUserId,
-                    userName: 'unknown',
-                    isNewUser: true,
-                    needsIdentification: true,
-                    distance: null
-                },
-                descriptorForAverage: unknownDetections.map(d => d.descriptor)
-            };
-        } else {
-
-            const detectionsForUser = detections.filter(d => d.result.userId === mostDetectedUser);
-            if (detectionsForUser.length === 0) {
-                console.error('No detections found for the most detected user:');
-                return null;
-            }
-            const bestDetection = detectionsForUser.reduce((best, current) => {
-                if (!best) return current;
-                const bestDistance = best.result.distance || Number.MAX_SAFE_INTEGER;
-                const currentDistance = current.result.distance || Number.MAX_SAFE_INTEGER;
-                return currentDistance < bestDistance ? current : best;
-            }, null);
-
-            return {
-                confirmedUserId: mostDetectedUser,
-                consensusRatio,
-                bestDetection: bestDetection.result,
-                descriptorForAverage: detections.filter(d => d.result.userId === mostDetectedUser).map(d => d.descriptor)
-            };
-        }
+    if (!hasConsensus) {
+        return {
+            isUncertain: true,
+            consensusRatio: consensusRatio,
+            userId: 'uncertain',
+            userName: 'unknown',
+            needsIdentification: true
+        };
     }
-    return null;
+
+    const winnerDescriptors = userVotes[winnerUserId].results.map((result, index) => {
+        const originalIndex = descriptors.findIndex(r => r === result);
+        return descriptors[originalIndex];
+    });
+
+    const winnerResult = userVotes[winnerUserId].results[0];
+
+    return {
+        isConfirmed: true,
+        consensusRatio: consensusRatio,
+        userId: winnerUserId,
+        userName: winnerResult.userName,
+        needsIdentification: winnerResult.needsIdentification,
+        distance: userVotes[winnerUserId].avgDistance,
+        confidence: winnerResult.confidence,
+        isNewUser: winnerUserId === 'unknown',
+        descriptorsForUpdate: winnerDescriptors,
+        totalVisits: winnerResult.totalVisits
+    };
 }
 
 async function extractFaceDescriptor(imageBuffer) {
     try {
-        console.log('Extracting face descriptor from image buffer...');
         if (!imageBuffer || imageBuffer.length === 0) {
             console.error('Invalid image buffer provided for face descriptor extraction.');
             return null;
         }
 
-        console.log(`Processing image buffer of size: ${imageBuffer.length} bytes`);
-
         const img = await canvas.loadImage(imageBuffer);
-
-        console.log(`Image loaded successfully: ${img.width}x${img.height}`);
-
         const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+
         if (!detections) {
             console.error('No face detected in the image.');
             return null;
         }
-        console.log('Face detected successfully.');
 
         const descriptor = Array.from(detections.descriptor);
         if (!isDescriptorValid(descriptor)) {
@@ -256,267 +305,156 @@ async function extractFaceDescriptor(imageBuffer) {
             return null;
         }
 
-        console.log(`Face descriptor extracted successfully: ${descriptor.length} dimensions`);
         return descriptor;
     } catch (error) {
-        console.error('Error extracting face descriptor:', {
-            message: error.message,
-            stack: error.stack,
-            bufferSize: imageBuffer?.length || 'undefined'
-        });
+        console.error('Error extracting face descriptor:', error);
         return null;
     }
 }
 
-async function recognizeFaceWithConfirmation(faceBuffer, sessionId, knownUserId = null) {
+async function recognizeFaceWithBatch(faceBuffers, sessionId, knownUserId = null) {
     try {
-        console.log('=== FACE RECOGNITION SERVICE START ===');
+        console.log('=== BATCH FACE RECOGNITION SERVICE START ===');
         console.log(`SessionId: ${sessionId}, KnownUserId: ${knownUserId || 'none'}`);
-        console.log(`Buffer size: ${faceBuffer?.length || 'undefined'} bytes`);
 
         if (!modelLoaded) await initFaceApi();
         if (!sessionId) return { error: 'Session ID is required.' };
+        if (!faceBuffers || faceBuffers.length === 0) return { error: 'No face buffers provided.' };
 
-        if (Math.random() < 0.1) {
-            console.log('Performing periodic cleanup of expired sessions...');
-            cleanupExpiredSessions();
+        const descriptors = [];
+        for (let i = 0; i < faceBuffers.length; i++) {
+            console.log(`Processing face buffer ${i + 1}/${faceBuffers.length}...`);
+            const descriptor = await extractFaceDescriptor(faceBuffers[i]);
+            if (descriptor) {
+                descriptors.push(descriptor);
+            } else {
+                console.warn(`No face detected in buffer ${i + 1}.`);
+            }
         }
 
-        console.log('Extracting face descriptor from the provided image buffer...');
-        const newDescriptor = await extractFaceDescriptor(faceBuffer);
-        if (!newDescriptor) return { error: 'No face detected in the image.' };
+        if (descriptors.length === 0) return { error: 'No valid face descriptors extracted from the provided images.' };
 
-        console.log('Performing single face detection...');
-        const detectionResult = await performSingleDetection(newDescriptor, knownUserId);
-        console.log('Single detection result:', {
-            userId: detectionResult.userId,
-            userName: detectionResult.userName,
-            isNewUser: detectionResult.isNewUser
-        });
+        console.log(`Successfully extracted ${descriptors.length} descriptors from ${faceBuffers.length} images`);
 
-        console.log('Updating detection session with new descriptor...');
-        const session = getOrCreateDetectionSession(sessionId);
+        const result = analyzeDescriptorBatch(descriptors, knownUserId);
 
-        if (!session.detections) session.detections = [];
-
-        session.detections.push({
-            descriptor: newDescriptor,
-            result: detectionResult,
-            timestamp: Date.now()
-        });
-
-        console.log(`Session ${sessionId} updated with new detection. Total detections: ${session.detections.length}`);
-
-        if (session.detections.length < CONFIRMATION_WINDOW_SIZE) {
+        if (result.isUncertain) {
+            console.log('=== UNCERTAIN RESULT ===');
             return {
-                ...detectionResult,
-                isPreliminary: true,
-                detectionProgress: session.detections.length,
-                totalRequired: CONFIRMATION_WINDOW_SIZE
+                ...result,
+                detectionProgress: descriptors.length,
+                totalRequired: CONFIRMATION_WINDOW_SIZE,
             };
         }
 
-        const consensus = analyzeDetectionConsensus(session.detections);
-
-        if (consensus) {
-            const confirmedResult = await confirmUserIdentity(
-                consensus.confirmedUserId,
-                consensus.descriptorForAverage,
-                consensus.bestDetection
+        if (result.isConfirmed) {
+            const confirmedResult = await confirmUserIdentityWithDescriptor(
+                result.userId,
+                result.descriptorsForUpdate,
+                result
             );
 
-            session.confirmed = true;
-
-            console.log('=== FACE RECOGNITION SERVICE SUCCESS ===');
+            console.log('=== BATCH FACE RECOGNITION SUCCESS ===');
             return {
                 ...confirmedResult,
                 isConfirmed: true,
-                consensusRatio: consensus.consensusRatio,
-                detectionProgress: session.detections.length,
+                consensusRatio: result.consensusRatio,
+                detectionProgress: descriptors.length,
                 totalRequired: CONFIRMATION_WINDOW_SIZE
             };
-        } else {
-            return {
-                userId: 'uncertain',
-                userName: 'unknown',
-                isNewUser: false,
-                needsIdentification: true,
-                isUncertain: true,
-                detectionProgress: session.detections.length,
-                totalRequired: CONFIRMATION_WINDOW_SIZE,
-                consensusRatio: 0
-            };
         }
+
+        return result;
+
     } catch (error) {
-        console.error('=== FACE RECOGNITION SERVICE ERROR ===');
-        console.error('Unexpected error in recognizeFaceWithConfirmation:', {
+        console.error('=== BATCH FACE RECOGNITION SERVICE ERROR ===');
+        console.error('Unexpected error in recognizeFaceWithBatch:', {
             message: error.message,
             stack: error.stack,
             sessionId,
             knownUserId,
-            bufferSize: faceBuffer?.length
+            bufferCount: faceBuffers?.length
         });
         console.error('============================================');
         return { error: 'Internal server error.' };
     }
 }
 
-async function performSingleDetection(newDescriptor, knownUserId) {
+async function confirmUserIdentityWithDescriptor(userId, descriptorsToUpdate, resultData) {
     try {
-        if (knownUserId && knownUserId !== 'unknown') {
-            console.log(`Checking known user ${knownUserId}...`);
-            const userIndex = faceDatabase.users.findIndex(u => u.userId === knownUserId);
+        console.log(`\n=== CONFIRMING USER IDENTITY ===`);
+        console.log(`UserId: ${userId}, Descriptors: ${descriptorsToUpdate.length}`);
 
-            if (userIndex >= 0) {
-                const user = faceDatabase.users[userIndex];
-                const distance = calculateEuclideanDistance(newDescriptor, user.descriptor);
-
-                if (distance < EUCLIDEAN_DISTANCE_THRESHOLD) {
-                    return {
-                        userId: knownUserId,
-                        userName: user.userName || 'unknown',
-                        isNewUser: false,
-                        distance: distance,
-                        needsIdentification: !user.userName
-                    };
-                }
-            }
-        }
-
-        console.log(`Searching among ${faceDatabase.users.length} existing users...`);
-        let bestMatch = null;
-        let lowestDistance = Number.MAX_SAFE_INTEGER;
-
-        for (const user of faceDatabase.users) {
-            if (!user.descriptor || !isDescriptorValid(user.descriptor)) continue;
-
-            const distance = calculateEuclideanDistance(newDescriptor, user.descriptor);
-
-            if (distance < EUCLIDEAN_DISTANCE_THRESHOLD && distance < lowestDistance) {
-                bestMatch = user;
-                lowestDistance = distance;
-            }
-        }
-
-        if (bestMatch) {
-            console.log(`Best match found: ${bestMatch.userId} with distance ${lowestDistance}`);
-            return {
-                userId: bestMatch.userId,
-                userName: bestMatch.userName || 'unknown',
-                isNewUser: false,
-                distance: lowestDistance,
-                totalVisits: bestMatch.metadata.visits,
-                needsIdentification: !bestMatch.userName
-            };
-        } else {
+        if (userId === 'unknown') {
             const newUserId = `user${faceDatabase.nextId++}`;
-
             const newUser = {
                 userId: newUserId,
                 userName: null,
-                descriptor: newDescriptor,
-                descriptorHistory: [newDescriptor],
+                descriptor: averageDescriptors(descriptorsToUpdate),
+                descriptorHistory: [...descriptorsToUpdate],
                 metadata: {
                     createdAt: new Date().toISOString(),
                     lastSeen: new Date().toISOString(),
                     visits: 1,
-                    isTemporary: false
+                    isTemporary: true
                 }
             };
 
             faceDatabase.users.push(newUser);
-            console.log(`New user ${newUserId} detected and added to database`);
+            console.log(`NEW USER CREATED: ${newUserId} with ${descriptorsToUpdate.length} descriptors`);
 
-            try {
-                await saveDatabaseToFile();
-            } catch (error) {
-                console.error('Failed to save database after creating new user:', saveError);
-                faceDatabase.users.pop();
-                faceDatabase.nextId--;
-                throw saveError;
-            }
-
+            await saveDatabaseToFile();
 
             return {
                 userId: newUserId,
                 userName: 'unknown',
                 isNewUser: true,
                 needsIdentification: true,
-                distance: null
+                distance: resultData.distance,
+                confidence: resultData.confidence
             };
-        }
-    } catch (error) {
-        console.error('Error performing single detection:', {
-            message: error.message,
-            stack: error.stack,
-            knownUserId,
-            descriptorLength: newDescriptor?.length
-        });
-        return { error: 'Internal server error in single detection.' };
-    }
-}
+        } else {
+            const userIndex = faceDatabase.users.findIndex(u => u.userId === userId);
 
-async function confirmUserIdentity(confirmedUserId, descriptors, bestDetectionResult) {
-    try {
-        if (!confirmedUserId) {
-            console.error('confirmedUserId is required');
-            return { error: 'User ID is required' };
-        }
+            if (userIndex >= 0) {
+                const user = faceDatabase.users[userIndex];
 
-        if (!descriptors || !Array.isArray(descriptors) || descriptors.length === 0) {
-            console.error('Valid descriptors array is required');
-            return { error: 'Valid descriptors required' };
-        }
+                if (!user.descriptorHistory) user.descriptorHistory = user.descriptor ? [user.descriptor] : [];
 
-        const userIndex = faceDatabase.users.findIndex(u => u.userId === confirmedUserId);
-
-        if (userIndex >= 0) {
-            const user = faceDatabase.users[userIndex];
-
-            if (!user.descriptorHistory || !Array.isArray(user.descriptorHistory)) {
-                user.descriptorHistory = user.descriptor ? [user.descriptor] : [];
-            }
-
-            const validDescriptors = descriptors.filter(desc =>
-                desc && Array.isArray(desc) && desc.length === 128
-            );
-
-            if (validDescriptors.length > 0) {
-                user.descriptorHistory.push(...validDescriptors);
-
+                user.descriptorHistory.push(...descriptorsToUpdate);
                 if (user.descriptorHistory.length > MAX_DESCRIPTOR_HISTORY) {
                     user.descriptorHistory = user.descriptorHistory.slice(-MAX_DESCRIPTOR_HISTORY);
                 }
 
                 user.descriptor = averageDescriptors(user.descriptorHistory);
-            }
+                user.metadata.lastSeen = new Date().toISOString();
+                user.metadata.visits = (user.metadata.visits || 0) + 1;
 
-            if (!user.metadata) {
-                user.metadata = {
-                    createdAt: new Date().toISOString(),
-                    visits: 1
+                console.log(`USER UPDATED: ${userId} with ${descriptorsToUpdate.length} new descriptors`);
+
+                await saveDatabaseToFile();
+
+                return {
+                    userId: userId,
+                    userName: user.userName || 'unknown',
+                    isNewUser: false,
+                    needsIdentification: !user.userName,
+                    distance: resultData.distance,
+                    confidence: resultData.confidence,
+                    totalVisits: user.metadata.visits
                 };
+            } else {
+                console.error(`User ${userId} not found in database.`);
+                return { error: 'User not found in the database.' };
             }
-
-            user.metadata.lastSeen = new Date().toISOString();
-            user.metadata.visits = (user.metadata.visits || 0) + 1;
-
-            await saveDatabaseToFile();
-
-            return {
-                userId: confirmedUserId,
-                userName: user.userName || 'unknown',
-                isNewUser: user.metadata.visits === 1,
-                distance: bestDetectionResult?.distance || null,
-                totalVisits: user.metadata.visits,
-                needsIdentification: !user.userName
-            };
-        } else {
-            console.error(`User ${confirmedUserId} not found in database`);
-            return { error: 'User not found in the database.' };
         }
     } catch (error) {
-        console.error('Error confirming user identity:', error);
+        console.error('Error confirming user identity with descriptor:', {
+            message: error.message,
+            stack: error.stack,
+            userId,
+            descriptorsCount: descriptorsToUpdate.length
+        });
         return { error: 'Internal server error confirming user identity.' };
     }
 }
@@ -527,34 +465,21 @@ async function updateUserName(userId, userName) {
 
         if (userIndex >= 0) {
             const user = faceDatabase.users[userIndex];
-
-            if (user.metadata.isTemporary) {
-                const newUserId = `user${faceDatabase.nextId++}`;
-                user.userId = newUserId;
-                user.metadata.isTemporary = false;
-            }
-
             user.userName = userName;
-            user.metadata.idetifiedAt = new Date().toISOString();
+            user.metadata.identifiedAt = new Date().toISOString();
             await saveDatabaseToFile();
+
             return {
                 success: true,
                 userId: user.userId,
-                userName: user.userName,
-                oldUserId: user.userId
+                userName: user.userName
             };
         }
 
-        return {
-            success: false,
-            error: 'User not found.'
-        };
+        return { success: false, error: 'User not found.' };
     } catch (error) {
         console.error('Error updating user name:', error);
-        return {
-            success: false,
-            error: 'Internal server error.'
-        };
+        return { success: false, error: 'Internal server error.' };
     }
 }
 
@@ -603,7 +528,7 @@ function getDetectionSessionStats() {
 })();
 
 module.exports = {
-    recognizeFaceWithConfirmation,
+    recognizeFaceWithBatch,
     listAllUsers,
     findUserByName,
     updateUserName,

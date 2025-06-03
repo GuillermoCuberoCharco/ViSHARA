@@ -14,9 +14,14 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const [isStreamReady, setIsStreamReady] = useState(false);
     const [isFaceDetected, setIsFaceDetected] = useState(false);
 
-    // FACE RECOGNITION REFFERENCES
+    // FACE RECOGNITION REFFERENCES WITH BATCH COLLECTION
+    const batchCollectionRef = useRef({
+        frames: [],
+        isCollecting: false,
+        sessionId: null,
+        currentUserId: null
+    });
     const canvasRef = useRef(document.createElement('canvas'));
-    const lastFaceSentRef = useRef(null);
     const currentUserIdRef = useRef(null);
     const lastRecognizedUserRef = useRef(null);
     const currentUserDataRef = useRef(null);
@@ -77,21 +82,28 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         return true;
     };
 
-    const sendFaceToServer = async (predictions) => {
+    const startBatchCollection = (predictions) => {
+        const batch = batchCollectionRef.current;
+
+        if (batch.isCollecting) return;
+
+        console.log('Starting batch collection for face recognition');
+        batch.isCollecting = true;
+        batch.frames = [];
+        batch.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        setDetectionStatus('collecting');
+        setDetectionProgress({ current: 0, total: 5 });
+
+        addFrameToBatch(predictions[0]);
+    };
+
+    const addFrameToBatch = async (face) => {
+        const batch = batchCollectionRef.current;
+        if (!batch.isCollecting || batch.frames.length >= 5) return;
+
         try {
-            const now = Date.now();
-            const sendInterval = currentUserIdRef.current ? 8000 : 3000;
-
-            if (now - lastFaceSentRef.current < sendInterval) return;
-
             const video = videoRef.current;
-            const face = predictions[0];
-
-            if (!isGoodQuality(face, video)) return;
-
-            lastFaceSentRef.current = now;
-            recognitionCountRef.current++;
-
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
 
@@ -114,67 +126,79 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             ctx.drawImage(video, cropStartX, cropStartY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(async (blob) => {
-                const formData = new FormData();
-                formData.append('face', blob, 'face.jpg');
-                formData.append('clientId', clientIdRef.current);
+                if (blob && batch.isCollecting) {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    batch.frames.push(new Uint8Array(arrayBuffer));
+                    const currentCount = batch.frames.length;
+                    console.log(`Frame added to batch: ${currentCount}/5`);
+                    setDetectionProgress({ current: currentCount, total: 5 });
 
-                if (currentUserIdRef.current && currentUserIdRef.current === lastRecognizedUserRef.current) {
-                    formData.append('userId', currentUserIdRef.current);
-                }
-
-                try {
-                    const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'X-Client-Id': clientIdRef.current
-                        },
-                        timeout: 10000
-                    });
-
-                    if (response.data) {
-                        handleRecognitionResponse(response.data);
-                    }
-                } catch (error) {
-                    console.error('Error sending face to server:', error);
-                    if (error.response?.status >= 500) {
-                        setDetectionStatus('idle');
-                        setDetectionProgress({ current: 0, total: 5 });
-                    }
+                    if (currentCount >= 5) await processBatch();
                 }
             }, 'image/jpeg', 0.98);
-
         } catch (error) {
-            console.error('Error sending face to server:', error);
+            console.error('Error adding frame to batch:', error);
+        }
+    };
+
+    const processBatch = async () => {
+        const batch = batchCollectionRef.current;
+
+        if (!batch.isCollecting || batch.frames.length < 5) return;
+
+        try {
+            console.log('Processing batch of 5 frames...');
+            setDetectionStatus('processing');
+
+            const formData = new FormData();
+
+            batch.frames.forEach((frameBuffer, index) => {
+                const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
+                formData.append('faces', blob, `face_${index}.jpg`);
+            });
+
+            formData.append('clientId', clientIdRef.current);
+            formData.append('sessionId', batch.sessionId);
+
+            if (currentUserIdRef.current) formData.append('userId', currentUserIdRef.current);
+
+            const response = await axios.post(`${SERVER_URL}/api/recognize-face`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-Client-Id': clientIdRef.current
+                },
+                timeout: 15000
+            });
+
+            if (response.data) handleBatchRecognitionResponse(response.data);
+        } catch (error) {
+            console.error('Error processing batch:', error);
+            resetBatchCollection();
             setDetectionStatus('idle');
         }
     };
 
-    const handleRecognitionResponse = (data) => {
-        console.log('Face recognition response:', data);
+    const handleBatchRecognitionResponse = (data) => {
+        console.log('Batch recognition response:', data);
 
-        if (data.isPreliminary) {
-            setDetectionStatus('collecting');
-            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
-            console.log(`Collecting data: ${data.detectionProgress}/${data.totalRequired}`);
+        const batch = batchCollectionRef.current;
 
-        } else if (data.isUncertain) {
+        if (data.isUncertain) {
             setDetectionStatus('uncertain');
-            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
             setConsensusInfo({
-                message: 'No clear consensus - continuing to collect data.',
-                ration: data.consensusRatio || 0
+                message: `No clear consensus reached (${(data.consensusRatio * 100).toFixed(1)}% agreement)`,
+                ratio: data.consensusRatio
             });
-            console.log(`Uncertain recognition - no consensus reached: ${data.detectionProgress}/${data.totalRequired}`);
+            console.log('Uncertain recognition result:', data);
 
         } else if (data.isConfirmed) {
             setDetectionStatus('confirmed');
-            setDetectionProgress({ current: data.detectionProgress || 0, total: data.totalRequired || 5 });
             setConsensusInfo({
                 message: `Confirmed with ${(data.consensusRatio * 100).toFixed(1)}% consensus`,
-                ratio: data.consensusRatio || 1
+                ratio: data.consensusRatio
             });
 
-            const previusUserId = currentUserIdRef.current;
+            const previousUserId = currentUserIdRef.current;
             currentUserIdRef.current = data.userId;
             lastRecognizedUserRef.current = data.userId;
 
@@ -183,30 +207,39 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                 userName: data.userName,
                 isNewUser: data.isNewUser,
                 needsIdentification: data.needsIdentification,
-                userStatus: data.userStatus
+                userStatus: data.userStatus || 'confirmed'
             };
 
-            if (previusUserId !== data.userId || data.needsIdentification) {
-                console.log('Notofying message system about confirmed user detection:', data);
+            if (previousUserId !== data.userId || data.needsIdentification) {
+                console.log('New user recognized:', currentUserDataRef.current);
 
                 emit('user_detected', {
                     userId: data.userId,
                     userName: data.userName,
                     isNewUser: data.isNewUser,
                     needsIdentification: data.needsIdentification,
-                    userStatus: data.userStatus,
+                    userStatus: data.userStatus || 'confirmed',
                     consensusRatio: data.consensusRatio
                 });
             }
 
             if (data.isNewUser) {
-                console.log(`New user confirmed: ${data.userName} (ID: ${data.userId})`);
+                console.log(`🆕 New user confirmed: ${data.userName} (ID: ${data.userId})`);
             } else if (data.needsIdentification) {
-                console.log(`User needs identification: (ID: ${data.userId})`);
+                console.log(`❓ User needs identification: (ID: ${data.userId})`);
             } else {
-                console.log(`User confirmed: ${data.userName} (ID: ${data.userId})`);
+                console.log(`✅ User confirmed: ${data.userName} (ID: ${data.userId})`);
             }
         }
+
+        resetBatchCollection();
+    };
+
+    const resetBatchCollection = () => {
+        const batch = batchCollectionRef.current;
+        batch.isCollecting = false;
+        batch.frames = [];
+        batch.sessionId = null;
     };
 
     const resetDetectionState = () => {
@@ -276,7 +309,12 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                         onFaceDetected();
                     }
                     if (isFaceDetected) {
-                        await sendFaceToServer(predictions);
+                        const batch = batchCollectionRef.current;
+                        if (!batch.isCollecting && detectionStatus === 'idle') {
+                            startBatchCollection(predictions);
+                        } else if (batch.isCollecting && batch.frames.length < 5) {
+                            addFrameToBatch(predictions[0]);
+                        }
                     }
                 } else {
                     consecutiveDetectionsRef.current = 0;
@@ -308,14 +346,14 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
             }
         };
 
-        detectionRef.current = setInterval(detectFace, 1500);
+        detectionRef.current = setInterval(detectFace, 2000);
 
         return () => {
             if (detectionRef.current) {
                 clearInterval(detectionRef.current);
             }
         };
-    }, [isModelLoaded, stream, onFaceDetected, onFaceLost, isStreamReady, isFaceDetected, emit]);
+    }, [isModelLoaded, stream, onFaceDetected, onFaceLost, isStreamReady, isFaceDetected, emit, detectionStatus]);
 
     return (
         <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
