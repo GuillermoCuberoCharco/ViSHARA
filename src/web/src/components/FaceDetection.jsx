@@ -334,6 +334,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                                     });
                                 }
                                 resetDetectionState();
+                                resetBatchCollection();
                             }
                         }, 3000);
                     }
