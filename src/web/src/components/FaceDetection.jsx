@@ -181,8 +181,6 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
     const handleBatchRecognitionResponse = (data) => {
         console.log('Batch recognition response:', data);
 
-        const batch = batchCollectionRef.current;
-
         if (data.isUncertain) {
             setDetectionStatus('uncertain');
             setConsensusInfo({
@@ -233,6 +231,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
 
         resetBatchCollection();
+        resetDetectionState();
     };
 
     const resetBatchCollection = () => {
@@ -334,7 +333,6 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                                     });
                                 }
                                 resetDetectionState();
-                                resetBatchCollection();
                             }
                         }, 3000);
                     }
