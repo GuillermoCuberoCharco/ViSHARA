@@ -11,11 +11,6 @@ const uploadBatch = multer({
         files: 10 // Máximo 10 archivos por lote
     },
     fileFilter: (req, file, cb) => {
-        console.log('Batch fileFilter:', {
-            fieldname: file.fieldname,
-            originalname: file.originalname,
-            mimetype: file.mimetype
-        });
 
         if (!file.mimetype.startsWith('image/')) {
             console.error('Invalid file type in batch:', file.mimetype);
