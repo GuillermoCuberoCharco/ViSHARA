@@ -230,7 +230,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
         }
 
         resetBatchCollection();
-        resetDetectionState();
+
     };
 
     const resetBatchCollection = () => {
@@ -322,6 +322,7 @@ const FaceDetection = ({ onFaceDetected, onFaceLost, stream }) => {
                     if (isFaceDetected && consecutiveLossesRef.current >= 3 && timeSinceLastDetection > 10000) {
                         console.log('Face confirmed lost after', consecutiveLossesRef.current, 'losses and ', timeSinceLastDetection, 'ms')
                         setIsFaceDetected(false);
+                        resetDetectionState();
                         onFaceLost();
 
                         setTimeout(() => {
