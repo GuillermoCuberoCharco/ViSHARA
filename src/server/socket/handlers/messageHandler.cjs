@@ -1,7 +1,6 @@
 const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
-const { updateUserName, findUserByName } = require('../../services/faceRecognitionService.cjs');
-const { listAllUsers } = require('../../services/faceRecognitionService.cjs');
-const { startNewSession, addMessage, getConversationContext, endCurrentSession, getUserConversationHistory } = require('../../services/conversationService.cjs');
+const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
+const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();

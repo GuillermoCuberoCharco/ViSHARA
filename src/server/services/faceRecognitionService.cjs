@@ -16,7 +16,6 @@ const MAX_DESCRIPTOR_HISTORY = 5;
 
 const CONFIRMATION_WINDOW_SIZE = 5;
 const MIN_CONSENSUS_THRESHOLD = 0.6; // 3 de 5 frames
-const SESSION_TIMEOUT = 30000;
 
 const faceDatabase = {
     nextId: 1,
