@@ -52,9 +52,6 @@ async function transcribeAudio(audioContent, socketId = null) {
         .map(result => result.alternatives[0].transcript)
         .join('\n');
 
-    console.log('Transcription result:', transcription);
-    console.log('Socket ID:', socketId);
-    console.log('Message IO:', messageIo);
     if (socketId && messageIo && transcription.trim()) {
         console.log('Sending transcription result as client:', transcription);
         const messageObject = {

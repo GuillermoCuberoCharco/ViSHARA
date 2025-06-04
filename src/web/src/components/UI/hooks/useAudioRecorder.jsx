@@ -145,8 +145,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
 
-                console.log('socketId:', socket?.id);
-
                 const response = await axios.post(`${SERVER_URL}/api/transcribe`, {
                     audio: base64Audio,
                     socketId: socket?.id
