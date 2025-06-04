@@ -3,12 +3,13 @@ const { transcribeAudio } = require('../../services/googleSTT.cjs');
 async function handleTranscribe(req, res) {
     try {
         const audio = req.body.audio;
+        const socketId = req.body.socketId;
 
         if (!audio) {
             return res.status(400).json({ error: 'No audio provided' });
         }
 
-        const transcription = await transcribeAudio(audio);
+        const transcription = await transcribeAudio(audio, socketId);
 
         if (!transcription || transcription.trim() === '') {
             return res.status(200).json('');

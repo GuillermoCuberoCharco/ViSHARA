@@ -21,7 +21,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
-    const sendingTranscriptionRef = useRef(false);
 
     // Audio hooks and handlers
     const {
@@ -73,6 +72,15 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
         }
     };
+
+    const handleTranscriptionResult = useCallback((data) => {
+        console.log('Received transcription result:', data);
+        if (data.processed && data.text?.trim()) {
+            setMessages(prev => [...prev, { text: data.text, sender: 'client' }]);
+            setIsWaitingResponse(true);
+            setTimeout(scrollToBottom, 100);
+        }
+    }, [setMessages, setIsWaitingResponse]);
 
     const handleFaceDetected = () => {
         setFaceDetected(true);
@@ -135,17 +143,21 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.off('robot_message');
             socket.off('wizard_message');
             socket.off('client_message');
+            socket.off('transcription_result');
+
             socket.on('robot_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
+            socket.on('transcription_result', handleTranscriptionResult);
 
             return () => {
                 socket.off('robot_message');
                 socket.off('wizard_message');
                 socket.off('client_message');
+                socket.off('transcription_result');
             };
         }
-    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
+    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
 
     useEffect(() => {
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
@@ -157,27 +169,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
 
     }, [isWaitingResponse, isRecording, isSpeaking, faceDetected, startRecording]);
-
-    useEffect(() => {
-        // No intentes quitar este useEffect o el timer del useEffect
-        if (transcribedText && isConnected && !sendingTranscriptionRef.current) {
-            sendingTranscriptionRef.current = true;
-            console.log("Sending Transcription:", transcribedText);
-            setMessages(prev => [...prev, { text: transcribedText, sender: 'client' }]);
-            const messageObject = {
-                type: "client_message",
-                text: transcribedText,
-                proactive_question: "Ninguna",
-                username: "Desconocido"
-            };
-            const success = emit('client_message', messageObject);
-            setNewMessage('');
-            setIsWaitingResponse(success);
-            setTimeout(() => {
-                sendingTranscriptionRef.current = false;
-            }, 2000)
-        }
-    }, [transcribedText, isConnected, emit]);
 
     return (
         <div className="chat-wrapper">

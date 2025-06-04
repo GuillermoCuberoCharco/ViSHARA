@@ -3,7 +3,7 @@ export const AUDIO_SETTINGS = {
     mimeType: 'audio/webm;codecs=opus',
     bufferSize: 2048,
     sampleRate: 44100,
-    silenceThreshold: 40,
+    silenceThreshold: 80,
     silenceDuration: 2000,
     maxRecordingTime: 40000,
     audioBitsPerSecond: 16000

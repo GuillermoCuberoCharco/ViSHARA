@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AUDIO_SETTINGS, SERVER_URL } from '../../../config';
+import { useWebSocketContext } from '../../../contexts/WebSocketContext';
 
 const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -20,6 +21,8 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const isWaitingResponseRef = useRef(isWaitingResponse);
     const isTranscribingRef = useRef(false);
 
+    const { socket, id: socketId } = useWebSocketContext();
+
     useEffect(() => {
         isWaitingResponseRef.current = isWaitingResponse;
 
@@ -28,6 +31,27 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             stopRecording();
         }
     }, [isWaitingResponse])
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleTranscriptionResult = (data) => {
+            console.log('Received transcription result:', data);
+
+            if (data.processed && data.text) {
+                setTranscribedText(data.text);
+                if (onTranscriptionComplete) {
+                    onTranscriptionComplete(data.text);
+                }
+            }
+        };
+
+        socket.on('transcription_result', handleTranscriptionResult);
+
+        return () => {
+            socket.off('transcription_result', handleTranscriptionResult);
+        };
+    }, [socket, onTranscriptionComplete]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecordingRef.current) {
@@ -141,15 +165,15 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
-                const response = await axios.post(`${SERVER_URL}/api/transcribe`, { audio: base64Audio });
+
+                const response = await axios.post(`${SERVER_URL}/api/transcribe`, {
+                    audio: base64Audio,
+                    socketId: socketId
+                });
+
                 console.log('Audio sended to server for transcription');
-                if (response.data) {
-                    setTranscribedText(response.data);
-                    if (onTranscriptionComplete) {
-                        onTranscriptionComplete(response.data);
-                        console.log('Transcription completed:', response.data);
-                    }
-                }
+                setTranscribedText(response.data);
+
             };
         } catch (error) {
             console.error('Error transcribing audio:', error);
