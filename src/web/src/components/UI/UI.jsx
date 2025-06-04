@@ -67,17 +67,17 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setIsWaitingResponse(false);
     }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
-    const handleClientMessage = (message) => {
-        if (message.text?.trim()) {
-            setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
-        }
-    };
+    // const handleClientMessage = (message) => {
+    //     if (message.text?.trim()) {
+    //         setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
+    //     }
+    // };
 
     const handleTranscriptionResult = useCallback((data) => {
         console.log('Received transcription result:', data);
         if (data.processed && data.text?.trim()) {
             setMessages(prev => [...prev, { text: data.text, sender: 'client' }]);
-            setIsWaitingResponse(data.processed);
+            setIsWaitingResponse(true);
             setTimeout(scrollToBottom, 100);
         }
     }, [setMessages, setIsWaitingResponse]);
@@ -143,21 +143,21 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.off('robot_message');
             socket.off('wizard_message');
             socket.off('client_message');
-            socket.off('transcription_result');
+            // socket.off('transcription_result');
 
             socket.on('robot_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
-            socket.on('client_message', handleClientMessage);
+            // socket.on('client_message', handleClientMessage);
             socket.on('transcription_result', handleTranscriptionResult);
 
             return () => {
                 socket.off('robot_message');
                 socket.off('wizard_message');
-                socket.off('client_message');
+                // socket.off('client_message');
                 socket.off('transcription_result');
             };
         }
-    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
+    }, [socket, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
 
     useEffect(() => {
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {

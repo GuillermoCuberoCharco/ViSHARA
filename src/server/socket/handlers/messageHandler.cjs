@@ -5,6 +5,104 @@ const { startNewSession, addMessage, getConversationContext, endCurrentSession }
 const pendingIdentifications = new Map();
 const userSessions = new Map();
 
+async function processClientMessage(inputText, socketId, io, customSocket = null) {
+    try {
+        if (!inputText || !inputText.trim()) {
+            console.log('Empty message received');
+            return;
+        }
+
+        console.log('Processing message:', inputText);
+
+        const session = userSessions.get(socketId) || {};
+        const currentUserId = session.currentUserId;
+
+        if (currentUserId) {
+            await addMessage(currentUserId, 'user', inputText, {
+                socketId: socketId,
+                messageType: 'client_message'
+            });
+        }
+
+        let context = {
+            username: 'Desconocido',
+            proactive_question: 'Ninguna',
+        };
+
+        const pending = currentUserId ? pendingIdentifications.get(currentUserId) : null;
+        if (pending && pending.waitingForName) {
+            const result = await processNameResponse(inputText, currentUserId, customSocket || io.sockets.sockets.get(socketId));
+            if (result.success) {
+                context.username = result.userName;
+                context.proactive_question = 'who_are_you_response';
+
+                pendingIdentifications.delete(currentUserId);
+
+                if (result.newUserId) {
+                    session.currentUserId = result.newUserId;
+                }
+
+                session.currentUserName = result.userName;
+                userSessions.set(socketId, session);
+
+                console.log(`Session updated: user ${session.currentUserId} now identified as ${result.userName}`);
+
+                if (currentUserId) {
+                    await addMessage(currentUserId, 'user', inputText, {
+                        messageType: 'identification_response',
+                        extractedName: result.userName
+                    });
+                }
+            } else {
+                context.proactive_question = 'who_are_you';
+            }
+        } else if (currentUserId && context.username === 'Desconocido') {
+            const userInfo = await getUserInfo(currentUserId);
+            if (userInfo && userInfo.userName && userInfo.userName !== 'unknown') {
+                context.username = userInfo.userName;
+            }
+        }
+
+        let conversationHistory = [];
+        if (currentUserId) conversationHistory = getConversationContext(currentUserId, 15);
+
+        console.log('Processing message with context:', context);
+        console.log('Conversation history loaded:', conversationHistory.length, 'messages');
+
+        const response = await getOpenAIResponse(inputText, context, conversationHistory);
+
+        if (response.text?.trim()) {
+            console.log('Sending robot response:', response);
+
+            if (currentUserId) {
+                await addMessage(currentUserId, 'assistant', response.text, {
+                    mood: response.robot_mood,
+                    messageType: 'robot_response'
+                });
+            }
+
+            const targetSocket = customSocket || io.sockets.sockets.get(socketId);
+            if (targetSocket) {
+                targetSocket.emit('robot_message', {
+                    text: response.text,
+                    state: response.robot_mood
+                });
+            }
+
+            io.emit('openai_message', {
+                text: response.text,
+                state: response.robot_mood
+            });
+        }
+    } catch (error) {
+        console.error('Error processing message:', error);
+        const targetSocket = customSocket || io.sockets.sockets.get(socketId);
+        if (targetSocket) {
+            targetSocket.emit('error', { message: 'Error processing message' });
+        }
+    }
+}
+
 function setupMessageHandlers(io) {
     io.on('connection', (socket) => {
         console.log('Client connected to message socket');
@@ -132,86 +230,9 @@ function setupMessageHandlers(io) {
         socket.on('client_message', async (message) => {
             try {
                 const parsed = typeof message === 'string' ? JSON.parse(message) : message;
-                const inputText = parsed.text?.trim() || "";
+                const inputText = parsed.text?.trim();
 
-                if (!inputText) {
-                    console.log('Empty message received');
-                    return;
-                }
-                console.log('Received message:', inputText);
-
-                const session = userSessions.get(socket.id) || {};
-                const currentUserId = session.currentUserId;
-
-                if (currentUserId) {
-                    await addMessage(currentUserId, 'user', inputText, {
-                        socketId: socket.id,
-                        messageType: 'client_message'
-                    });
-                }
-
-                let context = {
-                    username: parsed.username || 'Desconocido',
-                    proactive_question: parsed.proactive_question || 'Ninguna',
-                };
-
-                const pending = currentUserId ? pendingIdentifications.get(currentUserId) : null;
-                if (pending && pending.waitingForName) {
-                    const result = await processNameResponse(inputText, currentUserId, socket);
-                    if (result.success) {
-                        context.username = result.userName;
-                        context.proactive_question = 'who_are_you_response';
-
-                        pendingIdentifications.delete(currentUserId);
-
-                        if (result.newUserId) {
-                            session.currentUserId = result.newUserId;
-                        }
-
-                        session.currentUserName = result.userName;
-                        userSessions.set(socket.id, session);
-
-                        console.log(`Session updated: user ${session.currentUserId} now identified as ${result.userName}`);
-
-                        if (currentUserId) {
-                            await addMessage(currentUserId, 'user', inputText, {
-                                messageType: 'identification_response',
-                                extractedName: result.userName
-                            });
-                        }
-                    } else {
-                        context.proactive_question = 'who_are_you';
-                    }
-                } else if (currentUserId && context.username === 'Desconocido') {
-                    const userInfo = await getUserInfo(currentUserId);
-                    if (userInfo && userInfo.userName && userInfo.userName !== 'unknown') {
-                        context.username = userInfo.userName;
-                    }
-                }
-
-                let conversationHistory = [];
-                if (currentUserId) conversationHistory = getConversationContext(currentUserId, 15);
-
-                console.log('Processing message with context:', context);
-                console.log('Conversation history loaded:', conversationHistory.length, 'messages');
-
-                const response = await getOpenAIResponse(inputText, context, conversationHistory);
-
-                if (response.text?.trim()) {
-                    console.log('Sending robot response:', response);
-
-                    if (currentUserId) await addMessage(currentUserId, 'assistant', response.text, { mood: response.robot_mood, messageType: 'robot_response' });
-
-                    socket.emit('robot_message', {
-                        text: response.text,
-                        state: response.robot_mood
-                    });
-
-                    socket.broadcast.emit('openai_message', {
-                        text: response.text,
-                        state: response.robot_mood
-                    });
-                }
+                await processClientMessage(inputText, socket.id, io, socket);
             } catch (error) {
                 console.error('Error processing message:', error);
                 socket.emit('error', { message: 'Error processing message' });
@@ -376,4 +397,4 @@ async function getUserInfo(userId) {
     }
 }
 
-module.exports = { setupMessageHandlers };
+module.exports = { setupMessageHandlers, processClientMessage };

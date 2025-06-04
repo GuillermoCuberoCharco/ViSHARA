@@ -152,12 +152,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
                 console.log('Audio sended to server for transcription');
 
-                if (response.processed && response.text) {
-                    setTranscribedText(response.text);
-                    if (onTranscriptionComplete) {
-                        onTranscriptionComplete(response.text);
-                    }
-                }
             };
         } catch (error) {
             console.error('Error transcribing audio:', error);

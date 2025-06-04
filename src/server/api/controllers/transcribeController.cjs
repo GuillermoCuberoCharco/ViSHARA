@@ -12,10 +12,16 @@ async function handleTranscribe(req, res) {
         const transcription = await transcribeAudio(audio, socketId);
 
         if (!transcription || transcription.trim() === '') {
-            return res.status(200).json('');
+            return res.status(200).json({
+                text: '',
+                processed: false
+            });
         }
 
-        res.status(200).json(transcription);
+        res.status(200).json({
+            text: transcription,
+            processed: true
+        });
     } catch (error) {
         console.error('Error transcribing audio:', error);
         res.status(500).json({ error: 'Error transcribing audio' });

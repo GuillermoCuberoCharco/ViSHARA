@@ -1,6 +1,7 @@
 // Imports the Google Cloud client library
 const speech = require('@google-cloud/speech');
 const config = require('../config/environment.cjs')
+const { processClientMessage } = require('../socket/handlers/messageHandler.cjs');
 
 let client;
 let messageIo = null;
@@ -54,17 +55,14 @@ async function transcribeAudio(audioContent, socketId = null) {
 
     if (socketId && messageIo && transcription.trim()) {
         console.log('Sending transcription result as client:', transcription);
-        const messageObject = {
-            type: 'client_message',
-            text: transcription,
-            proactive_question: "Ninguna",
-            username: "Desconocido"
-        };
+
         messageIo.to(socketId).emit('transcription_result', {
             text: transcription,
             processed: true
         });
-        messageIo.to(socketId).emit('client_message', messageObject);
+
+        await processClientMessage(transcription, socketId, messageIo);
+        console.log('Transcription processed and sent to client:');
     }
 
     return transcription;
