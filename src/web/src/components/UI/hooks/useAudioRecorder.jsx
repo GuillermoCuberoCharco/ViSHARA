@@ -21,7 +21,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const isWaitingResponseRef = useRef(isWaitingResponse);
     const isTranscribingRef = useRef(false);
 
-    const { socket, id: socketId } = useWebSocketContext();
+    const { id: socketId } = useWebSocketContext();
 
     useEffect(() => {
         isWaitingResponseRef.current = isWaitingResponse;
@@ -31,27 +31,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             stopRecording();
         }
     }, [isWaitingResponse])
-
-    useEffect(() => {
-        if (!socket) return;
-
-        const handleTranscriptionResult = (data) => {
-            console.log('Received transcription result:', data);
-
-            if (data.processed && data.text) {
-                setTranscribedText(data.text);
-                if (onTranscriptionComplete) {
-                    onTranscriptionComplete(data.text);
-                }
-            }
-        };
-
-        socket.on('transcription_result', handleTranscriptionResult);
-
-        return () => {
-            socket.off('transcription_result', handleTranscriptionResult);
-        };
-    }, [socket, onTranscriptionComplete]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecordingRef.current) {
@@ -172,8 +151,13 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 });
 
                 console.log('Audio sended to server for transcription');
-                setTranscribedText(response.data);
 
+                if (response.processed && response.text) {
+                    setTranscribedText(response.text);
+                    if (onTranscriptionComplete) {
+                        onTranscriptionComplete(response.text);
+                    }
+                }
             };
         } catch (error) {
             console.error('Error transcribing audio:', error);

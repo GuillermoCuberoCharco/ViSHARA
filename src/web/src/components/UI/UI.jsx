@@ -77,7 +77,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         console.log('Received transcription result:', data);
         if (data.processed && data.text?.trim()) {
             setMessages(prev => [...prev, { text: data.text, sender: 'client' }]);
-            setIsWaitingResponse(true);
+            setIsWaitingResponse(data.processed);
             setTimeout(scrollToBottom, 100);
         }
     }, [setMessages, setIsWaitingResponse]);
