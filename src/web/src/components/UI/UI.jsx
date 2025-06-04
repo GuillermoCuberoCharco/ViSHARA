@@ -67,11 +67,11 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         setIsWaitingResponse(false);
     }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
-    // const handleClientMessage = (message) => {
-    //     if (message.text?.trim()) {
-    //         setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
-    //     }
-    // };
+    const handleClientMessage = (message) => {
+        if (message.text?.trim()) {
+            setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
+        }
+    };
 
     const handleTranscriptionResult = useCallback((data) => {
         console.log('Received transcription result:', data);
@@ -143,11 +143,11 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.off('robot_message');
             socket.off('wizard_message');
             socket.off('client_message');
-            // socket.off('transcription_result');
+            socket.off('transcription_result');
 
             socket.on('robot_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
-            // socket.on('client_message', handleClientMessage);
+            socket.on('client_message', handleClientMessage);
             socket.on('transcription_result', handleTranscriptionResult);
 
             return () => {
@@ -157,7 +157,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                 socket.off('transcription_result');
             };
         }
-    }, [socket, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
+    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
 
     useEffect(() => {
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
