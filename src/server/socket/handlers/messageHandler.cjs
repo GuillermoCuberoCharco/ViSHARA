@@ -21,6 +21,7 @@ function setupMessageHandlers(io) {
 
         socket.on('user_detected', async (userData) => {
             console.log('User detected:', userData);
+            const shouldGreet = false;
 
             let session = userSessions.get(socket.id);
             const previousUserId = session?.currentUserId;
@@ -81,7 +82,7 @@ function setupMessageHandlers(io) {
                 console.log(`User ${userData.userId} already identified as ${userData.userName}`);
                 const now = Date.now();
                 const GREETING_COOLDOWN = 10 * 60 * 1000; // 10 minutes
-                const shouldGreet = false;
+                shouldGreet = false;
 
                 if (userData.userId !== previousUserId) {
                     shouldGreet = true;
