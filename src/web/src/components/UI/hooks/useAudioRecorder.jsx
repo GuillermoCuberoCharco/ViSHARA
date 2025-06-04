@@ -21,7 +21,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const isWaitingResponseRef = useRef(isWaitingResponse);
     const isTranscribingRef = useRef(false);
 
-    const { id: socketId } = useWebSocketContext();
+    const { socket } = useWebSocketContext();
 
     useEffect(() => {
         isWaitingResponseRef.current = isWaitingResponse;
@@ -145,9 +145,11 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
 
+                console.log('socketId:', socket?.id);
+
                 const response = await axios.post(`${SERVER_URL}/api/transcribe`, {
                     audio: base64Audio,
-                    socketId: socketId
+                    socketId: socket?.id
                 });
 
                 console.log('Audio sended to server for transcription');
