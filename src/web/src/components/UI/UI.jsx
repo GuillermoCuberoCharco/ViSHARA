@@ -73,16 +73,6 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         }
     };
 
-    const handleTranscriptionResult = useCallback((data) => {
-        console.log('Received transcription result:', data);
-        if (data.processed && data.text?.trim()) {
-
-            setMessages(prev => [...prev, { text: data.text, sender: 'client' }]);
-            setIsWaitingResponse(true);
-            setTimeout(scrollToBottom, 100);
-        }
-    }, [setMessages, setIsWaitingResponse]);
-
     const handleFaceDetected = () => {
         setFaceDetected(true);
         if (!isRecording && !isWaitingResponse && !isSpeaking) {
@@ -158,7 +148,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                 socket.off('transcription_result');
             };
         }
-    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage, handleTranscriptionResult]);
+    }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
     useEffect(() => {
         if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {

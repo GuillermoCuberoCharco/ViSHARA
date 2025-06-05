@@ -68,16 +68,6 @@ async function handleBatchFaceRecognition(req, res) {
             return res.status(400).json({ error: 'No face images provided in batch.' });
         }
 
-        console.log(`Batch received: ${req.files.length} files`);
-        req.files.forEach((file, index) => {
-            console.log(`File ${index + 1}:`, {
-                fieldname: file.fieldname,
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                size: file.size
-            });
-        });
-
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             if (!file.buffer || file.buffer.length === 0) {
