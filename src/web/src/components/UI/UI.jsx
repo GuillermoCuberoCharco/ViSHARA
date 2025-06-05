@@ -76,6 +76,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     const handleTranscriptionResult = useCallback((data) => {
         console.log('Received transcription result:', data);
         if (data.processed && data.text?.trim()) {
+
             setMessages(prev => [...prev, { text: data.text, sender: 'client' }]);
             setIsWaitingResponse(true);
             setTimeout(scrollToBottom, 100);

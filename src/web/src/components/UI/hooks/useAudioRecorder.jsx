@@ -21,7 +21,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const isWaitingResponseRef = useRef(isWaitingResponse);
     const isTranscribingRef = useRef(false);
 
-    const { socket } = useWebSocketContext();
+    const { socket, emit } = useWebSocketContext();
 
     useEffect(() => {
         isWaitingResponseRef.current = isWaitingResponse;
@@ -146,11 +146,13 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 const base64Audio = reader.result.split(',')[1];
 
                 if (socket && socket.connected) {
-                    socket.emit('client_message', {
+                    const messageObject = {
                         type: 'audio',
                         data: base64Audio,
                         socketId: socket.id
-                    });
+                    };
+                    emit('client_message', messageObject);
+
                     console.log('Audio sent via socket for transcription and processing');
                 } else {
                     console.error('Socket not connected, cannot send audio');
