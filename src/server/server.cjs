@@ -5,7 +5,6 @@ const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
 const { setMessageSocketRef } = require('./api/controllers/faceRecognitionController.cjs');
-const { setMessageSocketRef: setSTTMessageSocketRef } = require('./services/googleSTT.cjs');
 const { initConversationService, cleanupOldConversations, saveConversationsToFile } = require('./services/conversationService.cjs');
 const config = require('./config/environment.cjs');
 
@@ -23,7 +22,6 @@ console.log('Socket.IO initialized');
 
 // Set the message socket reference
 setMessageSocketRef(io);
-setSTTMessageSocketRef(io.messageIo);
 console.log('Message socket reference set');
 
 // Configure API routes

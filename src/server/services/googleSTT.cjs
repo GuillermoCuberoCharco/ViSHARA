@@ -1,13 +1,7 @@
 const speech = require('@google-cloud/speech');
-const config = require('../config/environment.cjs')
-const { processClientMessage } = require('../socket/handlers/messageHandler.cjs');
+const config = require('../config/environment.cjs');
 
 let client;
-let messageIo = null;
-
-function setMessageSocketRef(io) {
-    messageIo = io;
-}
 
 try {
     const credentials = JSON.parse(config.google.credentials);
@@ -20,7 +14,7 @@ try {
     });
 }
 
-async function transcribeAudioOnly(audioContent) {
+async function transcribeAudio(audioContent) {
     try {
         const encoding = 'WEBM_OPUS';
         const sampleRateHertz = 48000;
@@ -64,31 +58,8 @@ async function transcribeAudioOnly(audioContent) {
     }
 }
 
-async function transcribeAudio(audioContent, socketId = null) {
-    try {
-        const transcription = await transcribeAudioOnly(audioContent);
 
-        if (socketId && messageIo && transcription) {
-            console.log('Sending transcription result to client:', transcription);
-
-            messageIo.to(socketId).emit('transcription_result', {
-                text: transcription,
-                processed: true
-            });
-
-            await processClientMessage(transcription, socketId, messageIo);
-            console.log('Transcription processed and sent to client');
-        }
-
-        return transcription;
-    } catch (error) {
-        console.error('Error in transcribeAudio:', error);
-        throw error;
-    }
-}
 
 module.exports = {
-    transcribeAudio,
-    transcribeAudioOnly,
-    setMessageSocketRef
+    transcribeAudio
 };
