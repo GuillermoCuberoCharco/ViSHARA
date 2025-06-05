@@ -145,12 +145,16 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             reader.onloadend = async () => {
                 const base64Audio = reader.result.split(',')[1];
 
-                const response = await axios.post(`${SERVER_URL}/api/transcribe`, {
-                    audio: base64Audio,
-                    socketId: socket?.id
-                });
-
-                console.log('Audio sended to server for transcription');
+                if (socket && socket.connected) {
+                    socket.emit('client_message', {
+                        type: 'audio',
+                        data: base64Audio,
+                        socketId: socket.id
+                    });
+                    console.log('Audio sent via socket for transcription and processing');
+                } else {
+                    console.error('Socket not connected, cannot send audio');
+                }
 
             };
         } catch (error) {

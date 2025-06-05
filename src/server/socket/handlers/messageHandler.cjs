@@ -1,6 +1,7 @@
 const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
+const { transcribeAudioOnly } = require('../../services/googleSTT.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -230,9 +231,32 @@ function setupMessageHandlers(io) {
         socket.on('client_message', async (message) => {
             try {
                 const parsed = typeof message === 'string' ? JSON.parse(message) : message;
-                const inputText = parsed.text?.trim();
 
-                await processClientMessage(inputText, socket.id, io, socket);
+                if (parsed.type === 'audio') {
+                    console.log('Received audio message from client for transcription');
+
+                    const transcription = await transcribeAudioOnly(parsed.data);
+
+                    if (transcription && transcription.trim()) {
+                        console.log('Transcription result:', transcription);
+
+                        socket.emit('transcription_result', {
+                            text: transcription,
+                            processed: true
+                        });
+
+                        await processClientMessage(transcription, socket.id, io, socket);
+                    } else {
+                        console.log('No transcription result received');
+                        socket.emit('transcription_result', {
+                            text: '',
+                            processed: false
+                        });
+                    }
+                } else {
+                    const inputText = parsed.text?.trim();
+                    await processClientMessage(inputText, socket.id, io, socket);
+                }
             } catch (error) {
                 console.error('Error processing message:', error);
                 socket.emit('error', { message: 'Error processing message' });
