@@ -148,7 +148,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             socket.on('robot_message', handleRobotMessage);
             socket.on('wizard_message', handleWizardMessage);
             socket.on('client_message', handleClientMessage);
-            socket.on('transcription_result', handleTranscriptionResult);
+            socket.on('transcription_result', handleClientMessage);
 
             return () => {
                 socket.off('robot_message');
