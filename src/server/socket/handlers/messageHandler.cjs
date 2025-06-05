@@ -1,7 +1,7 @@
 const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
-const { transcribeAudioOnly } = require('../../services/googleSTT.cjs');
+const { transcribeAudio } = require('../../services/googleSTT.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -235,7 +235,7 @@ function setupMessageHandlers(io) {
                 if (parsed.type === 'audio') {
                     console.log('Received audio message from client for transcription');
 
-                    const transcription = await transcribeAudioOnly(parsed.data);
+                    const transcription = await transcribeAudio(parsed.data);
 
                     if (transcription && transcription.trim()) {
                         console.log('Transcription result:', transcription);
