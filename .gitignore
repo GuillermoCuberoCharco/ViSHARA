@@ -8,7 +8,9 @@ venv
 .venv11
 webrtc_event_logs
 vite.config.js.timestamp-*
-src/server/services/testing
+testing
+test_data
+temp
 
 # Logs
 logs

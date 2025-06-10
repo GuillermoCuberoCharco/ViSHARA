@@ -52,6 +52,7 @@ class MessageService(QObject):
         self._message_callbacks: Dict[str, List[Callable]] = {}
         
         self._setup_event_subscriptions()
+        self.__pending_tasks = []
         logger.debug("MessageService inicializado")
     
     async def initialize(self):
@@ -79,6 +80,17 @@ class MessageService(QObject):
     async def cleanup(self):
         """Limpia recursos del servicio."""
         try:
+            for task in self.__pending_tasks:
+                if not task.done():
+                    task.cancel()
+
+            try:
+                await asyncio.gather(*self.__pending_tasks, return_exceptions=True)
+            except Exception:
+                pass
+
+            self.__pending_tasks.clear()
+            
             logger.info("Limpiando servicio de mensajería...")
             
             # Detener timer
@@ -110,7 +122,8 @@ class MessageService(QObject):
         
         # Procesar mensajes pendientes si cambiamos a automático
         if self.auto_mode_enabled:
-            asyncio.create_task(self._process_pending_messages())
+            task = asyncio.create_task(self._process_pending_messages())
+            self.__pending_tasks.append(task)
     
     def _handle_user_identified(self, user: User):
         """Maneja cuando un usuario es identificado."""
@@ -139,7 +152,8 @@ class MessageService(QObject):
             self.pending_messages.append(message)
             
             if not self.is_processing:
-                asyncio.create_task(self._process_pending_messages())
+                task = asyncio.create_task(self._process_pending_messages())
+                self.__pending_tasks.append(task)
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de cliente: {e}")

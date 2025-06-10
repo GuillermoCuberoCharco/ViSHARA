@@ -69,6 +69,11 @@ class VideoService(QObject):
     async def cleanup(self):
         """Limpia recursos del servicio."""
         try:
+            current_tasks = [task for task in asyncio.all_tasks() if task is not task.done()]
+            for task in current_tasks:
+                if ('video' in str(task.get_coro()) or 'frame' in str(task.get_coro())):
+                    task.cancel()
+
             logger.info("Limpiando servicio de video...")
             await self._disconnect_video()
             self._frame_callbacks.clear()
@@ -79,15 +84,12 @@ class VideoService(QObject):
     async def _setup_video_client(self):
         """Configura el cliente de video independiente."""
         try:
-            engineio_opts = {
-                'logger': False,
-                'engineio_logger': False
-            }
-            
             self.video_sio = socketio.AsyncClient(
                 reconnection=True,
                 reconnection_attempts=self.max_connection_attempts,
-                engineio_opts=engineio_opts
+                reconnection_delay=self.reconnect_delay,
+                logger=False,
+                engineio_logger=False
             )
             
             self._setup_video_event_handlers()

@@ -70,12 +70,13 @@ class SocketService(QObject):
     
     async def _setup_socket_client(self):
         """Configura el cliente de socket."""
-        engineio_opts = {
-            'logger': False,  # Deshabilitamos el logger de engineio para evitar spam
-            'engineio_logger': False
-        }
-        
-        self.sio = socketio.AsyncClient(engineio_opts)
+        self.sio = socketio.AsyncClient(
+            reconnection=True,
+            reconnection_attempts=self.max_retries,
+            reconnection_delay=settings.server.reconnect_delay,
+            logger=False,
+            engineio_logger=False,
+        )
         self._setup_event_handlers()
         
         logger.debug("Cliente de socket configurado")
@@ -99,8 +100,8 @@ class SocketService(QObject):
                 logger.error(f'Error registrando cliente Python: {e}')
         
         @self.sio.event
-        async def registration_confirmed():
-            logger.info('Registro confirmado por el servidor')
+        async def registration_confirmed(data):
+            logger.info('Registro confirmado por el servidor: {data}')
             self.is_registered = True
             self.registration_success.emit()
             self.event_manager.emit('registration_success', source='socket_service')
