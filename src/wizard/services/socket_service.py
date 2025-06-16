@@ -2,6 +2,7 @@
 Servicio de WebSocket para SHARA Wizard
 """
 
+import base64
 import asyncio
 import json
 from typing import Optional, Dict, Any, Callable
@@ -16,7 +17,7 @@ logger = get_logger(__name__)
 
 class SocketService(QObject):
     """
-    Servicio que maneja todas las conexiones WebSocket con el servidor SHARA.
+    Servicio que maneja todas las conexiones WebSocket con el servidor Node.
     """
     
     # Señales Qt
@@ -312,6 +313,26 @@ class SocketService(QObject):
     def connection_state(self) -> ConnectionState:
         """Obtiene el estado actual de la conexión."""
         return self.state
+
+    async def send_voice_response(self, audio_data: bytes, robot_state: str) -> bool:
+        """
+        Envía una respuesta de voz directamente al servidor.
+        
+        Args:
+            audio_data: Datos de audio en formato bytes
+            robot_state: Estado emocional del robot
+            
+        Returns:
+            True si el mensaje fue enviado correctamente
+        """
+        audio_b64 = base64.b64encode(audio_data).decode('utf-8')
+        voice_data = {
+            'audio': audio_b64,
+            'format': 'wav',
+            'robot_state': robot_state,
+        }
+
+        return await self.send_message('voice_response', voice_data)
     
     def get_stats(self) -> Dict[str, Any]:
         """

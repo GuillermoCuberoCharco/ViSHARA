@@ -2,6 +2,8 @@
 Diálogo de respuesta para SHARA Wizard
 """
 
+import base64
+import asyncio
 from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QPushButton, QLabel, QComboBox, QGroupBox, 
@@ -11,6 +13,7 @@ from PyQt6.QtGui import QFont
 
 from config import RobotState, PRESET_RESPONSES
 from utils.logger import get_logger
+from ui.widgets.voice_recorder_widget import VoiceRecorderWidget
 
 logger = get_logger(__name__)
 
@@ -233,6 +236,20 @@ class ResponseDialog(QDialog):
         # Sección de respuestas predefinidas
         self.preset_widget = PresetResponseWidget(self.current_state)
         layout.addWidget(self.preset_widget)
+
+        # Sección de respuesta por voz
+        voice_group = QGroupBox("Respuesta por Voz")
+        voice_layout = QVBoxLayout(voice_group)
+
+        # Etiqueta informativa
+        voice_info = QLabel("Graba tu respuesta. Se transcribirá y enviará automáticamente.")
+        voice_info.setStyleSheet("color: #6c757d; font-style: italic; margin-bottom: 5px;")
+        voice_layout.addWidget(voice_info)
+
+        # Widget de grabación de voz
+        self.voice_recorder = VoiceRecorderWidget(self)
+        voice_layout.addWidget(self.voice_recorder)
+        layout.addWidget(voice_group)
         
         # Botones de acción
         self._setup_action_buttons(layout)
@@ -364,16 +381,59 @@ class ResponseDialog(QDialog):
         
         # Insertar respuesta predefinida en el editor
         self.preset_widget.responseSelected.connect(self._insert_preset_response)
+
+        # Señal de grabación de voz
+        self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
     
     def _insert_preset_response(self, response: str):
-        """
-        Inserta una respuesta predefinida en el editor.
-        
-        Args:
-            response: Respuesta a insertar
-        """
+        """Inserta una respuesta predefinida en el editor. """
         self.response_edit.setText(response)
         logger.debug(f"Respuesta predefinida insertada: {response[:50]}...")
+
+    def _on_voice_recording_finished(self, audio_data: bytes):
+        """Maneja la finalización de la grabación de voz."""
+        try:
+            # Obtener socket service desde la aplicación principal
+            app = self.parent()
+            while app and app.parent():
+                app = app.parent()
+
+            if app and hasattr(app, 'get_service'):
+                socket_service = app.get_service('socket')
+                if socket_service:
+                    # Enviar datos de audio al servicio
+                    robot_state = self.get_state().value
+                    asyncio.create_task(
+                        self._send_voice(socket_service, audio_data, robot_state)
+                    )
+        
+        except Exception as e:
+            logger.error(f"Error al enviar datos de voz: {e}")
+
+    async def _send_voice(self, socket_service, audio_data: bytes, robot_state: str):
+        """Envía los datos de voz directamente al servicio de socket."""
+        try:
+            # Codificar audio a base64
+            audio_b64 = base64.b64encode(audio_data).decode()
+
+            # Preparar mensaje
+            voice_data = {
+                'audio': audio_b64,
+                'format': 'wav',
+                'robot_state': robot_state
+            }
+
+            # Enviar mensaje al servicio
+            success = await socket_service.send_voice_response('voice_response', voice_data)
+
+            if success:
+                logger.info("Datos de voz enviados correctamente")
+                self.accept()
+            else:
+                logger.error("Error al enviar datos de voz: servicio no disponible")
+
+        except Exception as e:
+            logger.error(f"Error al enviar datos de voz: {e}")
     
     def _clear_response(self):
         """Limpia el contenido del editor."""
