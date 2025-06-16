@@ -4,6 +4,7 @@ const setupSocketIO = require('./config/socket.cjs');
 const setupRoutes = require('./api/routes/index.cjs');
 const setupSockets = require('./socket/index.cjs');
 const faceService = require('./services/faceService.cjs');
+const { setupVoiceHandlers } = require('./socket/handlers/voiceResponseHandler.cjs');
 const { setMessageSocketRef } = require('./api/controllers/faceRecognitionController.cjs');
 const { initConversationService, cleanupOldConversations, saveConversationsToFile } = require('./services/conversationService.cjs');
 const config = require('./config/environment.cjs');
@@ -19,6 +20,10 @@ console.log('HTTP server created');
 // Initialize Socket.IO
 const io = setupSocketIO(server);
 console.log('Socket.IO initialized');
+
+// Set up voice response handlers
+setupVoiceHandlers(io);
+console.log('Voice response handlers set up');
 
 // Set the message socket reference
 setMessageSocketRef(io);
