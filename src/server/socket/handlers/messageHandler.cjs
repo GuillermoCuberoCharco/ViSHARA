@@ -5,6 +5,7 @@ const { transcribeAudio } = require('../../services/googleSTT.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
+const OPERATOR_CONNECTED = false;
 
 async function processClientMessage(inputText, socketId, io, customSocket = null) {
     try {
@@ -82,13 +83,16 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
                 });
             }
 
-            // const targetSocket = customSocket || io.sockets.sockets.get(socketId);
-            // if (targetSocket) {
-            //     targetSocket.emit('robot_message', {
-            //         text: response.text,
-            //         state: response.robot_mood
-            //     });
-            // }
+            if (!OPERATOR_CONNECTED) {
+                console.log('No operator connected, sending response to client socket:', socketId);
+                const targetSocket = customSocket || io.sockets.sockets.get(socketId);
+                if (targetSocket) {
+                    targetSocket.emit('robot_message', {
+                        text: response.text,
+                        state: response.robot_mood
+                    });
+                }
+            }
 
             io.emit('openai_message', {
                 text: response.text,
@@ -110,6 +114,7 @@ function setupMessageHandlers(io) {
 
         socket.on('register_operator', (clientType) => {
             socket.isWizardOperator = true;
+            OPERATOR_CONNECTED = true;
             console.log('Message client registered', clientType, socket.id);
             socket.emit('registration_confirmed', { status: 'ok' });
         });
