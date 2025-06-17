@@ -1,4 +1,4 @@
-const { transcribeAudio } = require('../../services/googleSTTService.cjs');
+const { transcribeAudio } = require('../../services/googleSTT.cjs');
 
 /**
  * Configure the voice response handlers for the wizard operators
