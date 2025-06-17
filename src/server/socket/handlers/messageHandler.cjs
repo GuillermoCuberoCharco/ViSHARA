@@ -109,8 +109,13 @@ function setupMessageHandlers(io) {
         console.log('Client connected to message socket');
 
         socket.on('register_operator', (clientType) => {
+            socket.isWizardOperator = true;
             console.log('Message client registered', clientType, socket.id);
             socket.emit('registration_confirmed', { status: 'ok' });
+        });
+
+        socket.on('voice_response', async (data) => {
+            await handleVoiceResponse(io, socket, data);
         });
 
         socket.on('register_client', (clientType) => {
@@ -418,6 +423,49 @@ async function getUserInfo(userId) {
     } catch (error) {
         console.error('Error getting user info:', error);
         return null;
+    }
+}
+
+async function handleVoiceResponse(io, wizardSocket, data) {
+    try {
+        console.log(`Processing wizard voice message ${wizardSocket.id}`);
+
+        const audioBuffer = Buffer.from(data.audio, 'base64');
+        console.log(`Dec. Audio of: ${audioBuffer.length} bytes`);
+
+        const transcription = await transcribeAudio(audioBuffer);
+
+        if (!transcription || transcription.trim().length === 0) {
+            throw new Error('Error transcribing audio: no transcription received');
+        }
+
+        console.log(`Transcription compleated: "${transcription}"`);
+
+        const clientSocket = Array.from(io.sockets.sockets.values()).find(socket => !socket.isWizardOperator && socket.connected);
+
+        if (!clientSocket) {
+            throw new Error('No web client connected to send the response');
+        }
+
+        clientSocket.emit('openai_message', {
+            text: transcription,
+            robot_mood: data.robot_state || 'Attention',
+            continue: true,
+            source: 'wizard'
+        });
+        console.log(`Sending response to client ${clientSocket.id}: "${transcription}"`);
+
+        wizardSocket.emit('voice_response_confirmation', {
+            success: true,
+            transcription: transcription
+        });
+
+    } catch (error) {
+        console.error('Error proccessing voice:', error);
+        wizardSocket.emit('voice_response_confirmation', {
+            success: false,
+            error: error.message
+        });
     }
 }
 

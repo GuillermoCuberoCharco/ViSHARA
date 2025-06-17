@@ -25,10 +25,6 @@ console.log('Socket.IO initialized');
 setMessageSocketRef(io);
 console.log('Message socket reference set');
 
-// Set up voice response handlers
-setupVoiceHandlers(io);
-console.log('Voice response handlers set up');
-
 // Configure API routes
 app.use('/api', setupRoutes());
 console.log('API routes configured');
