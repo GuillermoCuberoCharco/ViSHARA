@@ -415,6 +415,7 @@ class ResponseDialog(QDialog):
         try:
 
             # Enviar mensaje al servicio
+            logger.debug("Estado del robot: %s", robot_state)
             success = await socket_service.send_voice_response(audio_data, robot_state)
 
             if success:

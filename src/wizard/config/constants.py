@@ -7,14 +7,14 @@ from enum import Enum
 # Estados emocionales del robot
 class RobotState(Enum):
     """Estados emocionales disponibles para el robot."""
-    ATTENTION = "Attention"
-    HELLO = "Hello"
-    NO = "No"
-    YES = "Yes"
-    ANGRY = "Angry"
-    SAD = "Sad"
-    JOY = "Joy"
-    BLUSH = "Blush"
+    ATTENTION = "surprise"
+    HELLO = "neutral"
+    NO = "no"
+    YES = "silly"
+    ANGRY = "angry"
+    SAD = "sad"
+    JOY = "joy"
+    BLUSH = "joy_blush"
 
 # Tipos de mensaje
 class MessageType(Enum):

@@ -2,6 +2,7 @@ const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
 const { transcribeAudio } = require('../../services/googleSTT.cjs');
+const { time } = require('@tensorflow/tfjs-core');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -15,6 +16,16 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
         }
 
         console.log('Processing message:', inputText);
+
+        if (OPERATOR_CONNECTED) {
+            console.log('Sending message to operator:', inputText);
+            io.emit('client_message', {
+                text: inputText,
+                type: 'client_text',
+                socketId: socketId,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         const session = userSessions.get(socketId) || {};
         const currentUserId = session.currentUserId;
