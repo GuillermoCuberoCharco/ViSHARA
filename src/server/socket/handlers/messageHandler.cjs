@@ -119,6 +119,7 @@ function setupMessageHandlers(io) {
         });
 
         socket.on('register_client', (clientType) => {
+            socket.isWizardOperator = false;
             console.log('Message client registered', clientType, socket.id);
             socket.emit('registration_success', { status: 'ok' });
         });
@@ -447,13 +448,10 @@ async function handleVoiceResponse(io, wizardSocket, data) {
             throw new Error('No web client connected to send the response');
         }
 
-        const targetSocket = io.sockets.sockets.get(socketId);
-        if (targetSocket) {
-            targetSocket.emit('robot_message', {
-                text: transcription,
-                state: data.robot_state
-            });
-        }
+        clientSocket.emit('robot_message', {
+            text: transcription,
+            state: data.robot_state
+        });
 
         wizardSocket.emit('robot_message', {
             text: transcription,
