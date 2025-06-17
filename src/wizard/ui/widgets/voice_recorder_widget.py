@@ -25,7 +25,7 @@ class VoiceRecorderWidget(QWidget):
         # Configuración de audio
         self.format = pyaudio.paInt16
         self.channels = 1
-        self.rate = 16000
+        self.rate = 48000
         self.chunk = 1024
 
         self._setup_ui()

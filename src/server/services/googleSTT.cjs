@@ -14,18 +14,34 @@ try {
     });
 }
 
-async function transcribeAudio(audioContent) {
-    try {
-        const encoding = 'WEBM_OPUS';
-        const sampleRateHertz = 48000;
-        const languageCode = 'es-ES';
+function getAutoConfig(audioContent) {
+    const audioBuffer = Buffer.from(audioContent, 'base64');
+    const isWAV = audioBuffer.slice(0, 4).toString() === 'RIFF' &&
+        audioBuffer.slice(8, 12).toString() === 'WAVE';
 
-        const config = {
-            encoding: encoding,
-            sampleRateHertz: sampleRateHertz,
-            languageCode: languageCode,
+    if (isWAV) {
+        console.log('Using WAV config (wizard audio)');
+        return {
+            encoding: 'LINEAR16',
+            sampleRateHertz: 48000,
+            languageCode: 'es-ES',
             audioChannelCount: 1,
         };
+    } else {
+        console.log('Using WEBM_OPUS config (web client audio)');
+        return {
+            encoding: 'WEBM_OPUS',
+            sampleRateHertz: 48000,
+            languageCode: 'es-ES',
+            audioChannelCount: 1,
+        };
+    }
+}
+
+async function transcribeAudio(audioContent) {
+    try {
+
+        const config = getAutoConfig(audioContent);
 
         const audio = {
             content: audioContent,

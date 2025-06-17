@@ -424,7 +424,7 @@ class ResponseDialog(QDialog):
             }
 
             # Enviar mensaje al servicio
-            success = await socket_service.send_voice_response('voice_response', voice_data)
+            success = await socket_service.send_message('voice_response', voice_data)
 
             if success:
                 logger.info("Datos de voz enviados correctamente")
