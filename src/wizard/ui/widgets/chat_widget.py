@@ -424,6 +424,9 @@ class ChatWidget(QWidget):
     def _on_wizard_message(self, message: Message):
         """Maneja mensajes del wizard."""
         self.chat_display.append_message(message)
+
+        if message.robot_state:
+            señf._add_state_message(f"Robot state: {message.robot_state.value}")
     
     def _add_system_message(self, text: str):
         """Agrega un mensaje del sistema."""

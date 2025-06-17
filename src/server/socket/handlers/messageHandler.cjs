@@ -450,8 +450,8 @@ async function handleVoiceResponse(io, wizardSocket, data) {
         const targetSocket = wizardSocket || io.sockets.sockets.get(socketId);
         if (targetSocket) {
             targetSocket.emit('robot_message', {
-                text: response.text,
-                state: response.robot_mood
+                text: transcription,
+                state: data.robot_state
             });
         }
 

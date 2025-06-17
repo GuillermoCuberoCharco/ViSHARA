@@ -183,7 +183,7 @@ class MessageService(QObject):
                 self.user_response_required.emit(message, robot_state.value if robot_state else 'Attention')
             else:
                 # En modo automático, enviar directamente
-                asyncio.create_task(self._send_robot_message(message))
+                asyncio.create_task(self._send_automatic_wizard_response(message))
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de OpenAI: {e}")
@@ -389,21 +389,38 @@ class MessageService(QObject):
         except Exception as e:
             logger.error(f"Error enviando mensaje del wizard: {e}")
             return False
-    
-    async def _send_robot_message(self, message: Message):
-        """Envía un mensaje del robot al cliente."""
+
+    async def _send_automatic_wizard_response(self, openai_message: Message):
+        """
+        Envía automáticamente un mensaje de OpenAI como respuesta del wizard.
+        
+        Args:
+            openai_message: Mensaje recibido de OpenAI que se enviará como wizard
+        """
         try:
-            success = await self.socket_service.send_message('robot_message', {
-                'text': message.text,
-                'state': message.robot_state.value if message.robot_state else 'Attention'
-            })
+            # Usar el mismo método que en modo manual, pero automáticamente
+            success = await self.send_wizard_message(
+                openai_message.text, 
+                openai_message.robot_state or RobotState.ATTENTION
+            )
             
             if success:
-                message.mark_sent()
-                self.message_sent.emit(message)
+
+                wizard_message = Message.create_wizard_message(
+                    text=openai_message.text,
+                    robot_state=openai_message.robot_state or RobotState.ATTENTION,
+                    user_id=self.current_user.user_id if self.current_user else None,
+                    session_id=self.current_session.session_id if self.current_session else None
+                )
+                wizard_message.mark_sent()
+                self.event_manager.emit('wizard_message_sent', wizard_message, source='message_service')
+                self.message_sent.emit(wizard_message)
+                logger.info(f"Respuesta automática enviada como wizard: {openai_message.text[:50]}...")
+            else:
+                logger.error("Error enviando respuesta automática del wizard")
                 
         except Exception as e:
-            logger.error(f"Error enviando mensaje del robot: {e}")
+            logger.error(f"Error enviando respuesta automática del wizard: {e}")
     
     def _send_keepalive(self):
         """Envía señal de keep-alive."""
