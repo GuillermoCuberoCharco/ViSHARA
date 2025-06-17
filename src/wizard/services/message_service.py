@@ -414,7 +414,7 @@ class MessageService(QObject):
                 )
                 wizard_message.mark_sent()
                 self.event_manager.emit('wizard_message_sent', wizard_message, source='message_service')
-                self.message_sent.emit(wizard_message)
+                self.message_sent.emit(True, wizard_message.text, wizard_message.robot_state)
                 logger.info(f"Respuesta automática enviada como wizard: {openai_message.text[:50]}...")
             else:
                 logger.error("Error enviando respuesta automática del wizard")

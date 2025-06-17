@@ -304,6 +304,10 @@ class ChatWidget(QWidget):
         self.event_manager.subscribe('message_received', self._on_message_received)
         self.event_manager.subscribe('robot_message_received', self._on_robot_message)
         self.event_manager.subscribe('wizard_message_received', self._on_wizard_message)
+
+        # Conectar señales Qt del meessage_service
+        self.message_service.message_sent.connect(self._on_message_sent)
+        self.message_service.user_response_required.connect(self.show_response_dialog)
         
         # Conectar señales de servicios
         self.state_service.operation_mode_changed.connect(self._update_mode_display)
@@ -416,6 +420,18 @@ class ChatWidget(QWidget):
         else:
             # Mensaje genérico
             self._add_system_message(f"Mensaje recibido: {str(message)}")
+
+    def _on_message_sent(self, message: Message):
+        """Maneja mensajes enviados."""
+        try:
+            if message.sender.value == 'wizard':
+                is_automatic = self.state_service.operation_mode == OperationMode.AUTOMATIC
+                if is_automatic:
+                    self.chat_display.append_message(message)
+                    if message.robot_state:
+                        self._add_state_message(f"Robot state: {message.robot_state.value}")
+        except Exception as e:
+            logger.error(f"Error procesando mensaje enviado: {e}")
     
     def _on_robot_message(self, message: Message):
         """Maneja mensajes del robot."""
