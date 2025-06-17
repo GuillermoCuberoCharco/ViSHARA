@@ -447,7 +447,7 @@ async function handleVoiceResponse(io, wizardSocket, data) {
             throw new Error('No web client connected to send the response');
         }
 
-        wizardSocket.emit('robot_message', {
+        clientSocket.emit('robot_message', {
             text: transcription,
             state: data.robot_state
         });
