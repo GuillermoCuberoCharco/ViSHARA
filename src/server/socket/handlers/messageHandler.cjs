@@ -308,7 +308,10 @@ function setupMessageHandlers(io) {
 
         socket.on('disconnect', async () => {
             console.log('Client disconnected from message socket');
-            OPERATOR_CONNECTED = false;
+            if (socket.isWizardOperator) {
+                console.log('Operator disconnected, disabling operator mode');
+                OPERATOR_CONNECTED = false;
+            }
 
             const session = userSessions.get(socket.id);
             if (session && session.currentUserId) {
