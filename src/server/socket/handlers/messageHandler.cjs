@@ -447,6 +447,7 @@ async function handleVoiceResponse(io, wizardSocket, data) {
         }
 
         console.log(`Transcription compleated: "${transcription}"`);
+        console.log(`Robot state: ${data.robot_state}`);
 
         const clientSocket = Array.from(io.sockets.sockets.values()).find(socket => !socket.isWizardOperator && socket.connected);
 

@@ -413,22 +413,14 @@ class ResponseDialog(QDialog):
     async def _send_voice(self, socket_service, audio_data: bytes, robot_state: str):
         """Envía los datos de voz directamente al servicio de socket."""
         try:
-            # Codificar audio a base64
-            audio_b64 = base64.b64encode(audio_data).decode()
-
-            # Preparar mensaje
-            voice_data = {
-                'audio': audio_b64,
-                'format': 'wav',
-                'robot_state': robot_state
-            }
 
             # Enviar mensaje al servicio
-            success = await socket_service.send_message('voice_response', voice_data)
+            success = await socket_service.send_voice_response(audio_data, robot_state)
 
             if success:
                 logger.info("Datos de voz enviados correctamente")
-                self.accept()
+                self.finished.emit(False, '', '')
+                super().accept()
             else:
                 logger.error("Error al enviar datos de voz: servicio no disponible")
 
