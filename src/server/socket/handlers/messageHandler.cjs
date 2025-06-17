@@ -5,7 +5,7 @@ const { transcribeAudio } = require('../../services/googleSTT.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
-const OPERATOR_CONNECTED = false;
+let OPERATOR_CONNECTED = false;
 
 async function processClientMessage(inputText, socketId, io, customSocket = null) {
     try {
