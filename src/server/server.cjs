@@ -21,13 +21,13 @@ console.log('HTTP server created');
 const io = setupSocketIO(server);
 console.log('Socket.IO initialized');
 
-// Set up voice response handlers
-setupVoiceHandlers(io);
-console.log('Voice response handlers set up');
-
 // Set the message socket reference
 setMessageSocketRef(io);
 console.log('Message socket reference set');
+
+// Set up voice response handlers
+setupVoiceHandlers(io);
+console.log('Voice response handlers set up');
 
 // Configure API routes
 app.use('/api', setupRoutes());
