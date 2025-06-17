@@ -82,13 +82,13 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
                 });
             }
 
-            const targetSocket = customSocket || io.sockets.sockets.get(socketId);
-            if (targetSocket) {
-                targetSocket.emit('robot_message', {
-                    text: response.text,
-                    state: response.robot_mood
-                });
-            }
+            // const targetSocket = customSocket || io.sockets.sockets.get(socketId);
+            // if (targetSocket) {
+            //     targetSocket.emit('robot_message', {
+            //         text: response.text,
+            //         state: response.robot_mood
+            //     });
+            // }
 
             io.emit('openai_message', {
                 text: response.text,
@@ -447,12 +447,14 @@ async function handleVoiceResponse(io, wizardSocket, data) {
             throw new Error('No web client connected to send the response');
         }
 
-        clientSocket.emit('openai_message', {
-            text: transcription,
-            robot_mood: data.robot_state || 'Attention',
-            continue: true,
-            source: 'wizard'
-        });
+        const targetSocket = wizardSocket || io.sockets.sockets.get(socketId);
+        if (targetSocket) {
+            targetSocket.emit('robot_message', {
+                text: response.text,
+                state: response.robot_mood
+            });
+        }
+
         console.log(`Sending response to client ${clientSocket.id}: "${transcription}"`);
 
         wizardSocket.emit('voice_response_confirmation', {
