@@ -453,10 +453,10 @@ async function handleVoiceResponse(io, wizardSocket, data) {
             throw new Error('No web client connected to send the response');
         }
 
-        clientSocket.emit('robot_message', {
-            text: transcription,
-            state: data.robot_state
-        });
+        // clientSocket.emit('robot_message', {
+        //     text: transcription,
+        //     state: data.robot_state
+        // });
 
         wizardSocket.emit('robot_message', {
             text: transcription,
@@ -464,6 +464,11 @@ async function handleVoiceResponse(io, wizardSocket, data) {
         });
 
         console.log(`Sending response to client ${clientSocket.id}: "${transcription}"`);
+
+        io.emit('robot_message', {
+            text: transcription,
+            state: data.robot_state
+        });
 
         wizardSocket.emit('voice_response_confirmation', {
             success: true,
