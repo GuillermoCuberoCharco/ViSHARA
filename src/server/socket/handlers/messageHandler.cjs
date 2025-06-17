@@ -297,6 +297,7 @@ function setupMessageHandlers(io) {
 
         socket.on('disconnect', async () => {
             console.log('Client disconnected from message socket');
+            OPERATOR_CONNECTED = false;
 
             const session = userSessions.get(socket.id);
             if (session && session.currentUserId) {
@@ -452,16 +453,6 @@ async function handleVoiceResponse(io, wizardSocket, data) {
         if (!clientSocket) {
             throw new Error('No web client connected to send the response');
         }
-
-        // clientSocket.emit('robot_message', {
-        //     text: transcription,
-        //     state: data.robot_state
-        // });
-
-        wizardSocket.emit('robot_message', {
-            text: transcription,
-            state: data.robot_state
-        });
 
         console.log(`Sending response to client ${clientSocket.id}: "${transcription}"`);
 
