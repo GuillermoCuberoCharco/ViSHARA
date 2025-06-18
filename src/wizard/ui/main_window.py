@@ -214,6 +214,8 @@ class MainWindow(QWidget):
         
         # Conectar señales del servicio de mensajes
         self.message_service.user_response_required.connect(self._on_user_response_required)
+
+        self.message_service.user_response_with_states_required.connect(self._on_user_response_with_states_required)
         
         logger.debug("Señales conectadas")
     
@@ -253,7 +255,11 @@ class MainWindow(QWidget):
         """Maneja cuando se requiere respuesta del usuario."""
         if self.chat_widget:
             self.chat_widget.show_response_dialog(message, state)
-    
+
+    def _on_user_response_with_states_required(self, message, ai_responses, user_message):
+        """Maneja cuando se requiere respuesta del usuario con estados."""
+        if self.chat_widget:
+            self.chat_widget.show_response_dialog_with_states(message, ai_responses, user_message)
     async def cleanup(self):
         """Limpia recursos de la ventana principal."""
         try:

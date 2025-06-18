@@ -27,6 +27,7 @@ class MessageService(QObject):
     session_started = pyqtSignal(str)  # session_id
     session_ended = pyqtSignal(str)    # session_id
     user_response_required = pyqtSignal(Message, str)  # message, state
+    user_response_with_states_required = pyqtSignal(object, dict, str)
     
     def __init__(self, event_manager: EventManager, socket_service: SocketService):
         super().__init__()
@@ -53,8 +54,6 @@ class MessageService(QObject):
         
         self._setup_event_subscriptions()
         self.__pending_tasks = []
-
-        self.user_response_with_states_required = Signal(object, dict, str)
         logger.debug("MessageService inicializado")
     
     async def initialize(self):

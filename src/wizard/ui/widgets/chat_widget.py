@@ -307,7 +307,7 @@ class ChatWidget(QWidget):
 
         # Conectar señales Qt del meessage_service
         self.message_service.message_sent.connect(self._on_message_sent)
-        self.message_service.user_response_required.connect(self.show_response_dialog)
+        self.message_service.user_response_required.connect(self.show_response_dialog_with_states)
         
         # Conectar señales de servicios
         self.state_service.operation_mode_changed.connect(self._update_mode_display)
@@ -469,13 +469,14 @@ class ChatWidget(QWidget):
         # Implementar keep-alive si es necesario
         pass
     
-    def show_response_dialog(self, message: Message, state: str):
+    def show_response_dialog(self, message: Message, state: str, ai_response: dict[str, dict] = None):
         """
         Muestra el diálogo de respuesta.
         
         Args:
             message: Mensaje que requiere respuesta
             state: Estado emocional actual
+            ai_response: Respuesta de IA opcional con presets
         """
         if self.active_dialog:
             self.active_dialog.close()
@@ -487,13 +488,26 @@ class ChatWidget(QWidget):
         
         self.active_dialog = ResponseDialog(
             message.text, 
-            current_state, 
+            current_state,
+            ai_response or {},
             self
         )
         
         # Conectar señal de finalización
         self.active_dialog.finished.connect(self._handle_dialog_response)
         self.active_dialog.show()
+
+    def show_response_dialog_with_states(self, message: Message, ai_responses: dict[str, dict] = None, user_message: str = ""):
+        """
+        Muestra el diálogo de respuesta con estados emocionales.
+        
+        Args:
+            message: Mensaje que requiere respuesta
+            ai_response: Respuesta de IA opcional con presets
+            user_message: Mensaje original del usuario
+        """
+        state = message.robot_state.value if message.robot_state else 'attention'
+        self.show_response_dialog(message, state, ai_responses)
     
     def _handle_dialog_response(self, accepted: bool, response: str, state: str):
         """

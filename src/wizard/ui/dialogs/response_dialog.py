@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTextEdit,
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
-from config import RobotState, PRESET_RESPONSES
+from config import RobotState
 from utils.logger import get_logger
 from ui.widgets.voice_recorder_widget import VoiceRecorderWidget
 
@@ -180,10 +180,6 @@ class PresetResponseWidget(QFrame):
         # Agregar opción por defecto
         self.response_combo.addItem("-- Selecciona una respuesta predefinida --")
         
-        # Agregar respuestas para el estado
-        if state in PRESET_RESPONSES:
-            for response in PRESET_RESPONSES[state]:
-                self.response_combo.addItem(response)
     
     def _on_response_selected(self, text: str):
         """Maneja la selección de respuesta."""
@@ -197,17 +193,17 @@ class ResponseDialog(QDialog):
     
     finished = pyqtSignal(bool, str, str)  # accepted, response, state
     
-    def __init__(self, response: str, current_state: RobotState = RobotState.ATTENTION,
-                 parent: Optional[QWidget] = None):
+    def __init__(self, response: str, current_state: RobotState = RobotState.ATTENTION, ai_responses: dict[str, dict] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         
         self.response = response
         self.current_state = current_state
+        self.ai_responses = ai_responses or {}
         
         # Componentes
         self.response_edit = None
         self.state_widget = None
-        self.preset_widget = None
+        self.ai_widget = None
         
         self._setup_ui()
         self._connect_signals()
@@ -234,8 +230,8 @@ class ResponseDialog(QDialog):
         layout.addWidget(self.state_widget)
         
         # Sección de respuestas predefinidas
-        self.preset_widget = PresetResponseWidget(self.current_state)
-        layout.addWidget(self.preset_widget)
+        self.ai_widget = AIResponseWidget(self.current_state, self.ai_responses)
+        layout.addWidget(self.ai_widget)
 
         # Sección de respuesta por voz
         voice_group = QGroupBox("Respuesta por Voz")
@@ -377,18 +373,22 @@ class ResponseDialog(QDialog):
     def _connect_signals(self):
         """Conecta las señales de los widgets."""
         # Actualizar respuestas predefinidas cuando cambie el estado
-        self.state_widget.stateChanged.connect(self.preset_widget.update_responses)
+        self.state_widget.stateChanged.connect(self.ai_widget.update_responses)
         
         # Insertar respuesta predefinida en el editor
-        self.preset_widget.responseSelected.connect(self._insert_preset_response)
+        self.ai_widget.responseSelected.connect(self._insert_ai_response)
 
         # Señal de grabación de voz
         self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
+
+    def _on_state_changed(self, new_state: RobotState):
+        """Maneja el cambio de estado emocional."""
+        self.ai_widget.update_responses(new_state)
     
-    def _insert_preset_response(self, response: str):
-        """Inserta una respuesta predefinida en el editor. """
+    def _insert_ai_response(self, response: str):
+        """Inserta una respuesta de IA en el editor. """
         self.response_edit.setText(response)
-        logger.debug(f"Respuesta predefinida insertada: {response[:50]}...")
+        logger.debug(f"Respuesta de IA insertada: {response[:50]}...")
 
     def _on_voice_recording_finished(self, audio_data: bytes):
         """Maneja la finalización de la grabación de voz."""
@@ -494,11 +494,135 @@ class ResponseDialog(QDialog):
         Args:
             state: Nuevo estado
         """
+        if isinstance(state, str):
+            try:
+                state = RobotState(state)
+            except ValueError:
+                state = RobotState.ATTENTION
+
         self.current_state = state
         self.state_widget.set_selected_state(state)
-        self.preset_widget.update_responses(state)
+        self.ai_widget.update_responses(state)
     
     def focus_response_editor(self):
         """Pone el foco en el editor de respuesta."""
         self.response_edit.setFocus()
         self.response_edit.selectAll()
+
+class AIResponseWidget(QDialog):
+    """
+    Widget para mostrar respuestas generadas por IA.
+    Permite al usuario editar y validar la respuesta antes de enviarla.
+    """
+    
+    responseSelected = pyqtSignal(str)
+
+    def __init__(self, response: str, current_state: RobotState = RobotState.ATTENTION, ai_responses: Dict[str, Dict] = None, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+
+        if isinstance(current_state, str):
+            try:
+                current_state = RobotState(current_state)
+            except ValueError:
+                current_state = RobotState.ATTENTION
+
+        self.current_state = current_state
+        self.ai_responses = ai_responses or {}
+
+        self.setStyleSheet("""
+            QFrame{
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 5px;
+                padding: 10px;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        # Título
+        title = QLabel("Respuesta Generada por SHARA")
+        title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        title.setStyleSheet("color: #2c3e50;")
+        layout.addWidget(title)
+
+        # ComboBox para respuestas
+        self.response_combo = QComboBox()
+        self.response_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 3px;
+                padding: 5px;
+                min-height: 20px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                width: 10px;
+                height: 10px;
+            }
+        """)
+
+        self.response_combo.currentTextChanged.connect(self._on_response_selected)
+        layout.addWidget(self.response_combo)
+
+        # Actualizar respuestas para el estado actual
+        self.update_responses(current_state)
+
+    def update_responses(self, state: RobotState):
+        """Actualiza las respuestas disponibles para un estado."""
+        if isinstance(state, str):
+            try:
+                state = RobotState(state)
+            except ValueError:
+                state = RobotState.ATTENTION
+
+        self.current_state = state
+        self.response_combo.clear()
+
+        # Agregar opción por defecto
+        self.response_combo.addItem("-- Selecciona una respuesta generada --")
+
+        # Agregar respuesta para el estado actual si existe
+        state_key = state.value
+        if state_key in self.ai_responses:
+            response_text = self.ai_responses[state_key].get('text', '')
+            if response_text:
+                # Mostrar preview truncado en el combo
+                preview = response_text[:80] + "..." if len(response_text) > 80 else response_text
+                self.response_combo.addItem(f"[{state.value}] {preview}")
+                # Guardar el texto completo para recuperar después
+                self.response_combo.setItemData(1, response_text)
+        
+        # Agregar respuestas de otros estados
+        for other_state_key, response_data in self.ai_responses.items():
+            if other_state_key != state_key:
+                response_text = response_data.get('text', '')
+                if response_text:
+                    try:
+                        other_state = RobotState(other_state_key)
+                        preview = response_text[:80] + "..." if len(response_text) > 80 else response_text
+                        display_text = f"[{other_state.value}] {preview}"
+                        self.response_combo.addItem(display_text)
+                        # Guardar el texto completo
+                        current_index = self.response_combo.count() - 1
+                        self.response_combo.setItemData(current_index, response_text)
+                    except ValueError:
+                        continue
+
+    def set_ai_responses(self, ai_responses: Dict[str, Dict]):
+        """Establece las respuestas generadas por IA."""
+        self.ai_responses = ai_responses
+        self.update_responses(self.current_state)
+
+    def _on_response_selected(self, text: str):
+        """Maneja la selección de respuesta."""
+        if text and text != "-- Selecciona una respuesta generada --":
+            # Obtener el texto completo asociado al índice seleccionado
+            current_index = self.response_combo.currentIndex()
+            full_response = self.response_combo.itemData(current_index)
+            if full_response:
+                self.responseSelected.emit(full_response)
