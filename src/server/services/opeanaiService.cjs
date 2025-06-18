@@ -78,4 +78,61 @@ async function getOpenAIResponse(input, context = {}, conversationHistory = []) 
     }
 }
 
-module.exports = { getOpenAIResponse };
+async function getOpenAIResponseWithStates(input, context = {}, conversationHistory = [], OPERATOR_CONNECTED) {
+    try {
+        const mainResponse = await getOpenAIResponse(input, context, conversationHistory);
+
+        if (!OPERATOR_CONNECTED) return { main_response: mainResponse, state_responses: {} };
+
+        const emotionalStates = ["surprise", "neutral", "no", "silly", "angry", "sad", "joy", "joy_blush"];
+        const stateResponses = {};
+
+        for (const state of emotionalStates) {
+            const stateSystemPrompt = `${SYSTEM_PROMPT}
+            INSTRUCCIONES: Responde a la pregunta del usuario con un tono de ${state}. Usa el contexto de la conversación y el historial para hacer la respuesta más personal y coherente.
+            - Si es "angry": muestra ligera irritación o firmeza en el tono
+            - Si es "sad": muestra empatía o melancolía
+            - Si es "joy": sé alegre y entusiasta
+            - Si es "surprise": muestra asombro o curiosidad
+            - Si es "neutral": mantén un tono equilibrado
+            - Si es "no": sé firme pero respetuoso en negativas
+            - Si es "silly": sé juguetón y divertido
+            - Si es "joy_blush": sé tímido pero alegre
+            Responde al mismo mensaje del usuario pero con esta emoción específica.`;
+
+            const stateMessage = [
+                { role: "system", content: stateSystemPrompt },
+                {
+                    role: "user", content: JSON.stringify({
+                        user_input: input,
+                        emotional_state: state,
+                        timestamp: new Date().toLocaleString('es-ES'),
+                        username: context.username || "Desconocido",
+                        proactive_question: context.proactive_question || "Ninguna"
+                    })
+                }
+            ];
+
+            const stateCompletion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: stateMessage,
+                response_format: { type: "json_object" },
+                temperature: 1,
+                top_p: 1
+            });
+
+            const stateResponseContent = JSON.parse(stateCompletion.choices[0].message.content);
+            stateResponses[state] = {
+                text: stateResponseContent.response || `Respuesta ${state} para: ${input}`,
+                robot_mood: state
+            };
+        }
+        return { main_response: mainResponse, state_responses: stateResponses };
+    } catch (error) {
+        console.error('Error getting OpenAI response with states:', error);
+        const mainResponse = await getOpenAIResponse(input, context, conversationHistory);
+        return { main_response: mainResponse, state_responses: {} };
+    }
+}
+
+module.exports = { getOpenAIResponse, getOpenAIResponseWithStates };

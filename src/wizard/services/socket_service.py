@@ -134,6 +134,11 @@ class SocketService(QObject):
             self._handle_message('openai_message', data)
         
         @self.sio.event
+        async def openai_message_with_states(data):
+            logger.debug(f'Respuestas múltiples de OpenAI por estados recibidas: {data}')
+            self._handle_message('openai_message_with_states', data)
+
+        @self.sio.event
         async def robot_message(data):
             logger.debug(f'Mensaje de robot recibido: {data}')
             self._handle_message('robot_message', data)

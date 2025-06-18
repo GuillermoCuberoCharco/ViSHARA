@@ -1,8 +1,7 @@
-const { getOpenAIResponse } = require('../../services/opeanaiService.cjs');
+const { getOpenAIResponse, getOpenAIResponseWithStates } = require('../../services/opeanaiService.cjs');
 const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
 const { transcribeAudio } = require('../../services/googleSTT.cjs');
-const { time } = require('@tensorflow/tfjs-core');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -82,17 +81,11 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
         console.log('Processing message with context:', context);
         console.log('Conversation history loaded:', conversationHistory.length, 'messages');
 
-        const response = await getOpenAIResponse(inputText, context, conversationHistory);
+        const responses = await getOpenAIResponseWithStates(inputText, context, conversationHistory, OPERATOR_CONNECTED);
+        const response = responses.main_response;
 
         if (response.text?.trim()) {
             console.log('Sending robot response:', response);
-
-            if (currentUserId) {
-                await addMessage(currentUserId, 'assistant', response.text, {
-                    mood: response.robot_mood,
-                    messageType: 'robot_response'
-                });
-            }
 
             if (!OPERATOR_CONNECTED) {
                 console.log('No operator connected, sending response to client socket:', socketId);
@@ -105,10 +98,29 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
                 }
             }
 
+            if (currentUserId) {
+                await addMessage(currentUserId, 'assistant', response.text, {
+                    mood: response.robot_mood,
+                    messageType: 'robot_response'
+                });
+            }
+
             io.emit('openai_message', {
                 text: response.text,
                 state: response.robot_mood
             });
+
+            if (Object.keys(responses.state_responses).length > 0) {
+                io.emit('openai_message_with_states', {
+                    main_response: {
+                        text: response.text,
+                        state: response.robot_mood
+                    },
+                    state_responses: responses.state_responses,
+                    user_message: inputText,
+                    timestamp: new Date().toISOString()
+                });
+            }
         }
     } catch (error) {
         console.error('Error processing message:', error);

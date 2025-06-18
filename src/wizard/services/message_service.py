@@ -53,6 +53,8 @@ class MessageService(QObject):
         
         self._setup_event_subscriptions()
         self.__pending_tasks = []
+
+        self.user_response_with_states_required = Signal(object, dict, str)
         logger.debug("MessageService inicializado")
     
     async def initialize(self):
@@ -63,6 +65,7 @@ class MessageService(QObject):
             # Configurar callbacks de socket
             self.socket_service.add_event_callback('client_message', self._handle_client_message)
             self.socket_service.add_event_callback('openai_message', self._handle_openai_message)
+            self.socket_service.add_event_callback('openai_message_with_states', self._handle_openai_message_with_states)
             self.socket_service.add_event_callback('robot_message', self._handle_robot_message)
             self.socket_service.add_event_callback('wizard_message', self._handle_wizard_message)
             self.socket_service.add_event_callback('user_detected', self._handle_user_detected)
@@ -187,6 +190,44 @@ class MessageService(QObject):
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de OpenAI: {e}")
+
+    def _handle_openai_message_with_states(self, data: Dict[str, Any]):
+        """Maneja mensajes de OpenAI con respuestas por estado emocional (solo en modo manual)."""
+        try:
+            main_response = data.get('main_response', {})
+            state_responses = data.get('state_responses', {})
+            user_message = data.get('user_message', '')
+
+            robot_state = None
+            if main_response.get('state'):
+                try:
+                    robot_state = RobotState(main_response['state'])
+                except ValueError:
+                    robot_state = RobotState.ATTENTION
+
+            message = Message.create_robot_message(
+                text=main_response.get('text', ''),
+                robot_state=robot_state,
+                user_id=self.current_user.user_id if self.current_user else None,
+                session_id=self.current_session.session_id if self.current_session else None
+            )
+
+            self._add_message_to_session(message)
+
+            # En modo manual, eofrecer las opciones de respuesta por estado
+            if not self.auto_mode_enabled:
+                self.user_response_with_states_required.emit(message, state_responses, user_message)
+            else:
+                # En modo automático, enviar directamente la respuesta principal
+                asyncio.create_task(self._send_automatic_wizard_response(message))
+
+        except Exception as e:
+            logger.error(f"Error procesando mensaje de OpenAI con estados: {e}")
+            fallback_data = {
+                'text': data.get('main_response', {}).get('text', ''),
+                'state': data.get('main_response', {}).get('state', 'attention')
+            }
+            self._handle_openai_message(fallback_data)
     
     def _handle_robot_message(self, data: Dict[str, Any]):
         """Maneja mensajes del robot."""
