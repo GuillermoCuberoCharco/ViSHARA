@@ -62,7 +62,7 @@ class MessageService(QObject):
             logger.info("Inicializando servicio de mensajería...")
             
             # Configurar callbacks de socket
-            self.socket_service.add_event_callback('client_message_for_wizard', self._handle_client_message_for_wizard)
+            self.socket_service.add_event_callback('client_message_for_wizard', self._handle_client_message)
             self.socket_service.add_event_callback('openai_message', self._handle_openai_message)
             self.socket_service.add_event_callback('openai_message_with_states', self._handle_openai_message_with_states)
             self.socket_service.add_event_callback('robot_message', self._handle_robot_message)
@@ -133,10 +133,10 @@ class MessageService(QObject):
             
             logger.info(f"Usuario actual actualizado: {user.get_display_name()}")
     
-    def _handle_client_message_for_wizard(self, data: Dict[str, Any]):
+    def _handle_client_message(self, data: Dict[str, Any]):
         """Maneja mensajes del cliente."""
         try:
-            message = Message.create_client_message_for_wizard(
+            message = Message.create_client_message(
                 text=data.get('text', ''),
                 user_id=self.current_user.user_id if self.current_user else None,
                 session_id=self.current_session.session_id if self.current_session else None
