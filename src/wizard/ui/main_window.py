@@ -254,11 +254,28 @@ class MainWindow(QWidget):
     def _on_user_response_required(self, message, state):
         """Maneja cuando se requiere respuesta del usuario."""
         if self.chat_widget:
-            self.chat_widget.show_response_dialog(message, state)
+        # Validar el tipo de state antes de pasarlo
+            if isinstance(state, dict):
+                # Si state es un diccionario (ai_responses), extraer el estado del mensaje
+                robot_state = message.robot_state.value if message.robot_state else 'attention'
+                logger.warning(f"Se recibió diccionario como state en _on_user_response_required, usando estado del mensaje: {robot_state}")
+                self.chat_widget.show_response_dialog(message, robot_state, state)
+            elif isinstance(state, str):
+                # Si state es una cadena (estado del robot), usar show_response_dialog normal
+                self.chat_widget.show_response_dialog(message, state)
+            else:
+                # Si state es de otro tipo, extraer estado del mensaje y usar diccionario vacío
+                robot_state = message.robot_state.value if message.robot_state else 'attention'
+                logger.warning(f"Tipo de state no válido en _on_user_response_required: {type(state)}, usando estado del mensaje: {robot_state}")
+                self.chat_widget.show_response_dialog(message, robot_state, {})
 
     def _on_user_response_with_states_required(self, message, ai_responses, user_message):
         """Maneja cuando se requiere respuesta del usuario con estados."""
         if self.chat_widget:
+            if not isinstance(ai_responses, dict):
+                logger.error(f"Tipo de ai_responses no válido: {type(ai_responses)}. Se esperaba dict.")
+                ai_responses = {}
+                
             self.chat_widget.show_response_dialog_with_states(message, ai_responses, user_message)
     async def cleanup(self):
         """Limpia recursos de la ventana principal."""

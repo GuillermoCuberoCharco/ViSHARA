@@ -99,58 +99,6 @@ CHAT_CONFIG = {
     'KEEPALIVE_INTERVAL': 30  # segundos
 }
 
-# Respuestas predefinidas por estado
-PRESET_RESPONSES = {
-    RobotState.ATTENTION: [
-        "Estoy prestando atención a lo que dices.",
-        "Me interesa mucho este tema.",
-        "Continúa, te escucho atentamente.",
-        "Entiendo tu punto de vista."
-    ],
-    RobotState.HELLO: [
-        "¡Hola! ¿Cómo estás hoy?",
-        "¡Qué gusto verte de nuevo!",
-        "¡Bienvenido/a!",
-        "¡Hola! Espero que estés teniendo un buen día."
-    ],
-    RobotState.NO: [
-        "Lo siento, pero no puedo hacer eso.",
-        "Me temo que eso no es posible.",
-        "Desafortunadamente, no es viable.",
-        "No, pero podríamos buscar una alternativa."
-    ],
-    RobotState.YES: [
-        "¡Sí, por supuesto!",
-        "Me parece una excelente idea.",
-        "Estoy de acuerdo contigo.",
-        "Definitivamente podemos hacer eso."
-    ],
-    RobotState.ANGRY: [
-        "Entiendo tu frustración.",
-        "Comprendo que esto puede ser molesto.",
-        "Vamos a resolver esto juntos.",
-        "Tu molestia es válida, busquemos una solución."
-    ],
-    RobotState.SAD: [
-        "Lamento que te sientas así.",
-        "Estoy aquí para escucharte.",
-        "Comprendo que es una situación difícil.",
-        "¿Cómo puedo ayudarte a sentirte mejor?"
-    ],
-    RobotState.JOY: [
-        "¡Me alegro mucho por ti!",
-        "¡Esas son excelentes noticias!",
-        "¡Qué maravilloso momento!",
-        "¡Comparto tu felicidad!"
-    ],
-    RobotState.BLUSH: [
-        "Me siento halagado/a.",
-        "Gracias por tus amables palabras.",
-        "Eres muy amable al decir eso.",
-        "Me alegra que valores mi ayuda."
-    ]
-}
-
 # Configuraciones de timeout
 TIMEOUTS = {
     'SOCKET_CONNECT': 10,

@@ -9,7 +9,6 @@ from .constants import (
     ConnectionState,
     OperationMode,
     SystemEvent,
-    PRESET_RESPONSES,
     WINDOW_GEOMETRY,
     SPLITTER_RATIOS,
     VIDEO_CONFIG,

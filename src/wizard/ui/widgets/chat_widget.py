@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit,
 from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QFont
 
-from config import RobotState, OperationMode, PRESET_RESPONSES, CHAT_CONFIG
+from config import RobotState, OperationMode, CHAT_CONFIG
 from core.event_manager import EventManager
 from services import MessageService, StateService
 from models import Message, User
@@ -469,7 +469,7 @@ class ChatWidget(QWidget):
         # Implementar keep-alive si es necesario
         pass
     
-    def show_response_dialog(self, message: Message, state: str, ai_response: dict[str, dict] = None):
+    def show_response_dialog(self, message: Message, state: str, ai_response: dict = None):
         """
         Muestra el diálogo de respuesta.
         
@@ -482,8 +482,23 @@ class ChatWidget(QWidget):
             self.active_dialog.close()
         
         try:
-            current_state = RobotState(state)
+            # Validar y normalizar el parámetro state
+            if isinstance(state, str):
+                current_state = RobotState(state)
+            elif isinstance(state, RobotState):
+                current_state = state
+            elif isinstance(state, dict):
+                # Extraer el estado del mensaje y usar el dict como ai_response
+                current_state = message.robot_state if message.robot_state else RobotState.ATTENTION
+                if ai_response is None:
+                    ai_response = state
+                logger.warning(f"Se recibió diccionario como state, usando estado del mensaje: {current_state.value}")
+            else:
+                logger.warning(f"Tipo de state no válido: {type(state)}, usando ATTENTION por defecto")
+                current_state = RobotState.ATTENTION
+                
         except ValueError:
+            logger.warning(f"Estado inválido: {state}, usando ATTENTION por defecto")
             current_state = RobotState.ATTENTION
         
         self.active_dialog = ResponseDialog(
@@ -492,12 +507,11 @@ class ChatWidget(QWidget):
             ai_response or {},
             self
         )
-        
-        # Conectar señal de finalización
+
         self.active_dialog.finished.connect(self._handle_dialog_response)
         self.active_dialog.show()
 
-    def show_response_dialog_with_states(self, message: Message, ai_responses: dict[str, dict] = None, user_message: str = ""):
+    def show_response_dialog_with_states(self, message: Message, ai_responses: dict = None, user_message: str = ""):
         """
         Muestra el diálogo de respuesta con estados emocionales.
         
@@ -506,6 +520,10 @@ class ChatWidget(QWidget):
             ai_response: Respuesta de IA opcional con presets
             user_message: Mensaje original del usuario
         """
+        if not isinstance(ai_responses, dict):
+            logger.warning(f"ai_responses no es un diccionario: {type(ai_responses)}, usando diccionario vacío")
+            ai_responses = {}
+            
         state = message.robot_state.value if message.robot_state else 'attention'
         self.show_response_dialog(message, state, ai_responses)
     

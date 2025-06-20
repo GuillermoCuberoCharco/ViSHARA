@@ -7,7 +7,7 @@ import json
 from typing import Optional, List, Dict, Any, Callable
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 
-from config import RobotState, MessageType, OperationMode, PRESET_RESPONSES
+from config import RobotState, MessageType, OperationMode
 from core.event_manager import EventManager
 from services.socket_service import SocketService
 from models import Message, MessageSender, Session, User
@@ -182,7 +182,8 @@ class MessageService(QObject):
             
             # En modo manual, mostrar diálogo de respuesta
             if not self.auto_mode_enabled:
-                self.user_response_required.emit(message, robot_state.value if robot_state else 'Attention')
+                state_value = robot_state.value if robot_state else 'attention'
+                self.user_response_required.emit(message, state_value)
             else:
                 # En modo automático, enviar directamente
                 asyncio.create_task(self._send_automatic_wizard_response(message))
@@ -196,6 +197,10 @@ class MessageService(QObject):
             main_response = data.get('main_response', {})
             state_responses = data.get('state_responses', {})
             user_message = data.get('user_message', '')
+
+            if not isinstance(state_responses, dict):
+                logger.warning(f"state_responses no es un diccionario: {type(state_responses)}, usando diccionario vacío")
+                state_responses = {}
 
             robot_state = None
             if main_response.get('state'):
