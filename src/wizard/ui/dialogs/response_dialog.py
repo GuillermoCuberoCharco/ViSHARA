@@ -170,8 +170,8 @@ class StateVisualWidget(QFrame):
         # Imagen del estado
         self.state_image = QLabel()
         self.state_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.state_image.setMinimumSize(200, 200)
-        self.state_image.setMaximumSize(250, 250)
+        self.state_image.setMinimumSize(300, 300)
+        self.state_image.setMaximumSize(400, 400)
         self.state_image.setStyleSheet("""
             QLabel {
                 border: 2px solid #ddd;
@@ -437,6 +437,47 @@ class ResponseBubbleWidget(QFrame):
         """Pone el foco en el editor."""
         self.response_edit.setFocus()
 
+    def sync_recording_state(self, is_recording: bool):
+        """Sincroniza el estado de grabación con el botón."""
+        if hasattr(self, 'voice_button'):
+            if is_recording:
+                self.voice_button.setText("⏹️")
+                self.voice_button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #dc3545;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 10px;
+                        padding: 2px;
+                        min-width: 16px;
+                        min-height: 16px;
+                        max-width: 30px;
+                        max-height: 30px;
+                    }
+                    QPushButton:hover { background-color: #c82333; }
+                """)
+                self.voice_button.setToolTip("Clic para detener grabación")
+            else:
+                self.voice_button.setText("🎤")
+                self.voice_button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #28a745;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 10px;
+                        padding: 2px;
+                        min-width: 16px;
+                        min-height: 16px;
+                        max-width: 16px;
+                        max-height: 16px;
+                    }
+                    QPushButton:hover { background-color: #218838; }
+                    QPushButton:pressed { background-color: #1e7e34; }
+                """)
+                self.voice_button.setToolTip("Grabar respuesta de voz")
+
 
 class AIResponseSelector(QFrame):
     """Widget para seleccionar respuestas generadas por OpenAI."""
@@ -591,6 +632,8 @@ class ResponseDialog(QDialog):
         self.is_recording = False
         self.audio_data = None
         self.voice_widget = None
+        self.voice_recorder = VoiceRecorderWidget(self)
+        self.voice_recorder.hide()
         
         # Componentes
         self.state_widget = None
@@ -711,6 +754,10 @@ class ResponseDialog(QDialog):
         if self.bubble_widget:
             self.bubble_widget.clearRequested.connect(self._on_clear_requested)
             self.bubble_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
+
+        # Conexión de grabación de voz
+        if self.voice_recorder:
+            self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
     
     def _on_state_changed(self, new_state: RobotState):
         """Maneja el cambio de estado emocional."""
@@ -740,12 +787,13 @@ class ResponseDialog(QDialog):
     
     def _on_voice_recording_requested(self):
         """Maneja la solicitud de grabación de voz como toggle directo."""
-        if not self.is_recording:
-            # Iniciar grabación
-            self._start_voice_recording()
-        else:
-            # Detener grabación y enviar
-            self._stop_voice_recording()
+        if self.voice_recorder:
+            self.voice_recorder._toggle_recording()
+
+            if self.bubble_widget:
+                # Sincronizar estado de grabación con el botón
+                is_recording = self.voice_recorder.is_recording
+                self.bubble_widget.sync_recording_state(is_recording)
     
     def _start_voice_recording(self):
         """Inicia la grabación de voz."""
@@ -799,7 +847,7 @@ class ResponseDialog(QDialog):
             # Actualizar estado visual
             self.is_recording = False
             if self.bubble_widget:
-                self.bubble_widget.set_recording_state(False)
+                self.bubble_widget.sync_recording_state(False)
             
             # Obtener socket service desde la aplicación principal
             app = self.parent()
@@ -899,6 +947,13 @@ class ResponseDialog(QDialog):
             try:
                 self.voice_widget.close()
                 self.voice_widget = None
+            except:
+                pass
+
+        # Limpiar grabador de voz
+        if self.voice_recorder:
+            try:
+                self.voice_recorder.cleanup()
             except:
                 pass
         

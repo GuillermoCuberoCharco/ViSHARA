@@ -18,7 +18,7 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
 
         if (OPERATOR_CONNECTED) {
             console.log('Sending message to operator:', inputText);
-            io.emit('client_message', {
+            io.emit('client_message_for_wizard', {
                 text: inputText,
                 type: 'client_text',
                 socketId: socketId,

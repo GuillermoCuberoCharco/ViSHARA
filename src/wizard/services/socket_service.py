@@ -124,9 +124,9 @@ class SocketService(QObject):
         
         # Manejadores de mensajes
         @self.sio.event
-        async def client_message(data):
+        async def client_message_for_wizard(data):
             logger.debug(f'Mensaje de cliente recibido: {data}')
-            self._handle_message('client_message', data)
+            self._handle_message('client_message_for_wizard', data)
         
         @self.sio.event
         async def openai_message(data):

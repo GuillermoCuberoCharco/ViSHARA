@@ -62,7 +62,7 @@ class MessageService(QObject):
             logger.info("Inicializando servicio de mensajería...")
             
             # Configurar callbacks de socket
-            self.socket_service.add_event_callback('client_message', self._handle_client_message)
+            self.socket_service.add_event_callback('client_message_for_wizard', self._handle_client_message_for_wizard)
             self.socket_service.add_event_callback('openai_message', self._handle_openai_message)
             self.socket_service.add_event_callback('openai_message_with_states', self._handle_openai_message_with_states)
             self.socket_service.add_event_callback('robot_message', self._handle_robot_message)
@@ -122,10 +122,6 @@ class MessageService(QObject):
         
         logger.info(f"Modo de operación cambiado a: {new_mode.value}")
         
-        # Procesar mensajes pendientes si cambiamos a automático
-        if self.auto_mode_enabled:
-            task = asyncio.create_task(self._process_pending_messages())
-            self.__pending_tasks.append(task)
     
     def _handle_user_identified(self, user: User):
         """Maneja cuando un usuario es identificado."""
@@ -137,10 +133,10 @@ class MessageService(QObject):
             
             logger.info(f"Usuario actual actualizado: {user.get_display_name()}")
     
-    def _handle_client_message(self, data: Dict[str, Any]):
+    def _handle_client_message_for_wizard(self, data: Dict[str, Any]):
         """Maneja mensajes del cliente."""
         try:
-            message = Message.create_client_message(
+            message = Message.create_client_message_for_wizard(
                 text=data.get('text', ''),
                 user_id=self.current_user.user_id if self.current_user else None,
                 session_id=self.current_session.session_id if self.current_session else None
@@ -153,9 +149,6 @@ class MessageService(QObject):
             message.requires_response = True
             self.pending_messages.append(message)
             
-            if not self.is_processing:
-                task = asyncio.create_task(self._process_pending_messages())
-                self.__pending_tasks.append(task)
             
         except Exception as e:
             logger.error(f"Error procesando mensaje de cliente: {e}")
@@ -221,9 +214,6 @@ class MessageService(QObject):
             # En modo manual, eofrecer las opciones de respuesta por estado
             if not self.auto_mode_enabled:
                 self.user_response_with_states_required.emit(message, state_responses, user_message)
-            else:
-                # En modo automático, enviar directamente la respuesta principal
-                asyncio.create_task(self._send_automatic_wizard_response(message))
 
         except Exception as e:
             logger.error(f"Error procesando mensaje de OpenAI con estados: {e}")
@@ -358,40 +348,6 @@ class MessageService(QObject):
             message.mark_processed()
             self.message_processed.emit(message)
     
-    async def _process_pending_messages(self):
-        """Procesa mensajes pendientes."""
-        if self.is_processing or not self.pending_messages:
-            return
-        
-        self.is_processing = True
-        
-        try:
-            while self.pending_messages:
-                message = self.pending_messages.pop(0)
-                
-                # Solo procesar en modo automático
-                if self.auto_mode_enabled:
-                    await self._process_message(message)
-                
-                # Delay entre mensajes
-                await asyncio.sleep(0.1)
-        
-        finally:
-            self.is_processing = False
-    
-    async def _process_message(self, message: Message):
-        """Procesa un mensaje individual."""
-        try:
-            # Aquí se podría integrar con OpenAI en el futuro
-            # Por ahora, usar respuestas predefinidas
-            response_text = self._get_preset_response()
-            response_state = RobotState.ATTENTION
-            
-            await self.send_wizard_message(response_text, response_state)
-            
-        except Exception as e:
-            logger.error(f"Error procesando mensaje: {e}")
-    
     def _get_preset_response(self) -> str:
         """Obtiene una respuesta predefinida."""
         # Por ahora retornar una respuesta genérica
@@ -459,13 +415,13 @@ class MessageService(QObject):
                 )
                 wizard_message.mark_sent()
                 self.event_manager.emit('wizard_message_sent', wizard_message, source='message_service')
-                self.message_sent.emit(True, wizard_message.text, wizard_message.robot_state)
+                
                 logger.info(f"Respuesta automática enviada como wizard: {openai_message.text[:50]}...")
             else:
                 logger.error("Error enviando respuesta automática del wizard")
                 
         except Exception as e:
-            logger.error(f"Error enviando respuesta automática del wizard: {e}")
+            logger.error(f"Error de exception enviando respuesta automática del wizard: {e}")
     
     def _send_keepalive(self):
         """Envía señal de keep-alive."""
