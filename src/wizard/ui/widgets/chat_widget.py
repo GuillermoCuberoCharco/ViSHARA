@@ -53,12 +53,91 @@ class StyledChatDisplay(QTextEdit):
         
         sender_name = message.get_sender_display_name()
         color = color_map.get(message.sender.value, '#7f8c8d')
+        sender_type = message.sender.value
         
-        formatted_text = (
-            f'<div style="color: {color}; margin: 5px 0;">'
-            f'<strong>{sender_name}:</strong> {message.text}'
-            f'</div>'
-        )
+        # Usar tabla para alineación compatible con QTextEdit
+        if sender_type == 'client':
+            # Mensajes del usuario a la izquierda
+            formatted_text = f'''
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="70%" valign="top">
+                        <div style="
+                            background-color: #e3f2fd;
+                            border-radius: 15px;
+                            padding: 8px 12px;
+                            margin-right: 20px;
+                            border: 1px solid #bbdefb;
+                        ">
+                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                                {sender_name}
+                            </div>
+                            <div style="color: #1976d2; line-height: 1.4;">
+                                {message.text}
+                            </div>
+                        </div>
+                    </td>
+                    <td width="30%"></td>
+                </tr>
+            </table>
+            '''
+        elif sender_type in ['wizard', 'robot']:
+            # Mensajes del operador/robot a la derecha
+            bubble_color = '#f3e5f5' if sender_type == 'wizard' else '#e8f5e8'
+            text_color = '#7b1fa2' if sender_type == 'wizard' else '#388e3c'
+            border_color = '#e1bee7' if sender_type == 'wizard' else '#c8e6c9'
+            
+            formatted_text = f'''
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="30%"></td>
+                    <td width="70%" valign="top">
+                        <div style="
+                            background-color: {bubble_color};
+                            border-radius: 15px;
+                            padding: 8px 12px;
+                            margin-left: 20px;
+                            border: 1px solid {border_color};
+                        ">
+                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                                {sender_name}
+                            </div>
+                            <div style="color: {text_color}; line-height: 1.4;">
+                                {message.text}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            '''
+        else:
+            # Mensajes del sistema centrados
+            formatted_text = f'''
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="15%"></td>
+                    <td width="70%" align="center" valign="top">
+                        <div style="
+                            background-color: #f5f5f5;
+                            border-radius: 12px;
+                            padding: 6px 10px;
+                            color: #616161;
+                            font-style: italic;
+                            font-size: 12px;
+                            border: 1px solid #e0e0e0;
+                        ">
+                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                                {sender_name}
+                            </div>
+                            <div style="color: #616161;">
+                                {message.text}
+                            </div>
+                        </div>
+                    </td>
+                    <td width="15%"></td>
+                </tr>
+            </table>
+            '''
         
         self.append(formatted_text)
 
@@ -346,17 +425,6 @@ class ChatWidget(QWidget):
             success = await self.message_service.send_wizard_message(text, state)
             
             if success:
-                # Mostrar en display
-                message = Message.create_wizard_message(
-                    text=text,
-                    robot_state=state,
-                    user_id=self.current_user.user_id if self.current_user else None
-                )
-                self.chat_display.append_message(message)
-                
-                # Log del estado
-                self._add_state_message(f"Robot state: {state.value}")
-                
                 logger.debug(f"Mensaje enviado: {text[:50]}...")
             else:
                 self._add_error_message("Error al enviar mensaje")
@@ -425,11 +493,23 @@ class ChatWidget(QWidget):
         """Maneja mensajes enviados."""
         try:
             if message.sender.value == 'wizard':
-                is_automatic = self.state_service.operation_mode == OperationMode.AUTOMATIC
-                if is_automatic:
-                    self.chat_display.append_message(message)
-                    if message.robot_state:
-                        self._add_state_message(f"Robot state: {message.robot_state.value}")
+                current_mode = self.state_service.operation_mode
+                if current_mode == OperationMode.AUTOMATIC:
+                    display_message = Message.create_robot_message(
+                        text=message.text,
+                        robot_state=message.robot_state,
+                        user_id=message.user_id
+                    )
+                    mode_text = "Robot"
+                else:
+                    display_message = message
+                    mode_text = "Operador"
+
+                self.chat_display.append_message(display_message)
+            
+                if message.robot_state:
+                    self._add_state_message(f"{mode_text} state: {message.robot_state.value}")
+
         except Exception as e:
             logger.error(f"Error procesando mensaje enviado: {e}")
     
@@ -442,26 +522,71 @@ class ChatWidget(QWidget):
         self.chat_display.append_message(message)
 
         if message.robot_state:
-            señf._add_state_message(f"Robot state: {message.robot_state.value}")
+            self._add_state_message(f"Robot state: {message.robot_state.value}")
     
     def _add_system_message(self, text: str):
         """Agrega un mensaje del sistema."""
         self.chat_display.append(
-            f'<div style="color: #7f8c8d; font-style: italic; margin: 5px 0;">'
-            f'{text}</div>'
+            f'''<table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="15%"></td>
+                    <td width="70%" align="center">
+                        <div style="
+                            background-color: #f0f0f0;
+                            border-radius: 12px;
+                            padding: 6px 10px;
+                            color: #7f8c8d;
+                            font-style: italic;
+                            font-size: 12px;
+                            border: 1px solid #e0e0e0;
+                        ">{text}</div>
+                    </td>
+                    <td width="15%"></td>
+                </tr>
+            </table>'''
         )
-    
+
     def _add_state_message(self, text: str):
         """Agrega un mensaje de estado."""
         self.chat_display.append(
-            f'<div style="color: #e67e22; margin: 5px 0;">{text}</div>'
+            f'''<table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="15%"></td>
+                    <td width="70%" align="center">
+                        <div style="
+                            background-color: #fff3e0;
+                            border-radius: 12px;
+                            padding: 6px 10px;
+                            color: #e67e22;
+                            font-size: 12px;
+                            border: 1px solid #ffcc80;
+                        ">{text}</div>
+                    </td>
+                    <td width="15%"></td>
+                </tr>
+            </table>'''
         )
-    
+
     def _add_error_message(self, text: str):
         """Agrega un mensaje de error."""
         self.chat_display.append(
-            f'<div style="color: #e74c3c; font-weight: bold; margin: 5px 0;">'
-            f'ERROR: {text}</div>'
+            f'''<table width="100%" cellpadding="0" cellspacing="0" style="margin: 5px 0;">
+                <tr>
+                    <td width="15%"></td>
+                    <td width="70%" align="center">
+                        <div style="
+                            background-color: #ffebee;
+                            border-radius: 12px;
+                            padding: 6px 10px;
+                            color: #e74c3c;
+                            font-weight: bold;
+                            font-size: 12px;
+                            border: 1px solid #ffcdd2;
+                        ">ERROR: {text}</div>
+                    </td>
+                    <td width="15%"></td>
+                </tr>
+            </table>'''
         )
     
     def _send_keepalive(self):

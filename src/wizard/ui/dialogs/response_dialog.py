@@ -380,7 +380,7 @@ class ResponseBubbleWidget(QFrame):
                 self.voice_button.setText("⏹️")  # Icono de parar
                 self.voice_button.setStyleSheet("""
                     QPushButton {
-                        background-color: #dc3545;
+                        background-color: #f96300;
                         color: white;
                         border: none;
                         border-radius: 8px;
@@ -444,7 +444,7 @@ class ResponseBubbleWidget(QFrame):
                 self.voice_button.setText("⏹️")
                 self.voice_button.setStyleSheet("""
                     QPushButton {
-                        background-color: #dc3545;
+                        background-color: #f96300;
                         color: white;
                         border: none;
                         border-radius: 8px;
