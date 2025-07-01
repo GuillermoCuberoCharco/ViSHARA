@@ -19,14 +19,14 @@ logger = get_logger(__name__)
 
 # Mapeo de estados a imágenes y descripciones
 STATE_CONFIG = {
-    RobotState.ATTENTION: ("surprise.png", "sorprendida"),
-    RobotState.HELLO: ("neutral.png", "neutral"), 
-    RobotState.ANGRY: ("angry.png", "enfadada"),
-    RobotState.SAD: ("sad.png", "triste"),
-    RobotState.JOY: ("joy.png", "feliz"),
-    RobotState.YES: ("silly.png", "divertida"),
-    RobotState.NO: ("neutral.png", "negativa"),
-    RobotState.BLUSH: ("joy_blush.png", "sonrojada")
+    RobotState.ATTENTION: ("surprise.png", "Sorprendida"),
+    RobotState.HELLO: ("neutral.png", "Saludando"), 
+    RobotState.ANGRY: ("angry.png", "Enfadada"),
+    RobotState.SAD: ("sad.png", "Triste"),
+    RobotState.JOY: ("joy.png", "Feliz"),
+    RobotState.YES: ("silly.png", "Asintiendo"),
+    RobotState.NO: ("neutral.png", "Negativa"),
+    RobotState.BLUSH: ("joy_blush.png", "Sonrojada")
 }
 
 class StateSelectionWidget(QFrame):
@@ -68,10 +68,10 @@ class StateSelectionWidget(QFrame):
         # Primera fila de estados
         first_row_layout = QHBoxLayout()
         first_row_states = [
-            (RobotState.ATTENTION, "surprise", "#3498db"),
-            (RobotState.HELLO, "neutral", "#27ae60"),
-            (RobotState.NO, "no", "#e74c3c"),
-            (RobotState.YES, "silly", "#f39c12")
+            (RobotState.ATTENTION, "Atención", "#3498db"),
+            (RobotState.HELLO, "Saludo", "#27ae60"),
+            (RobotState.NO, "Negativa", "#e74c3c"),
+            (RobotState.YES, "Asentir", "#f39c12")
         ]
         
         for state, display_name, color in first_row_states:
@@ -83,10 +83,10 @@ class StateSelectionWidget(QFrame):
         # Segunda fila de estados
         second_row_layout = QHBoxLayout()
         second_row_states = [
-            (RobotState.ANGRY, "angry", "#e67e22"),
-            (RobotState.SAD, "sad", "#9b59b6"),
-            (RobotState.JOY, "joy", "#2ecc71"),
-            (RobotState.BLUSH, "joy_blush", "#ff69b4")
+            (RobotState.ANGRY, "Enfadada", "#e67e22"),
+            (RobotState.SAD, "Triste", "#9b59b6"),
+            (RobotState.JOY, "Feliz", "#2ecc71"),
+            (RobotState.BLUSH, "Sonrojada", "#ff69b4")
         ]
         
         for state, display_name, color in second_row_states:

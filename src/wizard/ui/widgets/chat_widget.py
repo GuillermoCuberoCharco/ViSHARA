@@ -20,6 +20,17 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+STATE_DISPLAY_NAMES = {
+    RobotState.ATTENTION: "Atención",
+    RobotState.HELLO: "Saludo", 
+    RobotState.ANGRY: "Enfadada",
+    RobotState.SAD: "Triste",
+    RobotState.JOY: "Feliz",
+    RobotState.YES: "Asentir",
+    RobotState.NO: "Negativa",
+    RobotState.BLUSH: "Sonrojada"
+}
+
 class StyledChatDisplay(QTextEdit):
     """Display de chat con estilos personalizados."""
     
@@ -145,7 +156,10 @@ class StateButton(QPushButton):
     """Botón para estados emocionales del robot."""
     
     def __init__(self, state: RobotState, parent: Optional[QWidget] = None):
-        super().__init__(state.value, parent)
+
+        display_name = STATE_DISPLAY_NAMES.get(state, state.value)
+        super().__init__(display_name, parent)
+
         self.state = state
         self.setCheckable(True)
         self.setFixedSize(100, 70)
@@ -172,7 +186,7 @@ class StateButton(QPushButton):
             }
         """)
         
-        self.setToolTip(state.value)
+        self.setToolTip(f"{display_name} ({self.state.value})")
 
 class StateButtonGroup(QWidget):
     """Grupo de botones para selección de estado emocional."""
