@@ -650,7 +650,7 @@ class ResponseDialog(QDialog):
         self.setWindowTitle('Respuesta del Robot')
         self.setMinimumWidth(800)
         self.setMinimumHeight(600)
-        self.setModal(False)
+        self.setModal(True)
         
         # Layout principal
         main_layout = QVBoxLayout(self)

@@ -2,6 +2,7 @@ const { getOpenAIResponse, getOpenAIResponseWithStates } = require('../../servic
 const { updateUserName, findUserByName, listAllUsers } = require('../../services/faceRecognitionService.cjs');
 const { startNewSession, addMessage, getConversationContext, endCurrentSession } = require('../../services/conversationService.cjs');
 const { transcribeAudio } = require('../../services/googleSTT.cjs');
+const clientManager = require('../../utils/clientManager.cjs');
 
 const pendingIdentifications = new Map();
 const userSessions = new Map();
@@ -146,10 +147,30 @@ function setupMessageHandlers(io) {
             await handleVoiceResponse(io, socket, data);
         });
 
-        socket.on('register_client', (clientType) => {
-            socket.isWizardOperator = false;
-            console.log('Message client registered', clientType, socket.id);
-            socket.emit('registration_success', { status: 'ok' });
+        socket.on('register_client', (data) => {
+            try {
+                console.log('Registering client:', data);
+
+                const session = userSessions.get(socket.id) || {};
+                const sessionId = session.currentUserId || 'default';
+
+                const clientInfo = clientManager.registerClient(socket.id, socket, {
+                    ...data,
+                    sessionId
+                });
+
+                socket.emit('registration_success', {
+                    clientType: data.type || 'participant',
+                    sessionId,
+                    registered: true
+                });
+
+                const stats = clientManager.getStats();
+                console.log('Client stats:', stats);
+            } catch (error) {
+                console.error('Error registering client:', error);
+                socket.emit('registration_error', { message: 'Error registering client' });
+            }
         });
 
         socket.on('user_detected', async (userData) => {
@@ -318,11 +339,57 @@ function setupMessageHandlers(io) {
             }
         });
 
+        socket.on('ui_state_change', (data) => {
+            try {
+                const session = userSessions.get(socket.id) || {};
+                const sessionId = session.currentUserId || 'default';
+
+                console.log(`UI state change received from ${socket.id}`);
+
+                const broadcastCount = clientManager.broadcastToSession(sessionId, 'ui_state_change', {
+                    ...data,
+                    timestamp: Date.now(),
+                    sessionId,
+                    source: 'participant'
+                }, socket.id);
+
+                console.log(`Broadcasted UI state change to ${broadcastCount} clients in session ${sessionId}`);
+            } catch (error) {
+                console.error('Error processing UI state change:', error);
+            }
+        });
+
+        socket.on('robot_animation_trigger', (data) => {
+            try {
+                const session = userSessions.get(socket.id) || {};
+                const sessionId = session.currentUserId || 'default';
+
+                clientManager.broadcastToSession(
+                    sessionId,
+                    'robot_animation_sync',
+                    {
+                        ...data,
+                        sessionId,
+                        timestamp: Date.now()
+                    },
+                    socket.id
+                );
+
+            } catch (error) {
+                console.error('Error handling robot animation:', error);
+            }
+        });
+
         socket.on('disconnect', async () => {
             console.log('Client disconnected from message socket');
             if (socket.isWizardOperator) {
                 console.log('Operator disconnected, disabling operator mode');
                 OPERATOR_CONNECTED = false;
+            }
+
+            const removedClient = clientManager.unregisterClient(socket.id);
+            if (removedClient) {
+                console.log(`Removed client from session: ${removedClient.sessionId}`);
             }
 
             const session = userSessions.get(socket.id);

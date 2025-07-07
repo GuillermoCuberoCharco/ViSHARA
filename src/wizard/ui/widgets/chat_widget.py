@@ -648,6 +648,7 @@ class ChatWidget(QWidget):
         )
 
         self.active_dialog.finished.connect(self._handle_dialog_response)
+        self.active_dialog.adjustSize()
         self.active_dialog.show()
 
     def show_response_dialog_with_states(self, message: Message, ai_responses: dict = None, user_message: str = ""):
@@ -660,7 +661,6 @@ class ChatWidget(QWidget):
             user_message: Mensaje original del usuario
         """
         if not isinstance(ai_responses, dict):
-            logger.warning(f"ai_responses no es un diccionario: {type(ai_responses)}, usando diccionario vacío")
             ai_responses = {}
             
         state = message.robot_state.value if message.robot_state else 'attention'

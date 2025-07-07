@@ -19,7 +19,32 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     const [faceDetected, setFaceDetected] = useState(false);
 
     // Context and references
-    const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
+    const {
+        isConnected,
+        isRegistered,
+        emit, socket,
+        emitRobotAnimation,
+        emitUIStateChange
+    } = useWebSocketContext({
+        handleRobotMessage,
+        handleWizardMessage,
+        handleClientMessage,
+        handleRegistrationSuccess: () => {
+            console.log("WebSocket registered successfully as participant");
+        },
+        handleUIStateSync: (data) => {
+            if (data.stateType === 'chatVisibility') {
+                setIsChatVisible(data.value);
+            }
+        },
+
+        handleRobotAnimationSync: (data) => {
+            if (data.animationType !== animationIndex && data.animationIndex !== undefined) {
+                setAnimationIndex(data.animationIndex);
+            }
+        }
+    });
+
     const messagesContainerRef = useRef(null);
 
     // Audio hooks and handlers
@@ -43,6 +68,15 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             const index = animations.findIndex((animation) => animation === animationName);
             if (index !== -1) {
                 setAnimationIndex(index);
+
+                if (emitRobotAnimation) {
+                    emitRobotAnimation({
+                        animationType: animationName,
+                        animationIndex: index,
+                        robotState: message.state,
+                        trigger: 'robot_message'
+                    });
+                }
             }
         }
 
@@ -60,6 +94,15 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
             const index = animations.findIndex((animation) => animation === animationName);
             if (index !== -1) {
                 setAnimationIndex(index);
+
+                if (emitRobotAnimation) {
+                    emitRobotAnimation({
+                        animationType: animationName,
+                        animationIndex: index,
+                        robotState: message.state,
+                        trigger: 'robot_message'
+                    });
+                }
             }
         }
         setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
@@ -165,7 +208,18 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
         <div className="chat-wrapper">
             <button
                 className="toggle-chat-button"
-                onClick={() => setIsChatVisible(!isChatVisible)}
+                onClick={() => {
+                    const newChatVisible = !isChatVisible;
+                    setIsChatVisible(newChatVisible);
+
+                    if (emitUIStateChange) {
+                        emitUIStateChange({
+                            stateType: 'chatVisibility',
+                            value: newChatVisible,
+                            trigger: 'user_action'
+                        });
+                    }
+                }}
             >
                 {isChatVisible ? '🗨️ Ocultar chat' : '🗨️ Mostrar chat'}
             </button>
