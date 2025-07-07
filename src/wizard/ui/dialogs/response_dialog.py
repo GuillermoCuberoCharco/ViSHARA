@@ -632,8 +632,7 @@ class ResponseDialog(QDialog):
         self.is_recording = False
         self.audio_data = None
         self.voice_widget = None
-        self.voice_recorder = VoiceRecorderWidget(self)
-        self.voice_recorder.hide()
+        self.voice_recorder = None
         
         # Componentes
         self.state_widget = None
@@ -692,6 +691,14 @@ class ResponseDialog(QDialog):
         
         main_layout.addLayout(content_layout)
     
+    def _get_voice_recorder(self):
+        """Obtiene o crea el widget de grabación de voz."""
+        if self.voice_recorder is None:
+            self.voice_recorder = VoiceRecorderWidget()
+            self.voice_recorder.hide()
+            self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
+        return self.voice_recorder
+
     def _setup_action_buttons(self, parent_layout):
         """Configura los botones de acción."""
         buttons_layout = QHBoxLayout()
@@ -756,8 +763,7 @@ class ResponseDialog(QDialog):
             self.bubble_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
 
         # Conexión de grabación de voz
-        if self.voice_recorder:
-            self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
+        pass
     
     def _on_state_changed(self, new_state: RobotState):
         """Maneja el cambio de estado emocional."""
@@ -787,13 +793,13 @@ class ResponseDialog(QDialog):
     
     def _on_voice_recording_requested(self):
         """Maneja la solicitud de grabación de voz como toggle directo."""
-        if self.voice_recorder:
-            self.voice_recorder._toggle_recording()
+        voice_recorder = self._get_voice_recorder()
+        voice_recorder._toggle_recording()
 
-            if self.bubble_widget:
-                # Sincronizar estado de grabación con el botón
-                is_recording = self.voice_recorder.is_recording
-                self.bubble_widget.sync_recording_state(is_recording)
+        if self.bubble_widget:
+            # Sincronizar estado de grabación con el botón
+            is_recording = self.voice_recorder.is_recording
+            self.bubble_widget.sync_recording_state(is_recording)
     
     def _start_voice_recording(self):
         """Inicia la grabación de voz."""
@@ -951,7 +957,7 @@ class ResponseDialog(QDialog):
                 pass
 
         # Limpiar grabador de voz
-        if self.voice_recorder:
+        if self.voice_recorder is not None:
             try:
                 self.voice_recorder.cleanup()
             except:
