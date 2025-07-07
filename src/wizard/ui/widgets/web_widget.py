@@ -240,77 +240,6 @@ class WebWidget(QWidget):
         self._connect_browser_signals()
         
         logger.debug("UI web configurada")
-
-    def _setup_synchronization(self):
-        """Configura la sincronización como cliente operator."""
-        try:
-            js_sync_code: f"""
-            (function() {{
-                console.log('Configurando cliente operator...');
-                
-                // Verificar si ya existe conexión
-                if (window.operatorSocket && window.operatorSocket.connected) {{
-                    console.log('Socket operator ya conectado');
-                    return;
-                }}
-                
-                // Crear conexión WebSocket como operator
-                if (typeof io !== 'undefined') {{
-                    window.operatorSocket = io('{settings.server.url}');
-                    
-                    window.operatorSocket.on('connect', () => {{
-                        console.log('operator socket conectado');
-                        
-                        // Registrarse como cliente operator
-                        window.operatorSocket.emit('register_client', {{
-                            client: 'web',
-                            type: 'operator',
-                            source: 'wizard_app',
-                            timestamp: Date.now()
-                        }});
-                    }});
-                    
-                    window.operatorSocket.on('registration_success', (data) => {{
-                        console.log('operator registrado exitosamente:', data);
-                    }});
-                    
-                    // Handlers de sincronización
-                    window.operatorSocket.on('ui_state_sync', (data) => {{
-                        console.log('Sincronizando estado UI:', data);
-                        if (window.syncUIState) {{
-                            window.syncUIState(data);
-                        }}
-                    }});
-                    
-                    window.operatorSocket.on('conversation_scroll_sync', (data) => {{
-                        console.log('Sincronizando scroll:', data);
-                        if (window.syncConversationScroll) {{
-                            window.syncConversationScroll(data);
-                        }}
-                    }});
-                    
-                    window.operatorSocket.on('robot_animation_sync', (data) => {{
-                        console.log('Sincronizando animación:', data);
-                        if (window.syncRobotAnimation) {{
-                            window.syncRobotAnimation(data);
-                        }}
-                    }});
-                    
-                    window.operatorSocket.on('disconnect', () => {{
-                        console.log('operator socket desconectado');
-                    }});
-                    
-                }} else {{
-                    console.error('Socket.IO no está disponible');
-                    setTimeout(() => window.setupOperatorSync(), 2000);
-                }}
-            }})();
-            """
-
-            self.browser.page().runJavaScript(js_sync_code)
-            logger.info("Sincronización configurada como cliente operator")
-        except Exception as e:
-            logger.error(f"Error configurando sincronización: {e}")
     
     def _connect_browser_signals(self):
         """Conecta las señales del navegador."""
@@ -371,8 +300,6 @@ class WebWidget(QWidget):
             self.load_attempts = 0
             self.loading_indicator.set_status("Carga completada")
             self.connection_status.update_status(True, "Página cargada")
-
-            QTimer.singleShot(3000, self._setup_synchronization)
             
             logger.info("Página web cargada exitosamente")
         else:

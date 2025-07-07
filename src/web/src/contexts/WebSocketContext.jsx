@@ -41,7 +41,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
         socket.on('connect', () => {
             console.log('WebSocket connected with id:', socket.id);
             setIsConnected(true);
-            socket.emit('register_client', { client: 'web', type: 'participant', userAgent: navigator.userAgent, timestamp: Date.now() });
+            socket.emit('register_client', { client: 'web' });
         });
 
         socket.on('disconnect', (reason) => {
@@ -110,20 +110,6 @@ export const WebSocketProvider = ({ children, handlers }) => {
             }
         }
 
-        socket.on('ui_state_sync', (data) => {
-            console.log('UI state sync received:', data);
-            if (handlers?.handleUIStateSync) {
-                handlers.handleUIStateSync(data);
-            }
-        });
-
-        socket.on('robot_animation_sync', (data) => {
-            console.log('Robot animation sync received:', data);
-            if (handlers?.handleRobotAnimationSync) {
-                handlers.handleRobotAnimationSync(data);
-            }
-        });
-
         socket.on('reconnect_attempt', (attemptNumber) => {
             console.log(`Reconnecting... Attempt ${attemptNumber}`);
         });
@@ -160,18 +146,7 @@ export const WebSocketProvider = ({ children, handlers }) => {
         isConnected,
         isRegistered,
         emit,
-        id: socketRef.current?.id,
-
-        emitUIStateChange: (stateData) => {
-            if (socketRef.current && socketRef.current.connected) {
-                socketRef.current.emit('ui_state_change', stateData);
-            }
-        },
-        emitRobotAnimation: (animationData) => {
-            if (socketRef.current && socketRef.current.connected) {
-                socketRef.current.emit('robot_animation_trigger', animationData);
-            }
-        }
+        id: socketRef.current?.id
     };
 
     return (
