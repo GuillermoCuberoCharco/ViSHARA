@@ -91,7 +91,7 @@ async function processClientMessage(inputText, socketId, io, customSocket = null
                 console.log('No operator connected, sending response to client socket:', socketId);
                 const targetSocket = customSocket || io.sockets.sockets.get(socketId);
                 if (targetSocket) {
-                    io.emit('robot_message', {
+                    targetSocket.emit('robot_message', {
                         text: response.text,
                         state: response.robot_mood
                     });
@@ -177,12 +177,6 @@ function setupMessageHandlers(io) {
             session.currentUserId = userData.userId;
             session.lastFaceUpdate = Date.now();
 
-            io.emit('user_detected', {
-                userId: userData.userId,
-                userName: userData.userName,
-                timestamp: new Date().toISOString()
-            });
-
             if (!global.userSessionsEnds) global.userSessionsEnds = new Map();
             session.lastSessionEnd = global.userSessionsEnds.get(userData.userId);
 
@@ -252,11 +246,6 @@ function setupMessageHandlers(io) {
                 console.log(`Session ended for lost user: ${userData.userId}`);
             }
 
-            io.emit('user_lost', {
-                userId: userData.userId,
-                timestamp: new Date().toISOString()
-            });
-
             const session = userSessions.get(socket.id);
             if (session && session.currentUserId === userData.userId) {
 
@@ -317,7 +306,7 @@ function setupMessageHandlers(io) {
 
                 if (currentUserId && message.text?.trim()) await addMessage(currentUserId, 'wizard', message.text, { state: message.state, messageType: 'wizard_message', socketId: socket.id });
 
-                io.emit('wizard_message', {
+                socket.broadcast.emit('wizard_message', {
                     text: message.text,
                     state: message.state
                 });
@@ -378,14 +367,12 @@ async function sendProactiveMessage(socket, userData, proactiveQuestion, callbac
 
             if (callback && typeof callback === 'function') callback();
 
-            const io = socket.server;
-
-            io.emit('robot_message', {
+            socket.emit('robot_message', {
                 text: response.text,
                 state: response.robot_mood
             });
 
-            io.emit('openai_message', {
+            socket.broadcast.emit('openai_message', {
                 text: response.text,
                 state: response.robot_mood
             });
