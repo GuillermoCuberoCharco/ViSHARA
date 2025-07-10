@@ -234,6 +234,8 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             console.error('Error synthesizing speech:', error);
             setIsSpeaking(false);
             setAudioSrc(null);
+        } finally {
+            setIsSpeaking(false);
         }
 
     };

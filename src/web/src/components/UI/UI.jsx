@@ -65,8 +65,12 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                 setAnimationIndex(index);
             }
         }
-        setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
-        await handleSynthesize(message.text);
+
+        if (message.text?.trim()) {
+            console.log("Received wizard message:", message.text);
+            setMessages((messages) => [...messages, { text: message.text, sender: 'wizard' }]);
+            await handleSynthesize(message.text);
+        }
         setIsWaitingResponse(false);
     }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
@@ -181,15 +185,13 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
-                    {canUseAudio && (
-                        <AudioControls
-                            isRecording={isRecording}
-                            isSpeaking={isSpeaking}
-                            isWaitingResponse={isWaitingResponse}
-                            onStartRecording={startRecording}
-                            onStopRecording={stopRecording}
-                        />
-                    )}
+                    <AudioControls
+                        isRecording={isRecording}
+                        isSpeaking={isSpeaking}
+                        isWaitingResponse={isWaitingResponse}
+                        onStartRecording={startRecording}
+                        onStopRecording={stopRecording}
+                    />
                     <StatusBar
                         isRegistered={isRegistered}
                         connectionError={connectionError}
