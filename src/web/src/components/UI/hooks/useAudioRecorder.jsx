@@ -247,24 +247,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
         setIsSpeaking(false);
     };
 
-    useEffect(() => {
-        if (!audioContextRef.current) {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioContextRef.current = new AudioContext();
-                analyserRef.current = audioContextRef.current.createAnalyser();
-                analyserRef.current.fftSize = 256;
-            } catch (error) {
-                console.error('Error initializing audio context:', error);
-            }
-        }
 
-        return () => {
-            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-                audioContextRef.current.close();
-            }
-        };
-    }, []);
 
     return {
         isRecording,
