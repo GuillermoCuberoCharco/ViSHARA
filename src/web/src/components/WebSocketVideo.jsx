@@ -124,6 +124,9 @@ const WebSocketVideoComponent = ({ onStreamReady, onStreamError }) => {
             } else {
                 setConnectionStatus("Error: Camera " + error.message);
             }
+            if (onStreamReady) {
+                onStreamReady(null);
+            }
         }
     };
 

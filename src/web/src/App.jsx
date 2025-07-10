@@ -23,8 +23,14 @@ function App() {
   };
 
   const handleStreamReady = (stream) => {
-    console.log("Stream ready in App component");
-    setSharedStream(stream);
+    if (stream) {
+      console.log("Stream ready in App component - Normal mode");
+      setSharedStream(stream);
+    } else {
+      console.log("No stream available - Wizard mode enabled");
+      setSharedStream(null);
+      setIsWizardMode(true);
+    }
     setIsStreamReady(true);
   };
 
