@@ -23,6 +23,28 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
     const { socket, emit } = useWebSocketContext();
 
+    const initializeAudioContext = useCallback(() => {
+        if (!audioContextRef.current) {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContextRef.current = new AudioContext();
+
+                if (audioContextRef.current.state === 'suspended') {
+                    audioContextRef.current.resume();
+                }
+
+                analyserRef.current = audioContextRef.current.createAnalyser();
+                analyserRef.current.fftSize = 256;
+                console.log('AudioContext initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('Error initializing audio context:', error);
+                return false;
+            }
+        }
+        return true;
+    }, []);
+
     useEffect(() => {
         isWaitingResponseRef.current = isWaitingResponse;
 
@@ -46,6 +68,12 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     }, []);
 
     const detectSilence = useCallback((stream) => {
+
+        if (!initializeAudioContext()) {
+            console.error('Failed to initialize audio context');
+            return;
+        }
+
         if (!audioContextRef.current || !analyserRef.current || isWaitingResponseRef.current) return;
 
         const source = audioContextRef.current.createMediaStreamSource(stream);
@@ -127,6 +155,14 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             return;
         }
     }, [detectSilence, stopRecording]);
+
+    useEffect(() => {
+        return () => {
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close();
+            }
+        };
+    }, []);
 
     const handleTranscribe = async (audioBlob) => {
         try {
