@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { SERVER_URL } from "../config";
 
-const WebSocketVideoComponent = ({ onStreamReady }) => {
+const WebSocketVideoComponent = ({ onStreamReady, onStreamError }) => {
     const [connectionStatus, setConnectionStatus] = useState("Disconnected");
     const [frameSent, setFramesSent] = useState(0);
     const socketRef = useRef(null);
@@ -110,6 +110,11 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             return stream;
         } catch (error) {
             console.error("Error accessing camera:", error);
+
+            if (onStreamError) {
+                onStreamError(error);
+            }
+
             if (error.name === 'NotAllowedError') {
                 setConnectionStatus("Error: Camera access denied");
             } else if (error.name === 'NotFoundError') {
@@ -119,7 +124,6 @@ const WebSocketVideoComponent = ({ onStreamReady }) => {
             } else {
                 setConnectionStatus("Error: Camera " + error.message);
             }
-            throw error;
         }
     };
 

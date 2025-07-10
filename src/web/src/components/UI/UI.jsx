@@ -9,7 +9,7 @@ import AudioControls from './subcomponents/AudioControls';
 import ChatWindow from './subcomponents/ChatWindow';
 import StatusBar from './utils/StatusBar';
 
-const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => {
+const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWizardMode = false }) => {
     // Main states
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
@@ -21,6 +21,9 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
     // Context and references
     const { isConnected, isRegistered, emit, socket } = useWebSocketContext();
     const messagesContainerRef = useRef(null);
+
+    const canUseAudio = !isWizardMode;
+    const canUseCamera = !isWizardMode;
 
     // Audio hooks and handlers
     const {
@@ -178,26 +181,42 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations }) => 
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
-                    <AudioControls
-                        isRecording={isRecording}
-                        isSpeaking={isSpeaking}
-                        isWaitingResponse={isWaitingResponse}
-                        onStartRecording={startRecording}
-                        onStopRecording={stopRecording}
-                    />
+                    {canUseAudio && (
+                        <AudioControls
+                            isRecording={isRecording}
+                            isSpeaking={isSpeaking}
+                            isWaitingResponse={isWaitingResponse}
+                            onStartRecording={startRecording}
+                            onStopRecording={stopRecording}
+                        />
+                    )}
                     <StatusBar
                         isRegistered={isRegistered}
                         connectionError={connectionError}
                         isSpeaking={isSpeaking}
                         isWaitingResponse={isWaitingResponse}
                         audioSrc={audioSrc}
-                        faceDetected={faceDetected}
+                        faceDetected={canUseCamera ? faceDetected : true}
                     />
-                    <FaceDetection
-                        onFaceDetected={handleFaceDetected}
-                        onFaceLost={handleFaceLost}
-                        stream={sharedStream}
-                    />
+                    {canUseCamera && (
+                        <FaceDetection
+                            onFaceDetected={handleFaceDetected}
+                            onFaceLost={handleFaceLost}
+                            stream={sharedStream}
+                        />
+                    )}
+                    {isWizardMode && (
+                        <div style={{
+                            background: '#f39c12',
+                            color: 'white',
+                            padding: '5px 10px',
+                            borderRadius: '5px',
+                            fontSize: '12px',
+                            margin: '5px 0'
+                        }}>
+                            🧙‍♂️ Modo Wizard: Solo recepción de mensajes
+                        </div>
+                    )}
                 </div>
             </ChatWindow>
         </div>

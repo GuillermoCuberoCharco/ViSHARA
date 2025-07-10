@@ -1,6 +1,6 @@
 import { Sky } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Experience from "./components/experience/Experience";
 import UI from "./components/UI/UI";
 import WebSocketVideoComponent from "./components/WebSocketVideo";
@@ -11,6 +11,7 @@ function App() {
   const [isStreamReady, setIsStreamReady] = useState(false);
   const [animationIndex, setAnimationIndex] = useState(0);
   const [animations, setAnimations] = useState([]);
+  const [isWizardMode, setIsWizardMode] = useState(false);
 
   const webSocketHandlers = {
     handleRegistrationSuccess: () => {
@@ -27,6 +28,38 @@ function App() {
     setIsStreamReady(true);
   };
 
+  const handleStreamError = (error) => {
+    console.error("Stream error in App component, assuming wizard mode:", error);
+    setIsStreamReady(true);
+    setIsWizardMode(true);
+  };
+
+  useEffect(() => {
+    const detectWizardMode = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setIsWizardMode(true);
+          setIsStreamReady(true);
+          return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasCamera = devices.some(device => device.kind === 'videoinput');
+
+        if (!hasCamera) {
+          setIsWizardMode(true);
+          setIsStreamReady(true);
+        }
+      } catch (error) {
+        console.log("Camera access not available, enabling wizard mode");
+        setIsWizardMode(true);
+        setIsStreamReady(true);
+      }
+    };
+
+    detectWizardMode();
+  }, []);
+
   useEffect(() => {
     if (sharedStream) {
       console.log("Shared stream is now available for other components");
@@ -42,13 +75,19 @@ function App() {
           setAnimations={setAnimations}
         />
       </Canvas>
-      <WebSocketVideoComponent onStreamReady={handleStreamReady} />
-      {isStreamReady && (
+      {!isWizardMode && (
+        <WebSocketVideoComponent
+          onStreamReady={handleStreamReady}
+          onStreamError={handleStreamError}
+        />
+      )}
+      {(isStreamReady || isWizardMode) && (
         <UI
           sharedStream={sharedStream}
           animationIndex={animationIndex}
           setAnimationIndex={setAnimationIndex}
           animations={animations}
+          isWizardMode={isWizardMode}
         />
       )}
     </WebSocketProvider>

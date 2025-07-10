@@ -124,6 +124,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             detectSilence(stream);
         } catch (error) {
             console.error('Error starting recording:', error);
+            return;
         }
     }, [detectSilence, stopRecording]);
 
