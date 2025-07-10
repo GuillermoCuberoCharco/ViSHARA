@@ -65,12 +65,8 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                 setAnimationIndex(index);
             }
         }
-
-        if (message.text?.trim()) {
-            console.log("Received wizard message:", message.text);
-            setMessages((messages) => [...messages, { text: message.text, sender: 'wizard' }]);
-            await handleSynthesize(message.text);
-        }
+        setMessages(prev => [...prev, { text: message.text, sender: 'wizard' }]);
+        await handleSynthesize(message.text);
         setIsWaitingResponse(false);
     }, [animations, setAnimationIndex, handleSynthesize, setMessages]);
 
@@ -107,9 +103,9 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
             };
 
             const success = emit('client_message', messageObject);
-            setIsWaitingResponse(true);
 
             if (success) {
+                setIsWaitingResponse(success);
                 setMessages((messages) => [...messages, { text: messageText, sender: 'client' }]);
                 setNewMessage('');
                 setTimeout(scrollToBottom, 100);
@@ -186,13 +182,15 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                 onInputChange={(e) => setNewMessage(e.target.value)}
             >
                 <div className="chat-controls">
-                    <AudioControls
-                        isRecording={isRecording}
-                        isSpeaking={isSpeaking}
-                        isWaitingResponse={isWaitingResponse}
-                        onStartRecording={startRecording}
-                        onStopRecording={stopRecording}
-                    />
+                    {canUseAudio && (
+                        <AudioControls
+                            isRecording={isRecording}
+                            isSpeaking={isSpeaking}
+                            isWaitingResponse={isWaitingResponse}
+                            onStartRecording={startRecording}
+                            onStopRecording={stopRecording}
+                        />
+                    )}
                     <StatusBar
                         isRegistered={isRegistered}
                         connectionError={connectionError}
