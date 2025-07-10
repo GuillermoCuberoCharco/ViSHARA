@@ -77,8 +77,8 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
     const handleClientMessage = (message) => {
         if (message.text?.trim()) {
             setMessages((messages) => [...messages, { text: message.text, sender: 'client' }]);
+            setIsWaitingResponse(true);
         }
-        setIsWaitingResponse(true);
     };
 
     const handleFaceDetected = () => {
