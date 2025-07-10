@@ -154,7 +154,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
     }, [socket, handleClientMessage, handleRobotMessage, handleWizardMessage]);
 
     useEffect(() => {
-        if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected) {
+        if (!isWaitingResponse && !isRecording && !isSpeaking && faceDetected && !isWizardMode) {
             const timer = setTimeout(() => {
                 startRecording();
             }, 1000);
@@ -198,14 +198,13 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                         audioSrc={audioSrc}
                         faceDetected={canUseCamera ? faceDetected : true}
                     />
-                    {canUseCamera && (
+                    {sharedStream ? (
                         <FaceDetection
                             onFaceDetected={handleFaceDetected}
                             onFaceLost={handleFaceLost}
                             stream={sharedStream}
                         />
-                    )}
-                    {isWizardMode && (
+                    ) : (
                         <div style={{
                             background: '#f39c12',
                             color: 'white',
