@@ -116,7 +116,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     }, [stopRecording]);
 
     const startRecording = useCallback(async () => {
-        if (isWaitingResponse.current || isRecordingRef.current || isSpeaking) return;
+        if (isWaitingResponseRef.current || isRecordingRef.current || isSpeaking) return;
         try {
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;
