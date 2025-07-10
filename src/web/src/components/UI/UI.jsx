@@ -106,9 +106,9 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
             };
 
             const success = emit('client_message', messageObject);
+            setIsWaitingResponse(true);
 
             if (success) {
-                setIsWaitingResponse(success);
                 setMessages((messages) => [...messages, { text: messageText, sender: 'client' }]);
                 setNewMessage('');
                 setTimeout(scrollToBottom, 100);
