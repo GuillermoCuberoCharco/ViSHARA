@@ -226,6 +226,10 @@ class MessageService(QObject):
     def _handle_robot_message(self, data: Dict[str, Any]):
         """Maneja mensajes del robot."""
         try:
+            if not self.auto_mode_enabled:
+                logger.debug("Ignorando robot_message en modo manual para evitar duplicación")
+                return
+                
             robot_state = None
             if data.get('state'):
                 try:
