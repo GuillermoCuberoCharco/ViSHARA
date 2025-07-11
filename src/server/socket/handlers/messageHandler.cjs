@@ -306,7 +306,7 @@ function setupMessageHandlers(io) {
 
                 if (currentUserId && message.text?.trim()) await addMessage(currentUserId, 'wizard', message.text, { state: message.state, messageType: 'wizard_message', socketId: socket.id });
 
-                io.emit('wizard_message', {
+                io.emit('robot_message', {
                     text: message.text,
                     state: message.state
                 });
