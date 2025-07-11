@@ -19,7 +19,6 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const silenceDurationRef = useRef(AUDIO_SETTINGS.silenceDuration);
     const isRecordingRef = useRef(false);
     const isWaitingResponseRef = useRef(isWaitingResponse);
-    const isTranscribingRef = useRef(false);
 
     const { socket, emit } = useWebSocketContext();
 
@@ -167,13 +166,11 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const handleTranscribe = async (audioBlob) => {
         try {
 
-            if (isTranscribingRef.current) return;
+            if (isWaitingResponseRef.current) return;
 
             if (!audioBlob || audioBlob.size === 0) return;
 
             isWaitingResponseRef.current = true;
-
-            isTranscribingRef.current = true;
 
             const actualBlob = audioBlob.blob || audioBlob;
             console.log('Transcribing audio blob of size:', actualBlob.size, 'bytes');
@@ -201,7 +198,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
         } catch (error) {
             console.error('Error transcribing audio:', error);
         } finally {
-            isTranscribingRef.current = false;
+            isWaitingResponseRef.current = false;
         }
     };
 
