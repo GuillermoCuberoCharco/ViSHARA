@@ -47,6 +47,9 @@ const WebSocketVideoComponent = ({ onStreamReady, onStreamError }) => {
         } catch (error) {
             console.error("Error initializing WebSocket:", error);
             setConnectionStatus("Error: " + error.message);
+            if (onStreamError) {
+                onStreamError(error);
+            }
         }
     };
 
@@ -126,6 +129,9 @@ const WebSocketVideoComponent = ({ onStreamReady, onStreamError }) => {
             }
             if (onStreamReady) {
                 onStreamReady(null);
+            }
+            if (onStreamError) {
+                onStreamError(error);
             }
         }
     };

@@ -57,7 +57,7 @@ function App() {
           setIsStreamReady(true);
         }
       } catch (error) {
-        console.log("Camera access not available, enabling wizard mode");
+        console.log("Camera access not available, enabling wizard mode:", error.name, error.message);
         setIsWizardMode(true);
         setIsStreamReady(true);
       }
