@@ -65,7 +65,6 @@ class MessageService(QObject):
             self.socket_service.add_event_callback('client_message_for_wizard', self._handle_client_message)
             self.socket_service.add_event_callback('openai_message', self._handle_openai_message)
             self.socket_service.add_event_callback('openai_message_with_states', self._handle_openai_message_with_states)
-            self.socket_service.add_event_callback('robot_message', self._handle_robot_message)
             self.socket_service.add_event_callback('wizard_message', self._handle_wizard_message)
             self.socket_service.add_event_callback('user_detected', self._handle_user_detected)
             self.socket_service.add_event_callback('user_lost', self._handle_user_lost)
@@ -171,14 +170,14 @@ class MessageService(QObject):
                 session_id=self.current_session.session_id if self.current_session else None
             )
             
-            self._add_message_to_session(message)
-            
             # En modo manual, mostrar diálogo de respuesta
             if not self.auto_mode_enabled:
                 state_value = robot_state.value if robot_state else 'attention'
                 self.user_response_required.emit(message, state_value)
             else:
-                # En modo automático, enviar directamente
+                # En modo automático, NO añadir a sesión, solo enviar directamente
+                # El robot_message que venga de vuelta será el que se muestre
+                logger.debug("Enviando respuesta automática sin mostrar en chat (evitar duplicidad)")
                 asyncio.create_task(self._send_automatic_wizard_response(message))
             
         except Exception as e:
@@ -222,33 +221,6 @@ class MessageService(QObject):
                 'state': data.get('main_response', {}).get('state', 'attention')
             }
             self._handle_openai_message(fallback_data)
-    
-    def _handle_robot_message(self, data: Dict[str, Any]):
-        """Maneja mensajes del robot."""
-        try:
-            if not self.auto_mode_enabled:
-                logger.debug("Ignorando robot_message en modo manual para evitar duplicación")
-                return
-                
-            robot_state = None
-            if data.get('state'):
-                try:
-                    robot_state = RobotState(data['state'])
-                except ValueError:
-                    robot_state = RobotState.ATTENTION
-            
-            message = Message.create_robot_message(
-                text=data.get('text', ''),
-                robot_state=robot_state,
-                user_id=self.current_user.user_id if self.current_user else None,
-                session_id=self.current_session.session_id if self.current_session else None
-            )
-            
-            self._add_message_to_session(message)
-            self.event_manager.emit('robot_message_received', message, source='message_service')
-            
-        except Exception as e:
-            logger.error(f"Error procesando mensaje de robot: {e}")
     
     def _handle_wizard_message(self, data: Dict[str, Any]):
         """Maneja mensajes del wizard/operador."""
@@ -410,16 +382,6 @@ class MessageService(QObject):
             )
             
             if success:
-
-                wizard_message = Message.create_wizard_message(
-                    text=openai_message.text,
-                    robot_state=openai_message.robot_state or RobotState.ATTENTION,
-                    user_id=self.current_user.user_id if self.current_user else None,
-                    session_id=self.current_session.session_id if self.current_session else None
-                )
-                wizard_message.mark_sent()
-                self.event_manager.emit('wizard_message_sent', wizard_message, source='message_service')
-                
                 logger.info(f"Respuesta automática enviada como wizard: {openai_message.text[:50]}...")
             else:
                 logger.error("Error enviando respuesta automática del wizard")
