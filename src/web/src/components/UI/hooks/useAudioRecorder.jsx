@@ -171,6 +171,8 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
             if (!audioBlob || audioBlob.size === 0) return;
 
+            isWaitingResponseRef.current = true;
+
             isTranscribingRef.current = true;
 
             const actualBlob = audioBlob.blob || audioBlob;
