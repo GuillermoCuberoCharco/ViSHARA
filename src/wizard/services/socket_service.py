@@ -178,29 +178,7 @@ class SocketService(QObject):
             # Emitir evento en el event manager
             self.event_manager.emit(f'message_{event_type}', data, source='socket_service')
             
-            # Emitir evento específico para transcripciones
-            elif event_type == 'voice_response_confirmation':
-                if data.get('success') and data.get('transcription'):
-                    transcription = data.get('transcription', '').strip()
-                    
-                    if transcription:
-                        message = Message(
-                            text=transcription,
-                            sender=MessageSender.WIZARD,
-                            message_type=MessageType.WIZARD,
-                            metadata={
-                                'source': 'voice_transcription',
-                                'transcribed': True
-                            }
-                        )
-                        
-                        self.event_manager.emit('wizard_voice_transcribed', message, source='socket_service')
-                        logger.info(f"Transcripción del operador procesada: {transcription[:50]}...")
-                    else:
-                        logger.warning("Transcripción vacía recibida")
-                else:
-                    error_msg = data.get('error', 'Error desconocido en transcripción')
-                    logger.error(f"Error en transcripción de voz: {error_msg}")
+            
             
             # Llamar callbacks específicos si existen
             if event_type in self._event_callbacks:
