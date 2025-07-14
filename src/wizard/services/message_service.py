@@ -68,6 +68,7 @@ class MessageService(QObject):
             self.socket_service.add_event_callback('wizard_message', self._handle_wizard_message)
             self.socket_service.add_event_callback('user_detected', self._handle_user_detected)
             self.socket_service.add_event_callback('user_lost', self._handle_user_lost)
+            self.socket_service.add_event_callback('voice_response_confirmation', self._handle_wizard_message)
             
             # Iniciar timer de keep-alive
             self.keepalive_timer.start(30000)  # 30 segundos
@@ -295,7 +296,7 @@ class MessageService(QObject):
             
         except Exception as e:
             logger.error(f"Error procesando pérdida de usuario: {e}")
-    
+            
     async def _clear_current_user_delayed(self, delay: int = 5):
         """Limpia el usuario actual después de un delay."""
         await asyncio.sleep(delay)

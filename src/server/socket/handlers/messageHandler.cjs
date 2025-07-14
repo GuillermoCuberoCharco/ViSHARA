@@ -490,7 +490,8 @@ async function handleVoiceResponse(io, wizardSocket, data) {
 
         wizardSocket.emit('voice_response_confirmation', {
             success: true,
-            transcription: transcription
+            text: transcription,
+            robot_state: data.robot_state
         });
 
     } catch (error) {
