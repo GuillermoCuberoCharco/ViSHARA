@@ -20,6 +20,10 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const isRecordingRef = useRef(false);
     const isWaitingResponseRef = useRef(isWaitingResponse);
 
+    const lastAverageRef = useRef(0);
+    const consecutiveSilenceFramesRef = useRef(0);
+    const consecutiveAudioFramesRef = useRef(0);
+
     const { socket, emit } = useWebSocketContext();
 
     const initializeAudioContext = useCallback(() => {
@@ -55,6 +59,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecordingRef.current) {
+            console.log('🛑 Stopping recording...');
             isRecordingRef.current = false;
             mediaRecorderRef.current.stop()
             setIsRecording(false);
@@ -63,6 +68,10 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 cancelAnimationFrame(silenceTimerRef.current);
                 silenceTimerRef.current = null;
             }
+
+            silenceStartTimeRef.current = null;
+            consecutiveSilenceFramesRef.current = 0;
+            consecutiveAudioFramesRef.current = 0;
         }
     }, []);
 
@@ -97,32 +106,72 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             const average = sum / bufferLength;
 
             if (average < silenceThreshold.current) {
+
+                consecutiveSilenceFramesRef.current++;
+                consecutiveAudioFramesRef.current = 0;
+
                 if (!silenceStartTimeRef.current) {
                     silenceStartTimeRef.current = Date.now();
+                    console.log(`🔇 SILENCE DETECTED - Timer init (avg: ${average.toFixed(2)}, threshold: ${silenceThreshold.current})`);
                 } else {
                     const silenceDuration = Date.now() - silenceStartTimeRef.current;
+                    const remainingTime = silenceDurationRef.current - silenceDuration;
+
+                    if (consecutiveSilenceFramesRef.current % 60 === 0) {
+                        console.log(`⏱️  Silence: ${(silenceDuration / 1000).toFixed(1)}s / ${(silenceDurationRef.current / 1000).toFixed(1)}s ( ${(remainingTime / 1000).toFixed(1)}s remaining)`);
+                    }
+
                     if (silenceDuration >= silenceDurationRef.current) {
+                        console.log(`✅ SILENCE THRESHOLD REACHED - Stopping recording (${(silenceDuration / 1000).toFixed(1)}s of silence)`);
                         stopRecording();
                         return;
                     }
                 }
             } else {
-                silenceStartTimeRef.current = null;
+                consecutiveAudioFramesRef.current++;
+
+                if (silenceStartTimeRef.current !== null) {
+                    const interruptedAfter = Date.now() - silenceStartTimeRef.current;
+                    console.log(`🔊 AUDIO DETECTED - Silence timer RESET after ${(interruptedAfter / 1000).toFixed(1)}s (avg: ${average.toFixed(2)})`);
+                    silenceStartTimeRef.current = null;
+                    consecutiveSilenceFramesRef.current = 0;
+                }
+
+                if (consecutiveAudioFramesRef.current % 180 === 0) {
+                    console.log(`🎤 Audio detected, continuing recording... (avg: ${average.toFixed(2)})`)
+                }
             }
             silenceTimerRef.current = requestAnimationFrame(checkSilence);
         };
+
+        console.log('🎧 Starting silence detection...');
         silenceTimerRef.current = requestAnimationFrame(checkSilence);
-    }, [stopRecording]);
+    }, [stopRecording, initializeAudioContext]);
 
     const startRecording = useCallback(async () => {
-        if (isWaitingResponseRef.current || isRecordingRef.current || isSpeaking) return;
+        if (isWaitingResponseRef.current || isRecordingRef.current || isSpeaking) {
+            console.log('❌ Recording unable to start:', {
+                isWaiting: isWaitingResponseRef.current,
+                isRecording: isRecordingRef.current,
+                isSpeaking
+            });
+            return;
+        }
+
         try {
+            console.log('🎤 Starting recording...');
             audioChunksRef.current = [];
             silenceStartTimeRef.current = null;
+            consecutiveSilenceFramesRef.current = 0;
+            consecutiveAudioFramesRef.current = 0;
 
-            if (!navigator.mediaDevices || !window.MediaRecorder) return;
+            if (!navigator.mediaDevices || !window.MediaRecorder) {
+                console.error('❌ MediaDevices or MediaRecorder not supported');
+                return;
+            }
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 48000 } });
+
             mediaRecorderRef.current = new MediaRecorder(stream, {
                 mimeType: AUDIO_SETTINGS.mimeType,
                 audioBitsPerSecond: AUDIO_SETTINGS.audioBitsPerSecond
@@ -132,13 +181,19 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                     audioChunksRef.current.push(event.data);
                 }
             };
+
             const maxRecordingTime = setTimeout(() => {
-                if (isRecordingRef.current) stopRecording();
+                if (isRecordingRef.current) {
+                    console.log(`⏰ Max recording time reached`);
+                    stopRecording();
+                }
             }, AUDIO_SETTINGS.maxRecordingTime);
 
             mediaRecorderRef.current.onstop = async () => {
                 clearTimeout(maxRecordingTime);
                 const audioBlob = new Blob(audioChunksRef.current, { type: AUDIO_SETTINGS.mimeType });
+
+                console.log(`📦 Failed recording - Size: ${(audioBlob.size / 1024).toFixed(2)} KB, Chunks: ${audioChunksRef.current.length}`);
 
                 if (audioChunksRef.current.length > 0) {
                     await handleTranscribe(audioBlob);
@@ -148,12 +203,15 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
             isRecordingRef.current = true;
             mediaRecorderRef.current.start(100);
             setIsRecording(true);
+
+            console.log('✅ Successfully started recording');
+
             detectSilence(stream);
         } catch (error) {
-            console.error('Error starting recording:', error);
+            console.error('❌ Error starting recording:', error);
             return;
         }
-    }, [detectSilence, stopRecording]);
+    }, [detectSilence, stopRecording, isSpeaking]);
 
     useEffect(() => {
         return () => {
@@ -166,14 +224,20 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
     const handleTranscribe = async (audioBlob) => {
         try {
 
-            if (isWaitingResponseRef.current) return;
+            if (isWaitingResponseRef.current) {
+                console.log('⏸️  Waiting for response, canceling transcription');
+                return;
+            }
 
-            if (!audioBlob || audioBlob.size === 0) return;
+            if (!audioBlob || audioBlob.size === 0) {
+                console.log('⚠️ No audio blob to transcribe');
+                return;
+            }
 
             isWaitingResponseRef.current = true;
 
             const actualBlob = audioBlob.blob || audioBlob;
-            console.log('Transcribing audio blob of size:', actualBlob.size, 'bytes');
+            console.log(`🔄 Transcribing audio blob of size: ${(actualBlob.size / 1024).toFixed(2)} KB`);
 
             const reader = new FileReader();
             reader.readAsDataURL(actualBlob);
@@ -189,9 +253,9 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                     };
                     emit('client_message', messageObject);
 
-                    console.log('Audio sent via socket for transcription and processing');
+                    console.log('📤 Audio sent via socket for transcription and processing');
                 } else {
-                    console.error('Socket not connected, cannot send audio');
+                    console.error('❌ Socket not connected, cannot send audio');
                 }
 
             };
@@ -207,6 +271,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
 
         try {
             setIsSpeaking(true);
+            console.log('🔊 Synthesizing speech...');
 
             const response = await axios.post(`${SERVER_URL}/api/synthesize`, { text: text });
 
@@ -223,6 +288,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 }
 
                 audio.onended = () => {
+                    console.log('✅ Audio playback finished');
                     setIsSpeaking(false);
                     setAudioSrc(null);
                 }
@@ -230,7 +296,7 @@ const useAudioRecorder = (onTranscriptionComplete, isWaitingResponse) => {
                 await audio.play();
             }
         } catch (error) {
-            console.error('Error synthesizing speech:', error);
+            console.error('❌ Error synthesizing speech:', error);
             setIsSpeaking(false);
             setAudioSrc(null);
         } finally {

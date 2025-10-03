@@ -4,7 +4,7 @@ export const AUDIO_SETTINGS = {
     bufferSize: 2048,
     sampleRate: 44100,
     silenceThreshold: 60,
-    silenceDuration: 2000,
+    silenceDuration: 3000,
     maxRecordingTime: 50000,
     audioBitsPerSecond: 16000
 };
