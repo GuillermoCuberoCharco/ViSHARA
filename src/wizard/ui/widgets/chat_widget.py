@@ -7,7 +7,7 @@ from typing import Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QLineEdit, QPushButton, QScrollArea, QButtonGroup,
                             QFrame, QLabel, QComboBox, QCheckBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint, QParallelAnimationGroup
 from PyQt6.QtGui import QFont, QPainter, QColor
 
 from config import RobotState, OperationMode, CHAT_CONFIG
@@ -20,15 +20,26 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+STATE_EMOJIS= {
+    RobotState.ATTENTION: "😮",
+    RobotState.HELLO: "👋",
+    RobotState.ANGRY: "😠",
+    RobotState.SAD: "😢",
+    RobotState.JOY: "😊",
+    RobotState.YES: "👍",
+    RobotState.NO: "🙅",
+    RobotState.BLUSH: "😳"
+}
+
 STATE_DISPLAY_NAMES = {
     RobotState.ATTENTION: "Atención",
-    RobotState.HELLO: "Saludo", 
-    RobotState.ANGRY: "Enfadada",
-    RobotState.SAD: "Triste",
-    RobotState.JOY: "Feliz",
-    RobotState.YES: "Asentir",
-    RobotState.NO: "Negativa",
-    RobotState.BLUSH: "Sonrojada"
+    RobotState.HELLO: "Saludo",
+    RobotState.ANGRY: "Enfado",
+    RobotState.SAD: "Tristeza",
+    RobotState.JOY: "Alegría",
+    RobotState.YES: "Afirmación",
+    RobotState.NO: "Negación",
+    RobotState.BLUSH: "Sonrojo"
 }
 
 class AnimatedToggle(QCheckBox):
@@ -87,7 +98,18 @@ class AnimatedToggle(QCheckBox):
         # Dibujar círculo (slider)
         painter.setBrush(QColor("white"))
         painter.drawEllipse(int(self._circle_position), 3, 24, 24)
-    
+
+    def mousePressEvent(self, event):
+        """ 
+        Maneja los clics del mouse en toda el área del toggle.
+        Sobreescribe el comportamiento predeterminado de QCheckBox para permitir clics en cualquier parte del widget.
+        """
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.setChecked(not self.isChecked())
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
     def enterEvent(self, event):
         """Efecto hover."""
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -224,8 +246,8 @@ class StateButton(QPushButton):
     
     def __init__(self, state: RobotState, parent: Optional[QWidget] = None):
 
-        display_name = STATE_DISPLAY_NAMES.get(state, state.value)
-        super().__init__(display_name, parent)
+        emoji = STATE_EMOJIS.get(state, "❓")
+        super().__init__(emoji, parent)
 
         self.state = state
         self.setCheckable(True)
@@ -238,22 +260,35 @@ class StateButton(QPushButton):
                 border: 1px solid #dcdcdc;
                 border-radius: 5px;
                 margin: 2px;
-                font-size: 10px;
+                font-size: 32px;
+                color: #2c3e50;
             }
             QPushButton:checked {
                 background-color: #2c3e50;
                 color: white;
-                border: 1px solid #2c3e50;
+                border: 2px solid #2c3e50;
             }
             QPushButton:hover {
                 background-color: #e9ecef;
+                border: 2px solid #3498db;
+                color: #2c3e50;
             }
             QPushButton:checked:hover {
                 background-color: #34495e;
+                color: white;
+            }
+            QToolTip {
+                background-color: #ffffff;
+                color: #2c3e50;
+                border: 1px solid #dcdcdc;
+                padding: 5px;
+                border-radius: 3px;
+                font-size: 12px;
             }
         """)
         
-        self.setToolTip(f"{display_name} ({self.state.value})")
+        display_name = STATE_DISPLAY_NAMES.get(state, state.value)
+        self.setToolTip(f"🤖 {display_name}")
 
 class StateButtonGroup(QWidget):
     """Grupo de botones para selección de estado emocional."""
@@ -327,6 +362,12 @@ class ChatWidget(QWidget):
         self.mode_description_label = None
         self.state_buttons = None
         self.status_indicator = None
+
+        # Referencias para animación
+        self.input_frame = None
+        self.state_buttons_widget = None
+        self.input_frame_original_height = 0
+        self.state_buttons_original_height = 0
         
         # Timer para keep-alive
         self.keepalive_timer = QTimer()
@@ -355,9 +396,21 @@ class ChatWidget(QWidget):
         
         # Controles de estado y modo
         self._setup_controls(main_layout)
+
+        # Guardar alturas originales después de que los widgets estén creados
+        QTimer.singleShot(100, self._save_original_heights)
         
         logger.debug("UI del chat configurada")
-    
+
+    def _save_original_heights(self):
+        """Guarda las alturas originales de los widgets para animaciones."""
+        if self.input_frame:
+            self.input_frame_original_height = self.input_frame.sizeHint().height()
+        if self.state_buttons_widget:
+            self.state_buttons_original_height = self.state_buttons_widget.sizeHint().height()
+
+        logger.debug(f"Alturas originales guardadas: input_frame={self.input_frame_original_height}, state_buttons={self.state_buttons_original_height}")
+
     def _setup_input_area(self, parent_layout):
         """Configura el área de input de mensajes."""
         input_frame = QFrame()
@@ -413,10 +466,16 @@ class ChatWidget(QWidget):
         controls_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 5px; padding: 5px;")
         controls_layout = QVBoxLayout(controls_frame)
         
-        # Botones de estado emocional
+        # Botones de estado emocional en un widget separado para animar
+        self.state_buttons_widget = QWidget()
+        state_buttons_layout = QVBoxLayout(self.state_buttons_widget)
+        state_buttons_layout.setContentsMargins(0, 0, 0, 0)
+
         states = list(RobotState)
         self.state_buttons = StateButtonGroup(states)
-        controls_layout.addWidget(self.state_buttons)
+        state_buttons_layout.addWidget(self.state_buttons)
+        
+        controls_layout.addWidget(self.state_buttons_widget)
         
         # Toggle de modo
         mode_layout = QHBoxLayout()
@@ -456,6 +515,55 @@ class ChatWidget(QWidget):
 
         controls_layout.addLayout(mode_layout)
         parent_layout.addWidget(controls_frame)
+
+    def _animate_controls_visibility(self, show: bool):
+        """Anima la visibilidad de los controles (input y botones de estado)."""
+        
+        # Crear grupo de animaciones paralelas
+        animation_group = QParallelAnimationGroup(self)
+        
+        # Animación para input_frame
+        if self.input_frame:
+            input_animation = QPropertyAnimation(self.input_frame, b"maximumHeight")
+            input_animation.setDuration(300)
+            input_animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+            
+            if show:
+                # Mostrar: de 0 a altura original
+                input_animation.setStartValue(0)
+                input_animation.setEndValue(self.input_frame_original_height)
+                self.input_frame.show()
+            else:
+                # Ocultar: de altura actual a 0
+                input_animation.setStartValue(self.input_frame.height())
+                input_animation.setEndValue(0)
+            
+            animation_group.addAnimation(input_animation)
+        
+        # Animación para state_buttons_widget
+        if self.state_buttons_widget:
+            state_animation = QPropertyAnimation(self.state_buttons_widget, b"maximumHeight")
+            state_animation.setDuration(300)
+            state_animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+            
+            if show:
+                # Mostrar: de 0 a altura original
+                state_animation.setStartValue(0)
+                state_animation.setEndValue(self.state_buttons_original_height)
+                self.state_buttons_widget.show()
+            else:
+                # Ocultar: de altura actual a 0
+                state_animation.setStartValue(self.state_buttons_widget.height())
+                state_animation.setEndValue(0)
+            
+            animation_group.addAnimation(state_animation)
+        
+        if not show:
+            animation_group.finished.connect(lambda: self._hide_controls_after_animation())
+        
+        animation_group.start()
+        
+        logger.debug(f"Animación de controles iniciada: {'mostrar' if show else 'ocultar'}")
     
     def _connect_signals(self):
         """Conecta las señales del widget."""
@@ -471,6 +579,13 @@ class ChatWidget(QWidget):
         self.state_service.operation_mode_changed.connect(self._on_mode_changed_internal)
         
         logger.debug("Señales del chat conectadas")
+
+    def _hide_controls_after_animation(self):
+        """Oculta los controles después de la animación."""
+        if self.input_frame:
+            self.input_frame.hide()
+        if self.state_buttons_widget:
+            self.state_buttons_widget.hide()
     
     def _on_toggle_changed(self, state: int):
         """Maneja cambios en el toggle de modo."""
@@ -478,15 +593,13 @@ class ChatWidget(QWidget):
         self.state_service.set_operation_mode(new_mode)
 
     def _on_mode_changed_internal(self, mode: OperationMode):
-        """
-        Maneja cambios de modo internamente (solo habilita/deshabilita controles).
-        """
+        """Maneja cambios de modo internamente (solo habilita/deshabilita controles)."""
         # Actualizar toggle sin emitir señal
         self.mode_toggle.blockSignals(True)
         self.mode_toggle.setChecked(mode == OperationMode.AUTOMATIC)
         self.mode_toggle.blockSignals(False)
 
-        # Actualizar descripción
+        # Actualizar descripción y animar controles
         if mode == OperationMode.AUTOMATIC:
             self.mode_description_label.setText("El Robot toma las decisiones")
             self.mode_description_label.setStyleSheet("""
@@ -497,11 +610,9 @@ class ChatWidget(QWidget):
                     padding: 5px;
                 }
             """)
-
-            # Deshabilitar controles
-            self.message_input.setEnabled(False)
-            self.state_buttons.setEnabled(False)
-            self.send_button.setEnabled(False)
+            
+            # Ocultar controles con animación
+            self._animate_controls_visibility(False)
         else:
             self.mode_description_label.setText("El Operador toma las decisiones")
             self.mode_description_label.setStyleSheet("""
@@ -513,10 +624,7 @@ class ChatWidget(QWidget):
                 }
             """)
 
-            # Habilitar controles
-            self.message_input.setEnabled(True)
-            self.state_buttons.setEnabled(True)
-            self.send_button.setEnabled(True)
+            self._animate_controls_visibility(True)
 
     def _start_keepalive(self):
         """Inicia el timer de keep-alive."""
