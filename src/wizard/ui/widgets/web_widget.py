@@ -116,63 +116,6 @@ class EnhancedWebView(QWebEngineView):
         self.setUrl(url)
         self.sender().deleteLater()
 
-class ConnectionStatus(QWidget):
-    """Widget de estado de conexión web."""
-    
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Indicador de estado
-        self.status_indicator = QLabel("●")
-        self.status_indicator.setStyleSheet("color: #e74c3c; font-size: 16px;")
-        layout.addWidget(self.status_indicator)
-        
-        # Texto de estado
-        self.status_text = QLabel("Desconectado")
-        self.status_text.setStyleSheet("color: #2c3e50; font-size: 12px;")
-        layout.addWidget(self.status_text)
-        
-        layout.addStretch()
-        
-        # URL actual
-        self.url_label = QLabel("")
-        self.url_label.setStyleSheet("color: #7f8c8d; font-size: 10px;")
-        self.url_label.setWordWrap(True)
-        layout.addWidget(self.url_label)
-    
-    def update_status(self, connected: bool, status_text: str = ""):
-        """
-        Actualiza el estado de conexión.
-        
-        Args:
-            connected: Si está conectado
-            status_text: Texto de estado adicional
-        """
-        if connected:
-            self.status_indicator.setStyleSheet("color: #2ecc71; font-size: 16px;")
-            self.status_text.setText("Conectado")
-        else:
-            self.status_indicator.setStyleSheet("color: #e74c3c; font-size: 16px;")
-            self.status_text.setText("Desconectado")
-        
-        if status_text:
-            self.status_text.setText(status_text)
-    
-    def update_url(self, url: str):
-        """
-        Actualiza la URL mostrada.
-        
-        Args:
-            url: URL actual
-        """
-        # Truncar URL si es muy larga
-        if len(url) > 50:
-            url = url[:47] + "..."
-        self.url_label.setText(url)
-
 class WebWidget(QWidget):
     """
     Widget que muestra la interfaz web del usuario usando QWebEngineView.
@@ -191,7 +134,6 @@ class WebWidget(QWidget):
         # Componentes UI
         self.browser = None
         self.loading_indicator = None
-        self.connection_status = None
         
         # Timer para reintentos
         self.retry_timer = QTimer()
@@ -232,10 +174,6 @@ class WebWidget(QWidget):
         self.loading_indicator = LoadingIndicator()
         layout.addWidget(self.loading_indicator)
         
-        # Estado de conexión
-        self.connection_status = ConnectionStatus()
-        layout.addWidget(self.connection_status)
-        
         # Conectar señales
         self._connect_browser_signals()
         
@@ -257,7 +195,7 @@ class WebWidget(QWidget):
             logger.info(f"Cargando página web: {web_url}")
             
             self.browser.setUrl(QUrl(web_url))
-            self.connection_status.update_url(web_url)
+            self.current_url = web_url
             
         except Exception as e:
             logger.error(f"Error cargando página web: {e}")
@@ -272,10 +210,8 @@ class WebWidget(QWidget):
             progress: Progreso de 0 a 100
         """
         self.loading_indicator.update_progress(progress)
-        self.connection_status.update_status(
-            False, 
-            f"Cargando... {progress}%"
-        )
+        if progress % 25 == 0:
+            logger.debug(f"Progreso de carga: {progress}%")
     
     @pyqtSlot()
     def handle_load_started(self):
@@ -283,7 +219,6 @@ class WebWidget(QWidget):
         self.loading_indicator.setVisible(True)
         self.loading_indicator.update_progress(0)
         self.loading_indicator.set_status("Iniciando carga...")
-        self.connection_status.update_status(False, "Cargando...")
         
         logger.debug("Inicio de carga de página web")
     
@@ -299,7 +234,6 @@ class WebWidget(QWidget):
             self.is_loaded = True
             self.load_attempts = 0
             self.loading_indicator.set_status("Carga completada")
-            self.connection_status.update_status(True, "Página cargada")
             
             logger.info("Página web cargada exitosamente")
         else:
@@ -308,7 +242,6 @@ class WebWidget(QWidget):
             
             error_msg = f"Error al cargar la página (intento {self.load_attempts})"
             self.loading_indicator.set_status(error_msg, is_error=True)
-            self.connection_status.update_status(False, error_msg)
             
             logger.error(f"Error cargando página web: {error_msg}")
             
@@ -333,7 +266,7 @@ class WebWidget(QWidget):
             url: Nueva URL
         """
         url_string = url.toString()
-        self.connection_status.update_url(url_string)
+        self.current_url = url_string
         logger.debug(f"URL cambiada a: {url_string}")
     
     def _retry_load(self):
@@ -403,7 +336,6 @@ class WebWidget(QWidget):
         """
         
         self.browser.setHtml(error_html)
-        self.connection_status.update_status(False, "Error de carga")
     
     def reload_page(self):
         """Recarga la página actual."""
@@ -420,6 +352,7 @@ class WebWidget(QWidget):
         """
         try:
             self.browser.setUrl(QUrl(url))
+            self.current_url = url
             logger.info(f"Navegando a: {url}")
         except Exception as e:
             logger.error(f"Error navegando a {url}: {e}")
@@ -441,7 +374,7 @@ class WebWidget(QWidget):
         Returns:
             URL actual como string
         """
-        return self.browser.url().toString()
+        return self.current_url
     
     def is_page_loaded(self) -> bool:
         """

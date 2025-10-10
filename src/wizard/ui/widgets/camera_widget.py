@@ -51,63 +51,6 @@ class VideoFrame(QFrame):
         
         self.layout.addWidget(self.video_label)
 
-class StatusDisplay(QWidget):
-    """Display de estado de la conexión de video."""
-    
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Label de estado
-        self.status_label = QLabel("Connecting to server...")
-        self.status_label.setStyleSheet(
-            "color: #e74c3c; background-color: rgba(0,0,0,0.5); "
-            "padding: 4px 8px; border-radius: 4px;"
-        )
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_label)
-        
-        # Label de estadísticas
-        self.stats_label = QLabel("Frames: 0")
-        self.stats_label.setStyleSheet(
-            "color: #3498db; background-color: rgba(0,0,0,0.5); "
-            "padding: 4px 8px; border-radius: 4px;"
-        )
-        self.stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.stats_label)
-    
-    def update_status(self, status: str, is_connected: bool = False):
-        """
-        Actualiza el estado mostrado.
-        
-        Args:
-            status: Texto del estado
-            is_connected: Si está conectado
-        """
-        self.status_label.setText(status)
-        
-        if is_connected:
-            self.status_label.setStyleSheet(
-                "color: #2ecc71; background-color: rgba(0,0,0,0.5); "
-                "padding: 4px 8px; border-radius: 4px;"
-            )
-        else:
-            self.status_label.setStyleSheet(
-                "color: #e74c3c; background-color: rgba(0,0,0,0.5); "
-                "padding: 4px 8px; border-radius: 4px;"
-            )
-    
-    def update_stats(self, frames_received: int):
-        """
-        Actualiza las estadísticas mostradas.
-        
-        Args:
-            frames_received: Número de frames recibidos
-        """
-        self.stats_label.setText(f"Frames: {frames_received}")
-
 class CameraWidget(QWidget):
     """
     Widget que muestra el feed de video de la cámara del usuario.
@@ -143,10 +86,6 @@ class CameraWidget(QWidget):
         # Frame de video
         self.video_frame = VideoFrame()
         layout.addWidget(self.video_frame, stretch=1)
-        
-        # Display de estado
-        self.status_display = StatusDisplay()
-        layout.addWidget(self.status_display)
         
         logger.debug("UI de cámara configurada")
     
@@ -207,10 +146,11 @@ class CameraWidget(QWidget):
             
             # Mostrar en el label
             self.video_frame.video_label.setPixmap(scaled_pixmap)
+
+            # Log cada 100 frames
+            if self.frames_received % 100 == 0:
+                logger.debug(f"Frames recibidos: {self.frames_received}")
             
-            # Actualizar estadísticas cada 10 frames
-            if self.frames_received % 10 == 0:
-                self.status_display.update_stats(self.frames_received)
             
         except Exception as e:
             logger.error(f"Error mostrando frame: {e}")
@@ -227,9 +167,6 @@ class CameraWidget(QWidget):
         # Determinar si está conectado basado en el mensaje
         is_connected = "Connect" in status or "Subscr" in status
         self.is_connected = is_connected
-        
-        # Actualizar display
-        self.status_display.update_status(status, is_connected)
         
         # Si se desconecta, mostrar mensaje en video
         if not is_connected:
@@ -283,7 +220,6 @@ class CameraWidget(QWidget):
         
         self.frames_received = 0
         self.last_frame = None
-        self.status_display.update_stats(0)
         
         logger.debug("Display de cámara reiniciado")
     

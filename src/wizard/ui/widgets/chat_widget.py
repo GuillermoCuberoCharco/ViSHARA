@@ -6,9 +6,9 @@ import asyncio
 from typing import Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QLineEdit, QPushButton, QScrollArea, QButtonGroup,
-                            QFrame, QLabel, QComboBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot
-from PyQt6.QtGui import QFont
+                            QFrame, QLabel, QComboBox, QCheckBox)
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint
+from PyQt6.QtGui import QFont, QPainter, QColor
 
 from config import RobotState, OperationMode, CHAT_CONFIG
 from core.event_manager import EventManager
@@ -30,6 +30,73 @@ STATE_DISPLAY_NAMES = {
     RobotState.NO: "Negativa",
     RobotState.BLUSH: "Sonrojada"
 }
+
+class AnimatedToggle(QCheckBox):
+    """Toggle animado personalizado con slider."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(60, 30)
+        self._circle_position = 3
+        
+        # Animación
+        self.animation = QPropertyAnimation(self, b"circle_position", self)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.animation.setDuration(200)
+        
+        self.stateChanged.connect(self.on_state_changed)
+    
+    @pyqtProperty(int)
+    def circle_position(self):
+        return self._circle_position
+    
+    @circle_position.setter
+    def circle_position(self, pos):
+        self._circle_position = pos
+        self.update()
+    
+    def on_state_changed(self, state):
+        """Anima el toggle cuando cambia de estado."""
+        if state == Qt.CheckState.Checked.value:
+            # Mover a la derecha
+            self.animation.setStartValue(self._circle_position)
+            self.animation.setEndValue(self.width() - 27)
+        else:
+            # Mover a la izquierda
+            self.animation.setStartValue(self._circle_position)
+            self.animation.setEndValue(3)
+        self.animation.start()
+    
+    def paintEvent(self, event):
+        """Dibuja el toggle personalizado."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Dibujar fondo
+        if self.isChecked():
+            # Verde cuando está activo (Automático)
+            bg_color = QColor("#27ae60")
+        else:
+            # Gris cuando está inactivo (Manual)
+            bg_color = QColor("#95a5a6")
+        
+        painter.setBrush(bg_color)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(0, 0, self.width(), self.height(), self.height() / 2, self.height() / 2)
+        
+        # Dibujar círculo (slider)
+        painter.setBrush(QColor("white"))
+        painter.drawEllipse(int(self._circle_position), 3, 24, 24)
+    
+    def enterEvent(self, event):
+        """Efecto hover."""
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        super().enterEvent(event)
+    
+    def leaveEvent(self, event):
+        """Restaurar cursor."""
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().leaveEvent(event)
 
 class StyledChatDisplay(QTextEdit):
     """Display de chat con estilos personalizados."""
@@ -256,7 +323,8 @@ class ChatWidget(QWidget):
         self.chat_display = None
         self.message_input = None
         self.send_button = None
-        self.mode_button = None
+        self.mode_toggle = None
+        self.mode_description_label = None
         self.state_buttons = None
         self.status_indicator = None
         
@@ -277,7 +345,6 @@ class ChatWidget(QWidget):
         main_layout.setContentsMargins(10, 10, 10, 10)
         
         # Barra de estado del chat
-        self._setup_status_bar(main_layout)
         
         # Display de chat
         self.chat_display = StyledChatDisplay()
@@ -290,24 +357,6 @@ class ChatWidget(QWidget):
         self._setup_controls(main_layout)
         
         logger.debug("UI del chat configurada")
-    
-    def _setup_status_bar(self, parent_layout):
-        """Configura la barra de estado del chat."""
-        status_frame = QFrame()
-        status_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 5px; padding: 5px;")
-        status_layout = QHBoxLayout(status_frame)
-        
-        # Indicador de conexión
-        self.connection_label = QLabel("Desconectado")
-        self.connection_label.setStyleSheet("color: #e74c3c;")
-        status_layout.addWidget(self.connection_label)
-        
-        # Indicador de modo
-        self.mode_label = QLabel("Modo Manual")
-        self.mode_label.setStyleSheet("color: #2980b9;")
-        status_layout.addWidget(self.mode_label)
-        
-        parent_layout.addWidget(status_frame)
     
     def _setup_input_area(self, parent_layout):
         """Configura el área de input de mensajes."""
@@ -369,26 +418,43 @@ class ChatWidget(QWidget):
         self.state_buttons = StateButtonGroup(states)
         controls_layout.addWidget(self.state_buttons)
         
-        # Botón de modo
-        button_layout = QHBoxLayout()
-        self.mode_button = QPushButton("Modo Auto")
-        self.mode_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2c3e50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 15px;
+        # Toggle de modo
+        mode_layout = QHBoxLayout()
+        mode_layout.setSpacing(10)
+
+        self.mode_toggle = AnimatedToggle()
+        self.mode_toggle.stateChanged.connect(self._on_toggle_changed)
+        mode_layout.addWidget(self.mode_toggle)
+        
+        # Label "Modo Automático"
+        mode_label = QLabel("Modo Automático")
+        mode_label.setStyleSheet("""
+            QLabel {
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #34495e;
+                font-size: 13px;
+                color: #2c3e50;
             }
         """)
-        self.mode_button.clicked.connect(self._toggle_mode)
-        button_layout.addWidget(self.mode_button)
-        
-        controls_layout.addLayout(button_layout)
+        mode_layout.addWidget(mode_label)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("color: #bdc9c7;")
+        mode_layout.addWidget(separator)
+
+        self.mode_description_label = QLabel("El Operador toma las decisiones")
+        self.mode_description_label.setStyleSheet("""
+            QLabel {
+                color: #2980b9;
+                font-size: 12px;
+                font-style: italic;
+                padding: 5px;
+            }
+        """)
+        mode_layout.addWidget(self.mode_description_label, 1)
+
+        controls_layout.addLayout(mode_layout)
         parent_layout.addWidget(controls_frame)
     
     def _connect_signals(self):
@@ -401,13 +467,57 @@ class ChatWidget(QWidget):
         # Conectar señales Qt del meessage_service
         self.message_service.message_sent.connect(self._on_message_sent)
         self.message_service.user_response_required.connect(self.show_response_dialog_with_states)
-        
-        # Conectar señales de servicios
-        self.state_service.operation_mode_changed.connect(self._update_mode_display)
-        self.state_service.connection_state_changed.connect(self._update_connection_display)
+
+        self.state_service.operation_mode_changed.connect(self._on_mode_changed_internal)
         
         logger.debug("Señales del chat conectadas")
     
+    def _on_toggle_changed(self, state: int):
+        """Maneja cambios en el toggle de modo."""
+        new_mode = (OperationMode.AUTOMATIC if state == Qt.CheckState.Checked.value else OperationMode.MANUAL)
+        self.state_service.set_operation_mode(new_mode)
+
+    def _on_mode_changed_internal(self, mode: OperationMode):
+        """
+        Maneja cambios de modo internamente (solo habilita/deshabilita controles).
+        """
+        # Actualizar toggle sin emitir señal
+        self.mode_toggle.blockSignals(True)
+        self.mode_toggle.setChecked(mode == OperationMode.AUTOMATIC)
+        self.mode_toggle.blockSignals(False)
+
+        # Actualizar descripción
+        if mode == OperationMode.AUTOMATIC:
+            self.mode_description_label.setText("El Robot toma las decisiones")
+            self.mode_description_label.setStyleSheet("""
+                QLabel {
+                    color: #27ae60;
+                    font-size: 12px;
+                    font-style: italic;
+                    padding: 5px;
+                }
+            """)
+
+            # Deshabilitar controles
+            self.message_input.setEnabled(False)
+            self.state_buttons.setEnabled(False)
+            self.send_button.setEnabled(False)
+        else:
+            self.mode_description_label.setText("El Operador toma las decisiones")
+            self.mode_description_label.setStyleSheet("""
+                QLabel {
+                    color: #2980b9;
+                    font-size: 12px;
+                    font-style: italic;
+                    padding: 5px;
+                }
+            """)
+
+            # Habilitar controles
+            self.message_input.setEnabled(True)
+            self.state_buttons.setEnabled(True)
+            self.send_button.setEnabled(True)
+
     def _start_keepalive(self):
         """Inicia el timer de keep-alive."""
         self.keepalive_timer.start(CHAT_CONFIG['KEEPALIVE_INTERVAL'] * 1000)
@@ -446,54 +556,6 @@ class ChatWidget(QWidget):
         except Exception as e:
             logger.error(f"Error enviando mensaje: {e}")
             self._add_error_message(f"Error: {str(e)}")
-    
-    def _toggle_mode(self):
-        """Cambia entre modo manual y automático."""
-        current_mode = self.state_service.operation_mode
-        new_mode = (OperationMode.AUTOMATIC if current_mode == OperationMode.MANUAL 
-                   else OperationMode.MANUAL)
-        
-        self.state_service.set_operation_mode(new_mode)
-    
-    def _update_mode_display(self, mode: OperationMode):
-        """
-        Actualiza la visualización del modo.
-        
-        Args:
-            mode: Nuevo modo de operación
-        """
-        if mode == OperationMode.AUTOMATIC:
-            self.mode_button.setText('Modo Manual')
-            self.mode_label.setText('Modo Automático')
-            self.mode_label.setStyleSheet("color: #27ae60;")
-            
-            # Deshabilitar controles en modo automático
-            self.message_input.setEnabled(False)
-            self.state_buttons.setEnabled(False)
-            self.send_button.setEnabled(False)
-        else:
-            self.mode_button.setText('Modo Auto')
-            self.mode_label.setText('Modo Manual')
-            self.mode_label.setStyleSheet("color: #2980b9;")
-            
-            # Habilitar controles en modo manual
-            self.message_input.setEnabled(True)
-            self.state_buttons.setEnabled(True)
-            self.send_button.setEnabled(True)
-    
-    def _update_connection_display(self, connected: bool):
-        """
-        Actualiza la visualización de conexión.
-        
-        Args:
-            connected: Estado de conexión
-        """
-        if connected:
-            self.connection_label.setText("Conectado")
-            self.connection_label.setStyleSheet("color: #27ae60; font-weight: bold;")
-        else:
-            self.connection_label.setText("Desconectado")
-            self.connection_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
     
     def _on_message_received(self, message):
         """Maneja mensajes recibidos."""
@@ -611,11 +673,6 @@ class ChatWidget(QWidget):
     def show_response_dialog(self, message: Message, state: str, ai_response: dict = None):
         """
         Muestra el diálogo de respuesta.
-        
-        Args:
-            message: Mensaje que requiere respuesta
-            state: Estado emocional actual
-            ai_response: Respuesta de IA opcional con presets
         """
         if self.active_dialog:
             self.active_dialog.close()
@@ -654,11 +711,6 @@ class ChatWidget(QWidget):
     def show_response_dialog_with_states(self, message: Message, ai_responses: dict = None, user_message: str = ""):
         """
         Muestra el diálogo de respuesta con estados emocionales.
-        
-        Args:
-            message: Mensaje que requiere respuesta
-            ai_response: Respuesta de IA opcional con presets
-            user_message: Mensaje original del usuario
         """
         if not isinstance(ai_responses, dict):
             ai_responses = {}
@@ -669,11 +721,6 @@ class ChatWidget(QWidget):
     def _handle_dialog_response(self, accepted: bool, response: str, state: str):
         """
         Maneja la respuesta del diálogo.
-        
-        Args:
-            accepted: Si se aceptó la respuesta
-            response: Texto de respuesta
-            state: Estado emocional
         """
         self.active_dialog = None
         
@@ -687,12 +734,11 @@ class ChatWidget(QWidget):
     # Métodos públicos para la ventana principal
     def update_mode(self, mode: OperationMode):
         """Actualiza el modo desde la ventana principal."""
-        self._update_mode_display(mode)
+        self._on_mode_changed_internal(mode)
     
     def update_connection_status(self, connected: bool):
         """Actualiza el estado de conexión desde la ventana principal."""
         self.is_connected = connected
-        self._update_connection_display(connected)
     
     def update_current_user(self, user: Optional[User]):
         """Actualiza el usuario actual."""

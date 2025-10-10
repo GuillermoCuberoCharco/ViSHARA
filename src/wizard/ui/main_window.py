@@ -77,7 +77,6 @@ class MainWindow(QWidget):
         self.chat_widget = None
         self.camera_widget = None
         self.web_widget = None
-        self.status_bar = None
         
         # Layout principal
         self.main_layout = None
@@ -95,10 +94,6 @@ class MainWindow(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(10)
-        
-        # Barra de estado superior
-        self.status_bar = StatusBar(self.state_service)
-        self.main_layout.addWidget(self.status_bar)
         
         # Splitter principal horizontal
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -206,11 +201,6 @@ class MainWindow(QWidget):
     
     def _connect_signals(self):
         """Conecta las señales entre componentes."""
-        # Conectar señales del estado
-        self.state_service.operation_mode_changed.connect(self._on_mode_changed)
-        self.state_service.connection_state_changed.connect(self._on_connection_changed)
-        self.state_service.current_user_changed.connect(self._on_user_changed)
-        self.state_service.app_status_changed.connect(self._on_status_changed)
         
         # Conectar señales del servicio de mensajes
         self.message_service.user_response_required.connect(self._on_user_response_required)
@@ -218,38 +208,6 @@ class MainWindow(QWidget):
         self.message_service.user_response_with_states_required.connect(self._on_user_response_with_states_required)
         
         logger.debug("Señales conectadas")
-    
-    def _on_mode_changed(self, mode):
-        """Maneja el cambio de modo de operación."""
-        logger.debug(f"Modo cambiado a: {mode.value}")
-        
-        # Actualizar widgets si es necesario
-        if self.chat_widget:
-            self.chat_widget.update_mode(mode)
-    
-    def _on_connection_changed(self, connected: bool):
-        """Maneja el cambio de estado de conexión."""
-        status = "Conectado" if connected else "Desconectado"
-        logger.debug(f"Estado de conexión: {status}")
-        
-        # Actualizar widgets si es necesario
-        if self.chat_widget:
-            self.chat_widget.update_connection_status(connected)
-    
-    def _on_user_changed(self, user):
-        """Maneja el cambio de usuario actual."""
-        if user:
-            logger.debug(f"Usuario actual: {user.get_display_name()}")
-        else:
-            logger.debug("Usuario actual limpiado")
-        
-        # Actualizar widgets si es necesario
-        if self.chat_widget:
-            self.chat_widget.update_current_user(user)
-    
-    def _on_status_changed(self, status: str):
-        """Maneja el cambio de estado de la aplicación."""
-        logger.debug(f"Estado de aplicación: {status}")
     
     def _on_user_response_required(self, message, state):
         """Maneja cuando se requiere respuesta del usuario."""
@@ -291,9 +249,7 @@ class MainWindow(QWidget):
             
             if self.web_widget:
                 await self.web_widget.cleanup()
-            
-            if self.status_bar:
-                await self.status_bar.cleanup()
+        
             
             logger.info("Ventana principal limpiada")
             
@@ -313,8 +269,7 @@ class MainWindow(QWidget):
         widgets = {
             'chat': self.chat_widget,
             'camera': self.camera_widget,
-            'web': self.web_widget,
-            'status': self.status_bar
+            'web': self.web_widget
         }
         
         return widgets.get(widget_name)
@@ -337,8 +292,7 @@ class MainWindow(QWidget):
             'widgets_initialized': {
                 'chat': self.chat_widget is not None,
                 'camera': self.camera_widget is not None,
-                'web': self.web_widget is not None,
-                'status': self.status_bar is not None
+                'web': self.web_widget is not None
             }
         }
         

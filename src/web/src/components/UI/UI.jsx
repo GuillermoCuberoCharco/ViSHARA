@@ -171,7 +171,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                 className="toggle-chat-button"
                 onClick={() => setIsChatVisible(!isChatVisible)}
             >
-                {isChatVisible ? '🗨️ Ocultar chat' : '🗨️ Mostrar chat'}
+                {isChatVisible ? '🗨️ Hide chat' : '🗨️ Show chat'}
             </button>
             <ChatWindow
                 messages={messages}
@@ -214,7 +214,7 @@ const UI = ({ sharedStream, animationIndex, setAnimationIndex, animations, isWiz
                             fontSize: '12px',
                             margin: '5px 0'
                         }}>
-                            🧙‍♂️ Modo Wizard: Solo recepción de mensajes
+                            🧙‍♂️ Wizard Mode: Message reception only
                         </div>
                     )}
                 </div>
