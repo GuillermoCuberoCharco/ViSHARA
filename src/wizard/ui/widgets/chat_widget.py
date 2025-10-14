@@ -165,14 +165,14 @@ class StyledChatDisplay(QTextEdit):
                         <div style="
                             background-color: #e3f2fd;
                             border-radius: 15px;
-                            padding: 8px 12px;
+                            padding: 10px 14px;
                             margin-right: 20px;
                             border: 1px solid #bbdefb;
                         ">
-                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                            <div style="font-size: 13px; color: {color}; font-weight: bold; margin-bottom: 3px;">
                                 {sender_name}
                             </div>
-                            <div style="color: #1976d2; line-height: 1.4;">
+                            <div style="color: #1976d2; line-height: 1.5; font-size: 20px;">
                                 {message.text}
                             </div>
                         </div>
@@ -195,14 +195,14 @@ class StyledChatDisplay(QTextEdit):
                         <div style="
                             background-color: {bubble_color};
                             border-radius: 15px;
-                            padding: 8px 12px;
+                            padding: 10px 14px;
                             margin-left: 20px;
                             border: 1px solid {border_color};
                         ">
-                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                            <div style="font-size: 13px; color: {color}; font-weight: bold; margin-bottom: 3px;">
                                 {sender_name}
                             </div>
-                            <div style="color: {text_color}; line-height: 1.4;">
+                            <div style="color: {text_color}; line-height: 1.5; font-size: 20px;">
                                 {message.text}
                             </div>
                         </div>
@@ -220,13 +220,13 @@ class StyledChatDisplay(QTextEdit):
                         <div style="
                             background-color: #f5f5f5;
                             border-radius: 12px;
-                            padding: 6px 10px;
+                            padding: 8px 12px;
                             color: #616161;
                             font-style: italic;
-                            font-size: 12px;
+                            font-size: 20px;
                             border: 1px solid #e0e0e0;
                         ">
-                            <div style="font-size: 11px; color: {color}; font-weight: bold; margin-bottom: 2px;">
+                            <div style="font-size: 13px; color: {color}; font-weight: bold; margin-bottom: 3px;">
                                 {sender_name}
                             </div>
                             <div style="color: #616161;">
@@ -413,9 +413,9 @@ class ChatWidget(QWidget):
 
     def _setup_input_area(self, parent_layout):
         """Configura el área de input de mensajes."""
-        input_frame = QFrame()
-        input_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 5px; padding: 5px;")
-        input_layout = QVBoxLayout(input_frame)
+        self.input_frame = QFrame()
+        self.input_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 5px; padding: 5px;")
+        input_layout = QVBoxLayout(self.input_frame)
         input_layout.setSpacing(5)
         
         # Input de mensaje
@@ -429,6 +429,8 @@ class ChatWidget(QWidget):
                 border-radius: 5px;
                 padding: 8px;
                 background-color: white;
+                color: #2c3e50;
+                font-size: 13px;
             }
             QLineEdit:focus {
                 border-color: #3498db;
@@ -458,7 +460,7 @@ class ChatWidget(QWidget):
         message_layout.addWidget(self.send_button)
         
         input_layout.addLayout(message_layout)
-        parent_layout.addWidget(input_frame)
+        parent_layout.addWidget(self.input_frame)
     
     def _setup_controls(self, parent_layout):
         """Configura los controles de estado y modo."""
@@ -684,15 +686,16 @@ class ChatWidget(QWidget):
                         robot_state=message.robot_state,
                         user_id=message.user_id
                     )
-                    mode_text = "Robot"
+                    mode_text = "🤖"
                 else:
                     display_message = message
-                    mode_text = "Operador"
+                    mode_text = "🧙‍♂️"
 
                 self.chat_display.append_message(display_message)
             
                 if message.robot_state:
-                    self._add_state_message(f"{mode_text} state: {message.robot_state.value}")
+                    emoji = STATE_EMOJIS.get(message.robot_state, "😮")
+                    self._add_state_message(f"{mode_text}:{emoji}")
 
         except Exception as e:
             logger.error(f"Error procesando mensaje enviado: {e}")
@@ -706,7 +709,8 @@ class ChatWidget(QWidget):
         self.chat_display.append_message(message)
 
         if message.robot_state:
-            self._add_state_message(f"Robot state: {message.robot_state.value}")
+            emoji = STATE_EMOJIS.get(message.robot_state, "😮")
+            self._add_state_message(f"🤖:{emoji}")
     
     def _add_system_message(self, text: str):
         """Agrega un mensaje del sistema."""
@@ -718,10 +722,10 @@ class ChatWidget(QWidget):
                         <div style="
                             background-color: #f0f0f0;
                             border-radius: 12px;
-                            padding: 6px 10px;
+                            padding: 8px 12px;
                             color: #7f8c8d;
                             font-style: italic;
-                            font-size: 12px;
+                            font-size: 14px;
                             border: 1px solid #e0e0e0;
                         ">{text}</div>
                     </td>
@@ -740,9 +744,9 @@ class ChatWidget(QWidget):
                         <div style="
                             background-color: #fff3e0;
                             border-radius: 12px;
-                            padding: 6px 10px;
+                            padding: 14px 20px;
                             color: #e67e22;
-                            font-size: 12px;
+                            font-size: 40px;
                             border: 1px solid #ffcc80;
                         ">{text}</div>
                     </td>
@@ -761,10 +765,10 @@ class ChatWidget(QWidget):
                         <div style="
                             background-color: #ffebee;
                             border-radius: 12px;
-                            padding: 6px 10px;
+                            padding: 8px 12px;
                             color: #e74c3c;
                             font-weight: bold;
-                            font-size: 12px;
+                            font-size: 14px;
                             border: 1px solid #ffcdd2;
                         ">ERROR: {text}</div>
                     </td>
