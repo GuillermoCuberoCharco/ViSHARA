@@ -1,5 +1,5 @@
 """
-Diálogo de respuesta para SHARA Wizard - VERSIÓN NUEVA CON BOCADILLO
+Diálogo de respuesta para SHARA Wizard
 """
 
 import base64
@@ -7,8 +7,8 @@ import asyncio
 from typing import Optional, Dict, List
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QPushButton, QLabel, QComboBox, QGroupBox, 
-                            QButtonGroup, QScrollArea, QFrame, QWidget)
-from PyQt6.QtCore import Qt, pyqtSignal
+                            QButtonGroup, QScrollArea, QFrame, QWidget, QLayout)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QPixmap
 
 from config import RobotState
@@ -16,6 +16,28 @@ from utils.logger import get_logger
 from ui.widgets.voice_recorder_widget import VoiceRecorderWidget
 
 logger = get_logger(__name__)
+
+STATE_EMOJIS= {
+    RobotState.ATTENTION: "😮",
+    RobotState.HELLO: "👋",
+    RobotState.ANGRY: "😠",
+    RobotState.SAD: "😢",
+    RobotState.JOY: "😊",
+    RobotState.YES: "👍",
+    RobotState.NO: "🙅",
+    RobotState.BLUSH: "😳"
+}
+
+STATE_DISPLAY_NAMES = {
+    RobotState.ATTENTION: "Atención",
+    RobotState.HELLO: "Saludo",
+    RobotState.ANGRY: "Enfado",
+    RobotState.SAD: "Tristeza",
+    RobotState.JOY: "Alegría",
+    RobotState.YES: "Afirmación",
+    RobotState.NO: "Negación",
+    RobotState.BLUSH: "Sonrojo"
+}
 
 # Mapeo de estados a imágenes y descripciones
 STATE_CONFIG = {
@@ -40,7 +62,7 @@ class StateSelectionWidget(QFrame):
         
         self.setStyleSheet("""
             QFrame {
-                background-color: #f8f9fa;
+                background-color: #ffffff;
                 border: 1px solid #dee2e6;
                 border-radius: 5px;
                 padding: 15px;
@@ -67,58 +89,83 @@ class StateSelectionWidget(QFrame):
         
         # Primera fila de estados
         first_row_layout = QHBoxLayout()
+        first_row_layout.setSpacing(5)
+        first_row_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         first_row_states = [
-            (RobotState.ATTENTION, "Atención", "#3498db"),
-            (RobotState.HELLO, "Saludo", "#27ae60"),
-            (RobotState.NO, "Negativa", "#e74c3c"),
-            (RobotState.YES, "Asentir", "#f39c12")
+            (RobotState.ATTENTION),
+            (RobotState.HELLO),
+            (RobotState.NO),
+            (RobotState.YES)
         ]
         
-        for state, display_name, color in first_row_states:
-            button = self._create_state_button(state, display_name, color, current_state)
+        for state in first_row_states:
+            button = self._create_state_button(state, current_state)
             first_row_layout.addWidget(button)
         
         parent_layout.addLayout(first_row_layout)
         
         # Segunda fila de estados
         second_row_layout = QHBoxLayout()
+        second_row_layout.setSpacing(5)
+        second_row_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
         second_row_states = [
-            (RobotState.ANGRY, "Enfadada", "#e67e22"),
-            (RobotState.SAD, "Triste", "#9b59b6"),
-            (RobotState.JOY, "Feliz", "#2ecc71"),
-            (RobotState.BLUSH, "Sonrojada", "#ff69b4")
+            (RobotState.ANGRY),
+            (RobotState.SAD),
+            (RobotState.JOY),
+            (RobotState.BLUSH)
         ]
         
-        for state, display_name, color in second_row_states:
-            button = self._create_state_button(state, display_name, color, current_state)
+        for state in second_row_states:
+            button = self._create_state_button(state, current_state)
             second_row_layout.addWidget(button)
         
         parent_layout.addLayout(second_row_layout)
-    
-    def _create_state_button(self, state: RobotState, display_name: str, color: str, current_state: RobotState) -> QPushButton:
+
+    def _create_state_button(self, state: RobotState, current_state: RobotState) -> QPushButton:
         """Crea un botón para un estado específico."""
-        button = QPushButton(display_name)
+        emoji = STATE_EMOJIS.get(state, "❓")
+        display_name = STATE_DISPLAY_NAMES.get(state, state.value)
+
+        button = QPushButton(emoji)
         button.setCheckable(True)
-        button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color};
-                color: white;
-                border: none;
+        button.setFixedSize(80, 60)
+
+        button.setStyleSheet("""
+            QPushButton {
+                background-color: #f8f9fa;
+                border: 2px solid #dcdcdc;
                 border-radius: 8px;
-                padding: 10px 15px;
-                font-weight: bold;
-                font-size: 11px;
-                min-height: 25px;
-                min-width: 80px;
-            }}
-            QPushButton:checked {{
+                margin: 2px;
+                font-size: 32px;
+                color: #2c3e50;
+            }
+            QPushButton:checked {
                 background-color: #2c3e50;
-                border: 2px solid #fff;
-            }}
-            QPushButton:hover {{
-                opacity: 0.8;
-            }}
+                border: 3px solid #3498db;
+            }
+            QPushButton:hover {
+                background-color: #e9ecef;
+                border: 2px solid #3498db;
+                transform: scale(1.05);
+            }
+            QPushButton:checked:hover {
+                background-color: #34495e;
+                border: 3px solid #3498db;
+            }
+            QToolTip {
+                background-color: #ffffff;
+                color: #2c3e50;
+                border: 1px solid #3498db;
+                padding: 8px;
+                border-radius: 5px;
+                font-size: 12px;
+                font-weight: bold;
+            }
         """)
+
+        button.setToolTip(f"🤖 {display_name}")
         
         if state == current_state:
             button.setChecked(True)
@@ -278,9 +325,10 @@ class ResponseBubbleWidget(QFrame):
                 border: 3px solid #007bff;
                 border-radius: 20px;
                 padding: 15px;
-                font-size: 13px;
+                font-size: 16px;
                 line-height: 1.4;
                 min-height: 120px;
+                color: #000000;
             }
             QTextEdit:focus {
                 border-color: #0056b3;
@@ -479,6 +527,87 @@ class ResponseBubbleWidget(QFrame):
                 self.voice_button.setToolTip("Grabar respuesta de voz")
 
 
+class ClickableResponseButton(QFrame):
+    """Widget personalizado que actúa como un botón con word wrap."""
+    
+    clicked = pyqtSignal()
+    
+    def __init__(self, text: str, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Layout para el label
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Label con word wrap
+        self.label = QLabel(text)
+        self.label.setWordWrap(True)
+        self.label.setStyleSheet("""
+            QLabel {
+                color: #000000;
+                font-size: 12px;
+            }
+        """)
+        layout.addWidget(self.label)
+        
+        # Estilo del frame (botón)
+        self._set_normal_style()
+    
+    def _set_normal_style(self):
+        """Aplica el estilo normal."""
+        self.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 2px solid #007bff;
+                border-radius: 8px;
+            }
+        """)
+    
+    def _set_hover_style(self):
+        """Aplica el estilo de hover."""
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #e7f3ff;
+                border: 2px solid #0056b3;
+                border-radius: 8px;
+            }
+        """)
+    
+    def _set_pressed_style(self):
+        """Aplica el estilo de pressed."""
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #cce5ff;
+                border: 2px solid #0056b3;
+                border-radius: 8px;
+            }
+        """)
+    
+    def enterEvent(self, event):
+        """Evento al entrar con el mouse."""
+        self._set_hover_style()
+        super().enterEvent(event)
+    
+    def leaveEvent(self, event):
+        """Evento al salir con el mouse."""
+        self._set_normal_style()
+        super().leaveEvent(event)
+    
+    def mousePressEvent(self, event):
+        """Evento al presionar el mouse."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._set_pressed_style()
+        super().mousePressEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        """Evento al soltar el mouse."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._set_hover_style()
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
+
 class AIResponseSelector(QFrame):
     """Widget para seleccionar respuestas generadas por OpenAI."""
     
@@ -490,6 +619,7 @@ class AIResponseSelector(QFrame):
         
         self.current_state = current_state
         self.ai_responses = ai_responses or {}
+        self.response_buttons = []
         
         self.setStyleSheet("""
             QFrame {
@@ -500,44 +630,34 @@ class AIResponseSelector(QFrame):
             }
         """)
         
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
-        
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setSpacing(8)
+
         # Título
-        title = QLabel("Respuestas Alternativas de OpenAI")
+        title = QLabel("Respuestas Alternativas de Shara")
         title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         title.setStyleSheet("color: #2c3e50;")
-        layout.addWidget(title)
-        
-        # ComboBox para respuestas
-        self.response_combo = QComboBox()
-        self.response_combo.setStyleSheet("""
-            QComboBox {
-                background-color: white;
-                border: 1px solid #ced4da;
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 12px;
-                min-height: 25px;
-            }
-            QComboBox::drop-down {
+        self.main_layout.addWidget(title)
+
+        # Contenedor de botones con scroll
+        self.buttons_scroll = QScrollArea()
+        self.buttons_scroll.setWidgetResizable(True)
+        self.buttons_scroll.setStyleSheet("""
+            QScrollArea {
                 border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                width: 12px;
-                height: 12px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: white;
-                border: 1px solid #ced4da;
-                selection-background-color: #007bff;
+                background-color: transparent;
             }
         """)
         
-        self.response_combo.currentTextChanged.connect(self._on_response_selected)
-        layout.addWidget(self.response_combo)
-        
+        # Widget contendor de botones
+        self.buttons_container = QWidget()
+        self.buttons_layout = QVBoxLayout(self.buttons_container)
+        self.buttons_layout.setSpacing(5)
+        self.buttons_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.buttons_scroll.setWidget(self.buttons_container)
+        self.main_layout.addWidget(self.buttons_scroll)
+
         # Actualizar respuestas para el estado actual
         self.update_responses(current_state)
     
@@ -555,10 +675,8 @@ class AIResponseSelector(QFrame):
             state = RobotState.ATTENTION
 
         self.current_state = state
-        self.response_combo.clear()
-        
-        # Agregar opción por defecto
-        self.response_combo.addItem("-- Selecciona una respuesta generada por IA --")
+
+        self._clear_buttons()
         
         # Validar que ai_responses sea un diccionario
         if not isinstance(self.ai_responses, dict):
@@ -567,26 +685,80 @@ class AIResponseSelector(QFrame):
 
         # Agregar respuestas para el estado actual
         state_key = state.value
+        responses_found = False
+
         if state_key in self.ai_responses:
             response_data = self.ai_responses[state_key]
+
             if isinstance(response_data, dict):
                 response_text = response_data.get('text', '')
                 if response_text:
-                    # Mostrar preview en el combo
-                    preview = response_text[:100] + "..." if len(response_text) > 100 else response_text
-                    self.response_combo.addItem(f"[{state.value.upper()}] {preview}")
-                    # Guardar el texto completo para recuperar después
-                    self.response_combo.setItemData(1, response_text)
+                    self._create_response_button(response_text, state_key, 1)
+                    responses_found = True
+            
+            elif isinstance(response_data, list):
+                for idx, resp in enumerate(response_data, 1):
+                    if isinstance(resp, dict):
+                        response_text = resp.get('text', '')
+                        if response_text:
+                            self._create_response_button(response_text, state_key, idx)
+                            responses_found = True
         
         # Si no hay respuestas, mostrar mensaje informativo
-        if self.response_combo.count() == 1:
-            self.response_combo.addItem("No hay respuestas disponibles para este estado")
-            self.response_combo.setItemData(1, "")
+        if not responses_found:
+            self._show_no_responses_message()
     
     def set_ai_responses(self, ai_responses: Dict[str, Dict]):
         """Establece las respuestas generadas por IA."""
         self.ai_responses = ai_responses or {}
         self.update_responses(self.current_state)
+
+    def _clear_buttons(self):
+        """Limpia los botones existentes."""
+        for btn in self.response_buttons:
+            btn.deleteLater()
+        self.response_buttons.clear()
+
+    def _create_response_button(self, response_text: str, state_key: str, index: int):
+        """Crea un botón para una respuesta específica."""
+     
+       # Crear botón clickeable con texto completo
+        button = ClickableResponseButton(f"{response_text}")
+
+        # Conectar señal - usar lambda para capturar el texto completo
+        button.clicked.connect(lambda text=response_text: self._on_button_clicked(text))
+        
+        # Agregar al layout y a la lista
+        self.buttons_layout.addWidget(button)
+        self.response_buttons.append(button)
+        
+        logger.debug(f"Botón creado para respuesta {index} del estado {state_key}")
+
+    def _show_no_responses_message(self):
+        """Muestra un mensaje cuando no hay respuestas disponibles."""
+        label = QLabel("No hay respuestas disponibles para este estado")
+        label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-style: italic;
+                font-size: 12px;
+                padding: 10px;
+            }
+        """)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.buttons_layout.addWidget(label)
+        self.response_buttons.append(label)
+    
+    def _on_button_clicked(self, response_text: str):
+        """Maneja el clic en un botón de respuesta."""
+        logger.debug(f"Respuesta seleccionada: {response_text[:50]}...")
+        self.responseSelected.emit(response_text)
+    
+    def set_ai_responses(self, ai_responses: Dict[str, Dict]):
+        """Establece las respuestas generadas por IA."""
+        self.ai_responses = ai_responses or {}
+        self.update_responses(self.current_state)
+
     
     def _on_response_selected(self, text: str):
         """Maneja la selección de respuesta."""
@@ -609,7 +781,13 @@ class ResponseDialog(QDialog):
     def __init__(self, response: str, current_state: RobotState = RobotState.ATTENTION, 
                  ai_responses: dict = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #ffffff;
+            }
+        """)
+                
         # Validar y normalizar current_state
         if isinstance(current_state, str):
             try:
@@ -649,27 +827,37 @@ class ResponseDialog(QDialog):
         """Configura la interfaz del diálogo."""
         self.setWindowTitle('Respuesta del Robot')
         self.setMinimumWidth(800)
-        self.setMinimumHeight(600)
+        # self.setMinimumHeight(800)
         self.setModal(True)
         
         # Layout principal
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(15)
         main_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Sección superior: Selector de estados
-        self.state_widget = StateSelectionWidget(self.current_state)
-        main_layout.addWidget(self.state_widget)
-        
-        # Sección media: Layout de dos columnas (50% - 50%)
+        main_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
+
         content_layout = QHBoxLayout()
         content_layout.setSpacing(20)
+    
+        left_column = QVBoxLayout()
+        left_column.setSpacing(15)
         
-        # Columna izquierda: Imagen y estado
+        # Selector de estados emocionales (ahora en columna izquierda)
+        self.state_widget = StateSelectionWidget(self.current_state)
+        left_column.addWidget(self.state_widget)
+        
+        # Imagen y estado visual
         self.visual_widget = StateVisualWidget(self.current_state)
-        content_layout.addWidget(self.visual_widget, 1)  # 50%
+        left_column.addWidget(self.visual_widget)
         
-        # Columna derecha: Bocadillo y controles
+        # Agregar stretch al final para que los widgets se mantengan arriba
+        left_column.addStretch()
+        
+        # Crear widget container para la columna izquierda
+        left_widget = QWidget()
+        left_widget.setLayout(left_column)
+        content_layout.addWidget(left_widget, 1)
+
         right_column = QVBoxLayout()
         right_column.setSpacing(15)
         
@@ -679,7 +867,7 @@ class ResponseDialog(QDialog):
         
         # Selector de respuestas de IA
         self.selector_widget = AIResponseSelector(self.current_state, self.ai_responses)
-        right_column.addWidget(self.selector_widget)
+        right_column.addWidget(self.selector_widget, 0)
         
         # Botones de acción
         self._setup_action_buttons(right_column)
@@ -689,7 +877,11 @@ class ResponseDialog(QDialog):
         right_widget.setLayout(right_column)
         content_layout.addWidget(right_widget, 1)  # 50%
         
+        # Agregar el layout de dos columnas al layout principal
         main_layout.addLayout(content_layout)
+        
+        # Ajustar tamaño después de construir toda la UI
+        QTimer.singleShot(100, self._adjust_dialog_size)
     
     def _get_voice_recorder(self):
         """Obtiene o crea el widget de grabación de voz."""
@@ -698,6 +890,22 @@ class ResponseDialog(QDialog):
             self.voice_recorder.hide()
             self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
         return self.voice_recorder
+
+    def _adjust_dialog_size(self):
+        """Ajusta el tamaño del diálogo para mostrar todo el contenido."""
+        self.adjustSize()
+        
+        # Asegurar un tamaño mínimo razonable
+        current_height = self.height()
+        if current_height < 600:
+            self.resize(self.width(), 600)
+        
+        # Limitar tamaño máximo para no ocupar toda la pantalla
+        screen = self.screen().availableGeometry()
+        max_height = int(screen.height() * 0.9)
+        
+        if self.height() > max_height:
+            self.resize(self.width(), max_height)
 
     def _setup_action_buttons(self, parent_layout):
         """Configura los botones de acción."""
@@ -922,6 +1130,7 @@ class ResponseDialog(QDialog):
                         font-size: 13px;
                         line-height: 1.4;
                         min-height: 120px;
+                        color: #000000;
                     }
                 """)
             return
