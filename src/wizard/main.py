@@ -72,7 +72,7 @@ def main():
             logger.info("Interrupción del usuario, cerrando la aplicación...")
             return 0
         except Exception as e:
-            logger.error(f"Error en la aplicación: {e}")
+            logger.info("Interrupción del usuario, cerrando la aplicación...")
             return 1
         finally:
             try:
