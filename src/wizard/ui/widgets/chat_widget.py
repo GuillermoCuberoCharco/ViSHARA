@@ -16,20 +16,16 @@ from services import MessageService, StateService
 from models import Message, User
 from ui.dialogs.response_dialog import ResponseDialog
 from ui.widgets.status_bar import StatusIndicator
+from ui.dialogs.response_dialog import (
+    AIResponseSelector,
+    ResponseActionsWidget,
+    StateSelectionWidget,
+    STATE_EMOJIS
+)
+from ui.widgets.voice_recorder_widget import VoiceRecorderWidget
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-STATE_EMOJIS= {
-    RobotState.ATTENTION: "😮",
-    RobotState.HELLO: "👋",
-    RobotState.ANGRY: "😠",
-    RobotState.SAD: "😢",
-    RobotState.JOY: "😊",
-    RobotState.YES: "👍",
-    RobotState.NO: "🙅",
-    RobotState.BLUSH: "😳"
-}
 
 STATE_DISPLAY_NAMES = {
     RobotState.ATTENTION: "Atención",
@@ -54,8 +50,6 @@ class AnimatedToggle(QCheckBox):
         self.animation = QPropertyAnimation(self, b"circle_position", self)
         self.animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         self.animation.setDuration(200)
-        
-        self.stateChanged.connect(self.on_state_changed)
     
     @pyqtProperty(int)
     def circle_position(self):
@@ -368,6 +362,15 @@ class ChatWidget(QWidget):
         self.state_buttons_widget = None
         self.input_frame_original_height = 0
         self.state_buttons_original_height = 0
+
+        # Componentes para edición de respuesta en línea
+        self.ai_response_selector = None
+        self.response_actions_widget = None
+        self.voice_recorder = None
+        self.pending_message = None
+        self.pending_ai_responses = None
+        self.is_editing_response = False
+        self.current_editing_state = RobotState.ATTENTION
         
         # Timer para keep-alive
         self.keepalive_timer = QTimer()
@@ -421,10 +424,10 @@ class ChatWidget(QWidget):
         # Input de mensaje
         message_layout = QHBoxLayout()
         
-        self.message_input = QLineEdit()
+        self.message_input = QTextEdit()
         self.message_input.setPlaceholderText("Escribe tu mensaje aquí...")
         self.message_input.setStyleSheet("""
-            QLineEdit {
+            QTextEdit {
                 border: 1px solid #dcdcdc;
                 border-radius: 5px;
                 padding: 8px;
@@ -432,11 +435,10 @@ class ChatWidget(QWidget):
                 color: #2c3e50;
                 font-size: 13px;
             }
-            QLineEdit:focus {
+            QTextEdit:focus {
                 border-color: #3498db;
             }
         """)
-        self.message_input.returnPressed.connect(self._send_message)
         message_layout.addWidget(self.message_input)
         
         self.send_button = QPushButton("Enviar")
@@ -460,6 +462,20 @@ class ChatWidget(QWidget):
         message_layout.addWidget(self.send_button)
         
         input_layout.addLayout(message_layout)
+
+        # Widget de acciones de respuesta y selector de IA
+        self.response_actions_widget = ResponseActionsWidget()
+        self.response_actions_widget.hide()
+        self.response_actions_widget.clearRequested.connect(self._on_clear_response_requested)
+        self.response_actions_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
+        input_layout.addWidget(self.response_actions_widget)    
+
+        # Selector de respuesta de IA
+        self.ai_response_selector = AIResponseSelector()
+        self.ai_response_selector.hide()
+        self.ai_response_selector.responseSelected.connect(self._on_ai_response_selected)
+        input_layout.addWidget(self.ai_response_selector)
+
         parent_layout.addWidget(self.input_frame)
     
     def _setup_controls(self, parent_layout):
@@ -635,7 +651,7 @@ class ChatWidget(QWidget):
     @pyqtSlot()
     def _send_message(self):
         """Envía un mensaje del wizard."""
-        text = self.message_input.text().strip()
+        text = self.message_input.toPlainText().strip()
         if not text:
             return
         
@@ -646,6 +662,7 @@ class ChatWidget(QWidget):
         
         # Limpiar input
         self.message_input.clear()
+        self._hide_response_editing_components()
     
     async def _send_message_async(self, text: str, state: RobotState):
         """
@@ -781,44 +798,90 @@ class ChatWidget(QWidget):
         """Envía señal de keep-alive."""
         # Implementar keep-alive si es necesario
         pass
-    
-    def show_response_dialog(self, message: Message, state: str, ai_response: dict = None):
-        """
-        Muestra el diálogo de respuesta.
-        """
-        if self.active_dialog:
-            self.active_dialog.close()
-        
-        try:
-            # Validar y normalizar el parámetro state
-            if isinstance(state, str):
-                current_state = RobotState(state)
-            elif isinstance(state, RobotState):
-                current_state = state
-            elif isinstance(state, dict):
-                # Extraer el estado del mensaje y usar el dict como ai_response
-                current_state = message.robot_state if message.robot_state else RobotState.ATTENTION
-                if ai_response is None:
-                    ai_response = state
-                logger.warning(f"Se recibió diccionario como state, usando estado del mensaje: {current_state.value}")
-            else:
-                logger.warning(f"Tipo de state no válido: {type(state)}, usando ATTENTION por defecto")
-                current_state = RobotState.ATTENTION
-                
-        except ValueError:
-            logger.warning(f"Estado inválido: {state}, usando ATTENTION por defecto")
-            current_state = RobotState.ATTENTION
-        
-        self.active_dialog = ResponseDialog(
-            message.text, 
-            current_state,
-            ai_response or {},
-            self
-        )
 
-        self.active_dialog.finished.connect(self._handle_dialog_response)
-        self.active_dialog.adjustSize()
-        self.active_dialog.show()
+    def _on_ai_response_selected(self, response: str):
+        """Maneja la selección de una respuesta alternativa de IA."""
+        if self.message_input:
+            self.message_input.setPlainText(response)
+            self.message_input.setFocus()
+        logger.debug(f"Respuesta de IA seleccionada para edición: {response[:50]}...")
+
+    def _on_clear_response_requested(self):
+        """Maneja la solicitud de limpiar la edición de respuesta."""
+        if self.message_input:
+            self.message_input.clear()
+            self.message_input.setFocus()
+        logger.debug("Edición de respuesta limpiada por el usuario")
+
+    def _on_voice_recording_requested(self):
+        """Maneja la solicitud de grabación como toggle directo."""
+        voice_recorder = self._get_voice_recorder()
+        voice_recorder._toggle_recording()
+
+        if self.response_actions_widget:
+            is_recording = voice_recorder.is_recording
+            self.response_actions_widget.set_recording_state(is_recording)
+
+    def _get_voice_recorder(self):
+        """Obtiene o crea el componente de grabación de voz."""
+        if self.voice_recorder is None:
+            self.voice_recorder = VoiceRecorderWidget(self)
+            self.voice_recorder.hide()
+            self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
+        return self.voice_recorder
+
+    def _on_voice_recording_finished(self, audio_data: bytes):
+        """Maneja la finalización de la grabación de voz y envía directamente."""
+        try:
+            # Actualizar estado visual
+            self.is_recording = False
+            
+            # Obtener socket service desde la aplicación principal
+            app = self.parent()
+            while app and app.parent():
+                app = app.parent()
+
+            if app and hasattr(app, 'get_service'):
+                socket_service = app.get_service('socket')
+                if socket_service:
+                    # Enviar datos de audio al servicio
+                    robot_state = self.get_state().value
+                    asyncio.create_task(
+                        self._send_voice(socket_service, audio_data, robot_state)
+                    )
+                else:
+                    logger.error("Socket service no disponible")
+            else:
+                logger.error("No se pudo obtener el socket service")
+        
+        except Exception as e:
+            logger.error(f"Error al procesar grabación de voz: {e}")
+            # Resetear estado en caso de error
+            self.is_recording = False
+            if self.bubble_widget:
+                self.bubble_widget.set_recording_state(False)
+
+    def _hide_response_editing_components(self):
+        """Oculta los componentes relacionados con la edición de respuesta."""
+        self.pending_message = None
+        self.pending_ai_responses = None
+        self.is_editing_response = False
+        self.current_editing_state = RobotState.ATTENTION
+
+        if self.ai_response_selector:
+            self.ai_response_selector.hide()
+            self.ai_response_selector.clear_responses()
+
+        if self.response_actions_widget:
+            self.response_actions_widget.hide()
+
+        logger.debug("Componentes de edición de respuesta ocultados")
+
+    def _on_state_button_changed(self, new_state: RobotState):
+        """Maneja cambios en el botón de estado seleccionado."""
+        if self.is_editing_response and self.ai_response_selector:
+            self.ai_response_selector.update_responses(new_state)
+        logger.debug(f"Estado emocional cambiado a: {new_state.value if new_state else 'None'}")
 
     def show_response_dialog_with_states(self, message: Message, ai_responses: dict = None, user_message: str = ""):
         """
@@ -828,20 +891,54 @@ class ChatWidget(QWidget):
             ai_responses = {}
             
         state = message.robot_state.value if message.robot_state else 'attention'
-        self.show_response_dialog(message, state, ai_responses)
-    
-    def _handle_dialog_response(self, accepted: bool, response: str, state: str):
-        """
-        Maneja la respuesta del diálogo.
-        """
-        self.active_dialog = None
+        self.show_response_for_editing(message, state, ai_responses)
+
+    def show_response_for_editing(self, message: Message, state: str, ai_responses: dict = None):
+        """Muestra la interfaz para editar una respuesta generada por IA en línea."""
+        try:
+            if isinstance(state, str):
+                current_state = RobotState(state)
+            elif isinstance(state, RobotState):
+                current_state = state
+            elif isinstance(state, dict):
+                current_state = message.robot_state if message.robot_state else RobotState.ATTENTION
+                if ai_responses is None:
+                    ai_responses = state
+                logger.warning(f"Se recibió diccionario como state, usando estado del mensaje: {current_state.value}")
+            else:
+                logger.warning(f"Tipo de state no válido: {type(state)}, usando ATTENTION por defecto")
+                current_state = RobotState.ATTENTION
+
+        except ValueError:
+            logger.warning(f"Estado inválido: {state}, usando ATTENTION por defecto")
+            current_state = RobotState.ATTENTION
         
-        if accepted and response.strip():
-            try:
-                robot_state = RobotState(state)
-                asyncio.create_task(self._send_message_async(response, robot_state))
-            except ValueError:
-                logger.error(f"Estado inválido: {state}")
+        # Guardar información del mensaje
+        self.pending_message = message
+        self.pending_ai_responses = ai_responses or {}
+        self.is_editing_response = True
+
+        self.current_editing_state = current_state
+
+        # Insertar el texto del mensaje en el input
+        self.message_input.setPlainText(message.text)
+
+        # Actualizar el selector de respuestas de IA
+        if self.ai_response_selector:
+            self.ai_response_selector.update_responses(current_state)
+            self.ai_response_selector.ai_responses = self.pending_ai_responses
+            self.ai_response_selector.update_responses(current_state)
+            self.ai_response_selector.show()
+
+        if self.response_actions_widget:
+            self.response_actions_widget.show()
+
+        if self.state_buttons:
+            self.state_buttons.set_current_state(current_state)
+
+        self.message_input.setFocus()
+
+        logger.debug(f"Respuesta mostrada para edición: {message.text[:50]}... (Estado: {current_state.value})")
     
     # Métodos públicos para la ventana principal
     def update_mode(self, mode: OperationMode):
@@ -868,6 +965,13 @@ class ChatWidget(QWidget):
             
             # Detener timer
             self.keepalive_timer.stop()
+
+            # Limpiar grabador de voz si existe
+            if self.voice_recorder is not None:
+                try:
+                    self.voice_recorder.cleanup()
+                except Exception as e:
+                    logger.error(f"Error limpiando voice_recorder: {e}")
             
             # Cerrar diálogo activo
             if self.active_dialog:
@@ -892,3 +996,5 @@ class ChatWidget(QWidget):
             'has_active_dialog': self.active_dialog is not None,
             'selected_state': self.state_buttons.get_current_state().value if self.state_buttons.get_current_state() else None
         }
+
+    

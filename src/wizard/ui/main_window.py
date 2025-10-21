@@ -217,15 +217,15 @@ class MainWindow(QWidget):
                 # Si state es un diccionario (ai_responses), extraer el estado del mensaje
                 robot_state = message.robot_state.value if message.robot_state else 'attention'
                 logger.warning(f"Se recibió diccionario como state en _on_user_response_required, usando estado del mensaje: {robot_state}")
-                self.chat_widget.show_response_dialog(message, robot_state, state)
+                self.chat_widget.show_response_for_editing(message, robot_state, state)
             elif isinstance(state, str):
-                # Si state es una cadena (estado del robot), usar show_response_dialog normal
-                self.chat_widget.show_response_dialog(message, state)
+                # Si state es una cadena (estado del robot), usar show_response_for_editing normal
+                self.chat_widget.show_response_for_editing(message, state)
             else:
                 # Si state es de otro tipo, extraer estado del mensaje y usar diccionario vacío
                 robot_state = message.robot_state.value if message.robot_state else 'attention'
                 logger.warning(f"Tipo de state no válido en _on_user_response_required: {type(state)}, usando estado del mensaje: {robot_state}")
-                self.chat_widget.show_response_dialog(message, robot_state, {})
+                self.chat_widget.show_response_for_editing(message, robot_state, {})
 
     def _on_user_response_with_states_required(self, message, ai_responses, user_message):
         """Maneja cuando se requiere respuesta del usuario con estados."""
