@@ -7,7 +7,7 @@ from typing import Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QLineEdit, QPushButton, QScrollArea, QButtonGroup,
                             QFrame, QLabel, QComboBox, QCheckBox)
-from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint, QParallelAnimationGroup
+from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint, QParallelAnimationGroup, pyqtSignal
 from PyQt6.QtGui import QFont, QPainter, QColor
 
 from config import RobotState, OperationMode, CHAT_CONFIG
@@ -19,7 +19,6 @@ from ui.widgets.status_bar import StatusIndicator
 from ui.dialogs.response_dialog import (
     AIResponseSelector,
     ResponseActionsWidget,
-    StateSelectionWidget,
     STATE_EMOJIS
 )
 from ui.widgets.voice_recorder_widget import VoiceRecorderWidget
@@ -286,6 +285,8 @@ class StateButton(QPushButton):
 
 class StateButtonGroup(QWidget):
     """Grupo de botones para selección de estado emocional."""
+
+    stateChanged = pyqtSignal(RobotState)
     
     def __init__(self, states: List[RobotState], parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -297,6 +298,7 @@ class StateButtonGroup(QWidget):
         
         self.button_group = QButtonGroup(self)
         self.button_group.setExclusive(True)
+        self.button_group.buttonClicked.connect(self._on_button_clicked)
         
         # Crear botones para cada estado
         for state in states:
@@ -307,6 +309,10 @@ class StateButtonGroup(QWidget):
         # Seleccionar el primer estado por defecto
         if states:
             self.button_group.buttons()[0].setChecked(True)
+
+    def _on_button_clicked(self, button: StateButton):
+        """Maneja el clic en un botón de estado."""
+        self.stateChanged.emit(button.state)
     
     def get_current_state(self) -> Optional[RobotState]:
         """
@@ -492,6 +498,7 @@ class ChatWidget(QWidget):
         states = list(RobotState)
         self.state_buttons = StateButtonGroup(states)
         state_buttons_layout.addWidget(self.state_buttons)
+        self.state_buttons.stateChanged.connect(self._on_state_button_changed)
         
         controls_layout.addWidget(self.state_buttons_widget)
         
@@ -644,6 +651,14 @@ class ChatWidget(QWidget):
 
             self._animate_controls_visibility(True)
 
+    def _reset_response_editing_state(self):
+        """Resetea el estado de edición de respuesta SIN ocultar componentes."""
+        self.pending_message = None
+        self.pending_ai_responses = None
+        self.is_editing_response = False
+        self.current_editing_state = RobotState.ATTENTION
+        logger.debug("Estado de edición de respuesta reseteado")
+
     def _start_keepalive(self):
         """Inicia el timer de keep-alive."""
         self.keepalive_timer.start(CHAT_CONFIG['KEEPALIVE_INTERVAL'] * 1000)
@@ -662,7 +677,7 @@ class ChatWidget(QWidget):
         
         # Limpiar input
         self.message_input.clear()
-        self._hide_response_editing_components()
+        self._reset_response_editing_state()
     
     async def _send_message_async(self, text: str, state: RobotState):
         """
@@ -820,7 +835,7 @@ class ChatWidget(QWidget):
 
         if self.response_actions_widget:
             is_recording = voice_recorder.is_recording
-            self.response_actions_widget.set_recording_state(is_recording)
+            self.response_actions_widget.sync_recording_state(is_recording)
 
     def _get_voice_recorder(self):
         """Obtiene o crea el componente de grabación de voz."""
@@ -860,22 +875,6 @@ class ChatWidget(QWidget):
             self.is_recording = False
             if self.bubble_widget:
                 self.bubble_widget.set_recording_state(False)
-
-    def _hide_response_editing_components(self):
-        """Oculta los componentes relacionados con la edición de respuesta."""
-        self.pending_message = None
-        self.pending_ai_responses = None
-        self.is_editing_response = False
-        self.current_editing_state = RobotState.ATTENTION
-
-        if self.ai_response_selector:
-            self.ai_response_selector.hide()
-            self.ai_response_selector.clear_responses()
-
-        if self.response_actions_widget:
-            self.response_actions_widget.hide()
-
-        logger.debug("Componentes de edición de respuesta ocultados")
 
     def _on_state_button_changed(self, new_state: RobotState):
         """Maneja cambios en el botón de estado seleccionado."""
@@ -925,7 +924,6 @@ class ChatWidget(QWidget):
 
         # Actualizar el selector de respuestas de IA
         if self.ai_response_selector:
-            self.ai_response_selector.update_responses(current_state)
             self.ai_response_selector.ai_responses = self.pending_ai_responses
             self.ai_response_selector.update_responses(current_state)
             self.ai_response_selector.show()

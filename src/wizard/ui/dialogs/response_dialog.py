@@ -720,6 +720,11 @@ class AIResponseSelector(QFrame):
             if full_response:
                 self.responseSelected.emit(full_response)
 
+    def clear_responses(self):
+        """Limpia las respuestas mostradas."""
+        self._clear_buttons()
+        logger.debug("Botones de respuestas limpiados (datos preservados)")
+
 
 class ResponseDialog(QDialog):
     """
