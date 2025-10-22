@@ -479,7 +479,7 @@ class ChatWidget(QWidget):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Preferred
         )
-        response_and_actions_layout.addWidget(self.ai_response_selector, 70)
+        response_and_actions_layout.addWidget(self.ai_response_selector, 75)
 
         # Widget de acciones de respuesta y selector de IA
         self.response_actions_widget = ResponseActionsWidget()
@@ -491,10 +491,11 @@ class ChatWidget(QWidget):
             QSizePolicy.Policy.Fixed,
             QSizePolicy.Policy.Preferred
         )
-        response_and_actions_layout.addWidget(self.response_actions_widget, 30)
+        response_and_actions_layout.addWidget(self.response_actions_widget, 25)
 
         input_layout.addLayout(response_and_actions_layout)
         parent_layout.addWidget(self.input_frame)
+        self.input_frame.setMaximumHeight(220)
     
     def _setup_controls(self, parent_layout):
         """Configura los controles de estado y modo."""
@@ -865,6 +866,10 @@ class ChatWidget(QWidget):
             # Actualizar estado visual
             self.is_recording = False
             
+            # Obtener estado actual
+            current_state = self.state_buttons.get_current_state()
+            robot_state = current_state.value if current_state else RobotState.ATTENTION.value
+            
             # Obtener socket service desde la aplicación principal
             app = self.parent()
             while app and app.parent():
@@ -873,11 +878,11 @@ class ChatWidget(QWidget):
             if app and hasattr(app, 'get_service'):
                 socket_service = app.get_service('socket')
                 if socket_service:
-                    # Enviar datos de audio al servicio
-                    robot_state = self.get_state().value
+                    # Enviar datos de audio directamente usando el servicio
                     asyncio.create_task(
-                        self._send_voice(socket_service, audio_data, robot_state)
+                        socket_service.send_voice_response(audio_data, robot_state)
                     )
+                    logger.info(f"Audio enviado para transcripción con estado: {robot_state}")
                 else:
                     logger.error("Socket service no disponible")
             else:
@@ -887,8 +892,8 @@ class ChatWidget(QWidget):
             logger.error(f"Error al procesar grabación de voz: {e}")
             # Resetear estado en caso de error
             self.is_recording = False
-            if self.bubble_widget:
-                self.bubble_widget.set_recording_state(False)
+            if self.response_actions_widget:
+                self.response_actions_widget.sync_recording_state(False)
 
     def _on_state_button_changed(self, new_state: RobotState):
         """Maneja cambios en el botón de estado seleccionado."""

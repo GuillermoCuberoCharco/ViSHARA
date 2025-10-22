@@ -372,32 +372,37 @@ class ResponseActionsWidget(QFrame):
             }
         """)
 
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(8)
+        layout.setSpacing(5)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Botón de borrar respuesta
         self.clear_button = QPushButton("🗑️")
-        self.clear_button.setFixedSize(30, 17)
         self.clear_button.setStyleSheet("""
             QPushButton {
                 background-color: #dc3545;
                 color: white;
                 border: none;
                 border-radius: 8px;
-                font-size: 25px;
+                font-size: 16px;
                 font-weight: bold;
-                padding: 8px 16px;
-                min-width: 100px;
-                min-height: 35px;
+                padding: 8px 15px;
             }
             QPushButton:hover {
                 background-color: #c82333;
-                color: #000000;
             }
             QPushButton:pressed {
                 background-color: #bd2130;
+            }
+            QToolTip {
+                background-color: #ffffff;
+                color: #2c3e50;
+                border: 1px solid #3498db;
+                padding: 8px;
+                border-radius: 5px;
+                font-size: 12px;
+                font-weight: bold;
             }
         """)
 
@@ -408,24 +413,30 @@ class ResponseActionsWidget(QFrame):
 
         # Botón de grabación de voz
         self.voice_button = QPushButton("🎙️")
-        self.voice_button.setFixedSize(30, 17)
         self.voice_button.setStyleSheet("""
             QPushButton {
                 background-color: #28a745;
                 color: white;
                 border: none;
                 border-radius: 8px;
-                font-size: 25px;
+                font-size: 16px;
                 font-weight: bold;
-                padding: 8px 16px;
-                min-width: 120px;
-                min-height: 35px;
+                padding: 8px 15px;
             }
             QPushButton:hover {
                 background-color: #218838;
             }
             QPushButton:pressed {
                 background-color: #1e7e34;
+            }
+            QToolTip {
+                background-color: #ffffff;
+                color: #2c3e50;
+                border: 1px solid #3498db;
+                padding: 8px;
+                border-radius: 5px;
+                font-size: 12px;
+                font-weight: bold;
             }
         """)
 
@@ -440,44 +451,56 @@ class ResponseActionsWidget(QFrame):
         self.is_recording = is_recording
         if is_recording:
             self.voice_button.setText("⏹️")
-            self.clear_button.setFixedSize(30, 17)
-            self.voice_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #f96300;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 25px;
-                    font-weight: bold;
-                    padding: 8px 16px;
-                    min-width: 120px;
-                    min-height: 35px;
-                }
-                QPushButton:hover {
-                    background-color: #c82333;
-                }
-            """)
-            self.voice_button.setToolTip("Detener grabación de voz")
-        else:
-            self.voice_button.setText("🎙️")
-            self.clear_button.setFixedSize(30, 17)
             self.voice_button.setStyleSheet("""
                 QPushButton {
                     background-color: #28a745;
                     color: white;
                     border: none;
                     border-radius: 8px;
-                    font-size: 25px;
+                    font-size: 16px;
                     font-weight: bold;
-                    padding: 8px 16px;
-                    min-width: 120px;
-                    min-height: 35px;
+                    padding: 8px 15px;
+                }
+                QPushButton:hover {
+                    background-color: #c82333;
+                }
+                QToolTip {
+                    background-color: #ffffff;
+                    color: #2c3e50;
+                    border: 1px solid #3498db;
+                    padding: 8px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+            """)
+            self.voice_button.setToolTip("Detener grabación de voz")
+        else:
+            self.voice_button.setText("🎙️")
+            self.voice_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    padding: 8px 15px;
                 }
                 QPushButton:hover {
                     background-color: #218838;
                 }
                 QPushButton:pressed {
                     background-color: #1e7e34;
+                }
+                QToolTip {
+                    background-color: #ffffff;
+                    color: #2c3e50;
+                    border: 1px solid #3498db;
+                    padding: 8px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    font-weight: bold;
                 }
             """)
             self.voice_button.setToolTip("Grabar respuesta por voz")
@@ -542,10 +565,21 @@ class AIResponseSelector(QFrame):
             }
         """)
         
+        self.main_layout.addWidget(self.response_combo)
+        
+        # Configurar la vista del desplegable para que se ajuste al contenido
+        self.response_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.response_combo.view().setMinimumWidth(400)  # Ancho mínimo del desplegable
+        
+        # Hacer que el desplegable se ajuste al texto más largo
+        from PyQt6.QtWidgets import QListView
+        list_view = QListView()
+        list_view.setWordWrap(True)  # Permitir saltos de línea
+        list_view.setTextElideMode(Qt.TextElideMode.ElideNone)  # No truncar texto
+        self.response_combo.setView(list_view)
+        
         # Conectar señal de selección
         self.response_combo.activated.connect(self._on_response_selected)
-        
-        self.main_layout.addWidget(self.response_combo)
         
         # Actualizar respuestas para el estado actual
         self.update_responses(current_state)
@@ -588,9 +622,7 @@ class AIResponseSelector(QFrame):
             if isinstance(response_data, dict):
                 response_text = response_data.get('text', '')
                 if response_text:
-                    # Truncar para mostrar en el combo, pero guardar texto completo
-                    display_text = response_text[:80] + "..." if len(response_text) > 80 else response_text
-                    self.response_combo.addItem(display_text)
+                    self.response_combo.addItem(response_text)
                     self.response_combo.setItemData(0, response_text)
                     responses_found = True
             
@@ -599,9 +631,7 @@ class AIResponseSelector(QFrame):
                     if isinstance(resp, dict):
                         response_text = resp.get('text', '')
                         if response_text:
-                            # Truncar para mostrar en el combo, pero guardar texto completo
-                            display_text = f"{idx + 1}. {response_text[:70]}..." if len(response_text) > 70 else f"{idx + 1}. {response_text}"
-                            self.response_combo.addItem(display_text)
+                            self.response_combo.addItem(response_text)
                             self.response_combo.setItemData(idx, response_text)
                             responses_found = True
         
