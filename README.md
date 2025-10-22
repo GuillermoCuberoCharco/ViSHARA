@@ -33,8 +33,8 @@ The system implements a distributed architecture composed of three main componen
 ### Server (The Yellow Brick Road)
 - Node.js and Express.
 - Socket.IO and WebSocket.
-- IBM Watson (Assistant and NLU).
-- Google Cloud Services (STT, TTS, Translation).
+- GPT 4o-mini.
+- Google Cloud Services (STT, TTS).
 
 ### Control Application (The Emerald City)
 - Python with PyQt6.
