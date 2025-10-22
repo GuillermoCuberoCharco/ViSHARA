@@ -373,20 +373,20 @@ class ResponseActionsWidget(QFrame):
         """)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 10, 0, 10)
-        layout.setSpacing(10)
-
-        layout.addStretch()
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Botón de borrar respuesta
-        self.clear_button = QPushButton("🗑️ Borrar respuesta")
+        self.clear_button = QPushButton("🗑️")
+        self.clear_button.setFixedSize(30, 17)
         self.clear_button.setStyleSheet("""
             QPushButton {
                 background-color: #dc3545;
                 color: white;
                 border: none;
                 border-radius: 8px;
-                font-size: 15px;
+                font-size: 25px;
                 font-weight: bold;
                 padding: 8px 16px;
                 min-width: 100px;
@@ -394,6 +394,7 @@ class ResponseActionsWidget(QFrame):
             }
             QPushButton:hover {
                 background-color: #c82333;
+                color: #000000;
             }
             QPushButton:pressed {
                 background-color: #bd2130;
@@ -402,17 +403,19 @@ class ResponseActionsWidget(QFrame):
 
         self.clear_button.clicked.connect(self.clearRequested.emit)
         self.clear_button.setToolTip("Borrar respuesta")
-        layout.addWidget(self.clear_button)
+
+        layout.addWidget(self.clear_button, 0, Qt.AlignmentFlag.AlignCenter)
 
         # Botón de grabación de voz
-        self.voice_button = QPushButton("🎙️ Grabar voz")
+        self.voice_button = QPushButton("🎙️")
+        self.voice_button.setFixedSize(30, 17)
         self.voice_button.setStyleSheet("""
             QPushButton {
                 background-color: #28a745;
                 color: white;
                 border: none;
                 border-radius: 8px;
-                font-size: 15px;
+                font-size: 25px;
                 font-weight: bold;
                 padding: 8px 16px;
                 min-width: 120px;
@@ -428,22 +431,23 @@ class ResponseActionsWidget(QFrame):
 
         self.voice_button.clicked.connect(self.voiceRecordingRequested.emit)
         self.voice_button.setToolTip("Grabar respuesta por voz")
-        layout.addWidget(self.voice_button)
+        layout.addWidget(self.voice_button, 0, Qt.AlignmentFlag.AlignCenter)
 
-        layout.addStretch()
+        
 
     def sync_recording_state(self, is_recording: bool):
         """Sincroniza el estado del botón de grabación."""
         self.is_recording = is_recording
         if is_recording:
-            self.voice_button.setText("⏹️ Detener grabación")
+            self.voice_button.setText("⏹️")
+            self.clear_button.setFixedSize(30, 17)
             self.voice_button.setStyleSheet("""
                 QPushButton {
                     background-color: #f96300;
                     color: white;
                     border: none;
                     border-radius: 8px;
-                    font-size: 12px;
+                    font-size: 25px;
                     font-weight: bold;
                     padding: 8px 16px;
                     min-width: 120px;
@@ -455,14 +459,15 @@ class ResponseActionsWidget(QFrame):
             """)
             self.voice_button.setToolTip("Detener grabación de voz")
         else:
-            self.voice_button.setText("🎤 Grabar Voz")
+            self.voice_button.setText("🎙️")
+            self.clear_button.setFixedSize(30, 17)
             self.voice_button.setStyleSheet("""
                 QPushButton {
                     background-color: #28a745;
                     color: white;
                     border: none;
                     border-radius: 8px;
-                    font-size: 12px;
+                    font-size: 25px;
                     font-weight: bold;
                     padding: 8px 16px;
                     min-width: 120px;
@@ -477,90 +482,8 @@ class ResponseActionsWidget(QFrame):
             """)
             self.voice_button.setToolTip("Grabar respuesta por voz")
 
-
-class ClickableResponseButton(QFrame):
-    """Widget personalizado que actúa como un botón con word wrap."""
-    
-    clicked = pyqtSignal()
-    
-    def __init__(self, text: str, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-        
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Layout para el label
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Label con word wrap
-        self.label = QLabel(text)
-        self.label.setWordWrap(True)
-        self.label.setStyleSheet("""
-            QLabel {
-                color: #000000;
-                font-size: 12px;
-            }
-        """)
-        layout.addWidget(self.label)
-        
-        # Estilo del frame (botón)
-        self._set_normal_style()
-    
-    def _set_normal_style(self):
-        """Aplica el estilo normal."""
-        self.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border: 2px solid #007bff;
-                border-radius: 8px;
-            }
-        """)
-    
-    def _set_hover_style(self):
-        """Aplica el estilo de hover."""
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #e7f3ff;
-                border: 2px solid #0056b3;
-                border-radius: 8px;
-            }
-        """)
-    
-    def _set_pressed_style(self):
-        """Aplica el estilo de pressed."""
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #cce5ff;
-                border: 2px solid #0056b3;
-                border-radius: 8px;
-            }
-        """)
-    
-    def enterEvent(self, event):
-        """Evento al entrar con el mouse."""
-        self._set_hover_style()
-        super().enterEvent(event)
-    
-    def leaveEvent(self, event):
-        """Evento al salir con el mouse."""
-        self._set_normal_style()
-        super().leaveEvent(event)
-    
-    def mousePressEvent(self, event):
-        """Evento al presionar el mouse."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._set_pressed_style()
-        super().mousePressEvent(event)
-    
-    def mouseReleaseEvent(self, event):
-        """Evento al soltar el mouse."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._set_hover_style()
-            self.clicked.emit()
-        super().mouseReleaseEvent(event)
-
 class AIResponseSelector(QFrame):
-    """Widget para seleccionar respuestas generadas por OpenAI."""
+    """Widget para seleccionar respuestas generadas por OpenAI usando un ComboBox."""
     
     responseSelected = pyqtSignal(str)
     
@@ -570,7 +493,6 @@ class AIResponseSelector(QFrame):
         
         self.current_state = current_state
         self.ai_responses = ai_responses or {}
-        self.response_buttons = []
         
         self.setStyleSheet("""
             QFrame {
@@ -582,33 +504,49 @@ class AIResponseSelector(QFrame):
         """)
         
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setSpacing(8)
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Título
-        title = QLabel("Respuestas Alternativas de Shara")
-        title.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        title.setStyleSheet("color: #2c3e50;")
-        self.main_layout.addWidget(title)
-
-        # Contenedor de botones con scroll
-        self.buttons_scroll = QScrollArea()
-        self.buttons_scroll.setWidgetResizable(True)
-        self.buttons_scroll.setStyleSheet("""
-            QScrollArea {
+        # ComboBox para respuestas
+        self.response_combo = QComboBox()
+        self.response_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                border: 2px solid #007bff;
+                border-radius: 5px;
+                padding: 8px;
+                font-size: 13px;
+                min-height: 30px;
+            }
+            QComboBox:hover {
+                border-color: #0056b3;
+            }
+            QComboBox::drop-down {
                 border: none;
-                background-color: transparent;
+                width: 30px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #007bff;
+                margin-right: 10px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                border: 2px solid #007bff;
+                selection-background-color: #e7f3ff;
+                selection-color: #000000;
+                padding: 5px;
+                color: #2c3e50;
             }
         """)
         
-        # Widget contendor de botones
-        self.buttons_container = QWidget()
-        self.buttons_layout = QVBoxLayout(self.buttons_container)
-        self.buttons_layout.setSpacing(5)
-        self.buttons_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.buttons_scroll.setWidget(self.buttons_container)
-        self.main_layout.addWidget(self.buttons_scroll)
-
+        # Conectar señal de selección
+        self.response_combo.activated.connect(self._on_response_selected)
+        
+        self.main_layout.addWidget(self.response_combo)
+        
         # Actualizar respuestas para el estado actual
         self.update_responses(current_state)
     
@@ -627,11 +565,17 @@ class AIResponseSelector(QFrame):
 
         self.current_state = state
 
-        self._clear_buttons()
+        self.response_combo.blockSignals(True)
+
+        self.response_combo.clear()
+
+        self.response_combo.setPlaceholderText("🤖 Respuestas Alternativas de Shara")
+        self.response_combo.setCurrentIndex(-1)
         
         # Validar que ai_responses sea un diccionario
         if not isinstance(self.ai_responses, dict):
             logger.warning(f"ai_responses no es un diccionario: {type(self.ai_responses)}")
+            self.response_combo.addItem("-- No hay respuestas disponibles --")
             return
 
         # Agregar respuestas para el estado actual
@@ -644,533 +588,60 @@ class AIResponseSelector(QFrame):
             if isinstance(response_data, dict):
                 response_text = response_data.get('text', '')
                 if response_text:
-                    self._create_response_button(response_text, state_key, 1)
+                    # Truncar para mostrar en el combo, pero guardar texto completo
+                    display_text = response_text[:80] + "..." if len(response_text) > 80 else response_text
+                    self.response_combo.addItem(display_text)
+                    self.response_combo.setItemData(0, response_text)
                     responses_found = True
             
             elif isinstance(response_data, list):
-                for idx, resp in enumerate(response_data, 1):
+                for idx, resp in enumerate(response_data):
                     if isinstance(resp, dict):
                         response_text = resp.get('text', '')
                         if response_text:
-                            self._create_response_button(response_text, state_key, idx)
+                            # Truncar para mostrar en el combo, pero guardar texto completo
+                            display_text = f"{idx + 1}. {response_text[:70]}..." if len(response_text) > 70 else f"{idx + 1}. {response_text}"
+                            self.response_combo.addItem(display_text)
+                            self.response_combo.setItemData(idx, response_text)
                             responses_found = True
         
-        # Si no hay respuestas, mostrar mensaje informativo
+        # Si no hay respuestas, mostrar mensaje
         if not responses_found:
-            self._show_no_responses_message()
-    
-    def set_ai_responses(self, ai_responses: Dict[str, Dict]):
-        """Establece las respuestas generadas por IA."""
-        self.ai_responses = ai_responses or {}
-        self.update_responses(self.current_state)
+            self.response_combo.addItem("-- No hay respuestas para este estado --")
+            self.response_combo.setItemData(1, None)
 
-    def _clear_buttons(self):
-        """Limpia los botones existentes."""
-        for btn in self.response_buttons:
-            btn.deleteLater()
-        self.response_buttons.clear()
-
-    def _create_response_button(self, response_text: str, state_key: str, index: int):
-        """Crea un botón para una respuesta específica."""
-     
-       # Crear botón clickeable con texto completo
-        button = ClickableResponseButton(f"{response_text}")
-
-        # Conectar señal - usar lambda para capturar el texto completo
-        button.clicked.connect(lambda text=response_text: self._on_button_clicked(text))
+        self.response_combo.setCurrentIndex(-1)
+        self.response_combo.blockSignals(False)
         
-        # Agregar al layout y a la lista
-        self.buttons_layout.addWidget(button)
-        self.response_buttons.append(button)
-        
-        logger.debug(f"Botón creado para respuesta {index} del estado {state_key}")
-
-    def _show_no_responses_message(self):
-        """Muestra un mensaje cuando no hay respuestas disponibles."""
-        label = QLabel("No hay respuestas disponibles para este estado")
-        label.setStyleSheet("""
-            QLabel {
-                color: #6c757d;
-                font-style: italic;
-                font-size: 12px;
-                padding: 10px;
-            }
-        """)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.buttons_layout.addWidget(label)
-        self.response_buttons.append(label)
+        logger.debug(f"ComboBox actualizado con respuestas para estado: {state_key}")
     
-    def _on_button_clicked(self, response_text: str):
-        """Maneja el clic en un botón de respuesta."""
-        logger.debug(f"Respuesta seleccionada: {response_text[:50]}...")
-        self.responseSelected.emit(response_text)
-    
-    def set_ai_responses(self, ai_responses: Dict[str, Dict]):
-        """Establece las respuestas generadas por IA."""
-        self.ai_responses = ai_responses or {}
-        self.update_responses(self.current_state)
-
-    
-    def _on_response_selected(self, text: str):
+    def _on_response_selected(self, index: int):
         """Maneja la selección de respuesta."""
-        if text and not text.startswith("--") and not text.startswith("No hay"):
-            # Obtener el texto completo asociado al índice seleccionado
-            current_index = self.response_combo.currentIndex()
-            full_response = self.response_combo.itemData(current_index)
-            if full_response:
-                self.responseSelected.emit(full_response)
+        if index < 0: 
+            return
+
+        full_response = self.response_combo.itemData(index)
+        
+        if full_response:
+            self.responseSelected.emit(full_response)
+            logger.debug(f"Respuesta seleccionada del combo: {full_response[:50]}...")
+            
+            # Volver al placeholder después de seleccionar
+            self.response_combo.blockSignals(True)
+            self.response_combo.setCurrentIndex(-1)
+            self.response_combo.blockSignals(False)
+    
+    def set_ai_responses(self, ai_responses: Dict[str, Dict]):
+        """Establece las respuestas generadas por IA."""
+        self.ai_responses = ai_responses or {}
+        self.update_responses(self.current_state)
 
     def clear_responses(self):
         """Limpia las respuestas mostradas."""
-        self._clear_buttons()
-        logger.debug("Botones de respuestas limpiados (datos preservados)")
-
-
-class ResponseDialog(QDialog):
-    """
-    Diálogo para editar y validar respuestas del robot antes de enviarlas.
-    Nueva versión con diseño de bocadillo conversacional.
-    """
-    
-    finished = pyqtSignal(bool, str, str)  # accepted, response, state
-    
-    def __init__(self, response: str, current_state: RobotState = RobotState.ATTENTION, 
-                 ai_responses: dict = None, parent: Optional[QWidget] = None):
-        super().__init__(parent)
-
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #ffffff;
-            }
-        """)
-                
-        # Validar y normalizar current_state
-        if isinstance(current_state, str):
-            try:
-                current_state = RobotState(current_state)
-            except ValueError:
-                logger.warning(f"Estado inválido en ResponseDialog: {current_state}, usando ATTENTION por defecto")
-                current_state = RobotState.ATTENTION
-        elif isinstance(current_state, dict):
-            logger.warning(f"Se recibió un diccionario como estado en ResponseDialog: {current_state}, usando ATTENTION por defecto")
-            current_state = RobotState.ATTENTION
-        elif not isinstance(current_state, RobotState):
-            logger.warning(f"Tipo de estado no válido en ResponseDialog: {type(current_state)}, usando ATTENTION por defecto")
-            current_state = RobotState.ATTENTION
-        
-        self.response = response
-        self.current_state = current_state
-        self.ai_responses = ai_responses or {}
-        
-        # Variables para grabación de voz
-        self.is_recording = False
-        self.audio_data = None
-        self.voice_widget = None
-        self.voice_recorder = None
-        
-        # Componentes
-        self.state_widget = None
-        self.visual_widget = None
-        self.bubble_widget = None
-        self.actions_widget = None
-        self.selector_widget = None
-        
-        self._setup_ui()
-        self._connect_signals()
-        
-        logger.debug(f"ResponseDialog creado para estado: {current_state.value}")
-    
-    def _setup_ui(self):
-        """Configura la interfaz del diálogo."""
-        self.setWindowTitle('Respuesta del Robot')
-        self.setMinimumWidth(800)
-        # self.setMinimumHeight(800)
-        self.setModal(True)
-        
-        # Layout principal
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(15)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
-
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(20)
-    
-        left_column = QVBoxLayout()
-        left_column.setSpacing(15)
-        
-        # Selector de estados emocionales (ahora en columna izquierda)
-        self.state_widget = StateSelectionWidget(self.current_state)
-        left_column.addWidget(self.state_widget)
-        
-        # Imagen y estado visual
-        self.visual_widget = StateVisualWidget(self.current_state)
-        left_column.addWidget(self.visual_widget)
-        
-        # Agregar stretch al final para que los widgets se mantengan arriba
-        left_column.addStretch()
-        
-        # Crear widget container para la columna izquierda
-        left_widget = QWidget()
-        left_widget.setLayout(left_column)
-        content_layout.addWidget(left_widget, 1)
-
-        right_column = QVBoxLayout()
-        right_column.setSpacing(15)
-        
-        # Bocadillo conversacional
-        self.bubble_widget = ResponseBubbleWidget(self.response)
-        right_column.addWidget(self.bubble_widget)
-
-        # Botones de acción para el bocadillo
-        self.actions_widget = ResponseActionsWidget()
-        right_column.addWidget(self.actions_widget)
-        
-        # Selector de respuestas de IA
-        self.selector_widget = AIResponseSelector(self.current_state, self.ai_responses)
-        right_column.addWidget(self.selector_widget, 0)
-        
-        # Botones de acción
-        self._setup_action_buttons(right_column)
-        
-        # Crear widget container para la columna derecha
-        right_widget = QWidget()
-        right_widget.setLayout(right_column)
-        content_layout.addWidget(right_widget, 1)  # 50%
-        
-        # Agregar el layout de dos columnas al layout principal
-        main_layout.addLayout(content_layout)
-        
-        # Ajustar tamaño después de construir toda la UI
-        QTimer.singleShot(100, self._adjust_dialog_size)
-    
-    def _get_voice_recorder(self):
-        """Obtiene o crea el widget de grabación de voz."""
-        if self.voice_recorder is None:
-            self.voice_recorder = VoiceRecorderWidget()
-            self.voice_recorder.hide()
-            self.voice_recorder.recording_finished.connect(self._on_voice_recording_finished)
-        return self.voice_recorder
-
-    def _adjust_dialog_size(self):
-        """Ajusta el tamaño del diálogo para mostrar todo el contenido."""
-        self.adjustSize()
-        
-        # Asegurar un tamaño mínimo razonable
-        current_height = self.height()
-        if current_height < 600:
-            self.resize(self.width(), 600)
-        
-        # Limitar tamaño máximo para no ocupar toda la pantalla
-        screen = self.screen().availableGeometry()
-        max_height = int(screen.height() * 0.9)
-        
-        if self.height() > max_height:
-            self.resize(self.width(), max_height)
-
-    def _setup_action_buttons(self, parent_layout):
-        """Configura los botones de acción."""
-        buttons_layout = QHBoxLayout()
-        
-        # Botón cancelar
-        cancel_button = QPushButton("Cancelar")
-        cancel_button.clicked.connect(self.reject)
-        cancel_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 12px 25px;
-                font-weight: bold;
-                font-size: 13px;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
-        
-        # Botón enviar
-        send_button = QPushButton("Enviar")
-        send_button.clicked.connect(self.accept)
-        send_button.setStyleSheet("""
-            QPushButton {
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 12px 25px;
-                font-weight: bold;
-                font-size: 13px;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                background-color: #0056b3;
-            }
-        """)
-        
-        buttons_layout.addStretch()
-        buttons_layout.addWidget(cancel_button)
-        buttons_layout.addWidget(send_button)
-        
-        parent_layout.addLayout(buttons_layout)
-    
-    def _connect_signals(self):
-        """Conecta las señales entre componentes."""
-        # Conexión del widget de estado
-        if self.state_widget:
-            self.state_widget.stateChanged.connect(self._on_state_changed)
-        
-        # Conexión del selector de respuestas de IA
-        if self.selector_widget:
-            self.selector_widget.responseSelected.connect(self._on_ai_response_selected)
-        
-        # Conexión del widget de bocadillo
-        if self.actions_widget:
-            self.actions_widget.clearRequested.connect(self._on_clear_requested)
-            self.actions_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
-
-        # Conexión de grabación de voz
-        pass
-    
-    def _on_state_changed(self, new_state: RobotState):
-        """Maneja el cambio de estado emocional."""
-        logger.debug(f"Estado cambiado a: {new_state.value}")
-        self.current_state = new_state
-        
-        # Actualizar imagen y descripción
-        if self.visual_widget:
-            self.visual_widget.update_state(new_state)
-        
-        # Actualizar selector de respuestas
-        if self.selector_widget:
-            self.selector_widget.update_responses(new_state)
-    
-    def _on_ai_response_selected(self, response: str):
-        """Maneja la selección de respuesta de IA."""
-        if self.bubble_widget:
-            self.bubble_widget.set_response(response)
-            self.bubble_widget.focus_editor()
-        logger.debug(f"Respuesta de IA seleccionada: {response[:50]}...")
-    
-    def _on_clear_requested(self):
-        """Maneja la solicitud de limpiar respuesta."""
-        if self.bubble_widget:
-            self.bubble_widget.clear_response()
-        logger.debug("Respuesta limpiada")
-    
-    def _on_voice_recording_requested(self):
-        """Maneja la solicitud de grabación de voz como toggle directo."""
-        voice_recorder = self._get_voice_recorder()
-        voice_recorder._toggle_recording()
-
-        if self.actions_widget:
-            # Sincronizar estado de grabación con el botón
-            is_recording = self.voice_recorder.is_recording
-            self.actions_widget.sync_recording_state(is_recording)
-    
-    def _start_voice_recording(self):
-        """Inicia la grabación de voz."""
-        try:
-            # Crear widget de grabación si no existe
-            if not self.voice_widget:
-                self.voice_widget = VoiceRecorderWidget()
-                self.voice_widget.recording_finished.connect(self._on_voice_recording_finished)
-                # Ocultar la ventana del widget de grabación
-                self.voice_widget.hide()
-            
-            # Iniciar grabación programáticamente
-            if hasattr(self.voice_widget, 'start_recording'):
-                self.voice_widget.start_recording()
-            
-            # Actualizar estado visual
-            self.is_recording = True
-            if self.bubble_widget:
-                self.bubble_widget.set_recording_state(True)
-            
-            logger.debug("Grabación de voz iniciada")
-            
-        except Exception as e:
-            logger.error(f"Error al iniciar grabación de voz: {e}")
-            self.is_recording = False
-            if self.bubble_widget:
-                self.bubble_widget.set_recording_state(False)
-    
-    def _stop_voice_recording(self):
-        """Detiene la grabación de voz y procesa el resultado."""
-        try:
-            if self.voice_widget and hasattr(self.voice_widget, 'stop_recording'):
-                self.voice_widget.stop_recording()
-            
-            # Actualizar estado visual
-            self.is_recording = False
-            if self.actions_widget:
-                self.actions_widget.set_recording_state(False)
-
-            logger.debug("Grabación de voz detenida")
-            
-        except Exception as e:
-            logger.error(f"Error al detener grabación de voz: {e}")
-            self.is_recording = False
-            if self.actions_widget:
-                self.actions_widget.set_recording_state(False)
-
-    def _on_voice_recording_finished(self, audio_data: bytes):
-        """Maneja la finalización de la grabación de voz y envía directamente."""
-        try:
-            # Actualizar estado visual
-            self.is_recording = False
-            
-            # Obtener socket service desde la aplicación principal
-            app = self.parent()
-            while app and app.parent():
-                app = app.parent()
-
-            if app and hasattr(app, 'get_service'):
-                socket_service = app.get_service('socket')
-                if socket_service:
-                    # Enviar datos de audio al servicio
-                    robot_state = self.get_state().value
-                    asyncio.create_task(
-                        self._send_voice(socket_service, audio_data, robot_state)
-                    )
-                else:
-                    logger.error("Socket service no disponible")
-            else:
-                logger.error("No se pudo obtener el socket service")
-        
-        except Exception as e:
-            logger.error(f"Error al procesar grabación de voz: {e}")
-            # Resetear estado en caso de error
-            self.is_recording = False
-            if self.bubble_widget:
-                self.bubble_widget.set_recording_state(False)
-
-    async def _send_voice(self, socket_service, audio_data: bytes, robot_state: str):
-        """Envía los datos de voz directamente al servicio de socket."""
-        try:
-            # Enviar mensaje al servicio
-            logger.debug("Estado del robot: %s", robot_state)
-            success = await socket_service.send_voice_response(audio_data, robot_state)
-
-            if success:
-                logger.info("Datos de voz enviados correctamente")
-                self.finished.emit(False, '', '')
-                super().accept()
-            else:
-                logger.error("Error al enviar datos de voz: servicio no disponible")
-
-        except Exception as e:
-            logger.error(f"Error al enviar datos de voz: {e}")
-    
-    def get_response(self) -> str:
-        """Obtiene la respuesta editada."""
-        return self.bubble_widget.get_response() if self.bubble_widget else ""
-    
-    def get_state(self) -> RobotState:
-        """Obtiene el estado seleccionado."""
-        return self.state_widget.get_selected_state() if self.state_widget else self.current_state
-    
-    def accept(self):
-        """Maneja la aceptación del diálogo."""
-        response = self.get_response()
-        state = self.get_state()
-        
-        if not response:
-            # Mostrar advertencia si no hay respuesta
-            if self.bubble_widget:
-                self.bubble_widget.response_edit.setStyleSheet("""
-                    QTextEdit {
-                        background-color: #fff3cd;
-                        border: 3px solid #ffeaa7;
-                        border-radius: 20px;
-                        padding: 15px;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        min-height: 120px;
-                        color: #000000;
-                    }
-                """)
-            return
-        
-        # Emitir señal con los datos
-        self.finished.emit(True, response, state.value)
-        
-        logger.info(f"Respuesta aceptada: {response[:50]}... (Estado: {state.value})")
-        super().accept()
-    
-    def reject(self):
-        """Maneja la cancelación del diálogo."""
-        # Detener grabación si está activa
-        if self.is_recording:
-            self._stop_voice_recording()
-        
-        self.finished.emit(False, '', '')
-        logger.debug("Respuesta cancelada")
-        super().reject()
-    
-    def closeEvent(self, event):
-        """Maneja el cierre del diálogo."""
-        # Detener grabación si está activa
-        if self.is_recording:
-            self._stop_voice_recording()
-        
-        # Limpiar widget de voz
-        if self.voice_widget:
-            try:
-                self.voice_widget.close()
-                self.voice_widget = None
-            except:
-                pass
-
-        # Limpiar grabador de voz
-        if self.voice_recorder is not None:
-            try:
-                self.voice_recorder.cleanup()
-            except:
-                pass
-        
-        self.finished.emit(False, '', '')
-        event.accept()
-        super().closeEvent(event)
-    
-    def set_response(self, response: str):
-        """
-        Establece la respuesta en el editor.
-        
-        Args:
-            response: Nueva respuesta
-        """
-        if self.bubble_widget:
-            self.bubble_widget.set_response(response)
-    
-    def set_state(self, state: RobotState):
-        """
-        Establece el estado seleccionado.
-        
-        Args:
-            state: Nuevo estado
-        """
-        if isinstance(state, str):
-            try:
-                state = RobotState(state)
-            except ValueError:
-                state = RobotState.ATTENTION
-        elif isinstance(state, dict):
-            state = RobotState.ATTENTION
-        elif not isinstance(state, RobotState):
-            state = RobotState.ATTENTION
-
-        self.current_state = state
-        if self.state_widget:
-            self.state_widget.set_selected_state(state)
-        if self.visual_widget:
-            self.visual_widget.update_state(state)
-        if self.selector_widget:
-            self.selector_widget.update_responses(state)
-    
-    def focus_response_editor(self):
-        """Pone el foco en el editor de respuesta."""
-        if self.bubble_widget:
-            self.bubble_widget.focus_editor()
+        self.response_combo.blockSignals(True)
+        self.response_combo.clear()
+        self.response_combo.setPlaceholderText("🤖 Respuestas Alternativas de Shara")
+        self.response_combo.setCurrentIndex(-1)
+        self.response_combo.blockSignals(False)
+        self.ai_responses = {}
+        logger.debug("ComboBox de respuestas limpiado")

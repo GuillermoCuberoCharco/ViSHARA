@@ -6,7 +6,7 @@ import asyncio
 from typing import Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, 
                             QLineEdit, QPushButton, QScrollArea, QButtonGroup,
-                            QFrame, QLabel, QComboBox, QCheckBox)
+                            QFrame, QLabel, QComboBox, QCheckBox, QSizePolicy)
 from PyQt6.QtCore import Qt, QTimer, pyqtSlot, QPropertyAnimation, QEasingCurve, pyqtProperty, QPoint, QParallelAnimationGroup, pyqtSignal
 from PyQt6.QtGui import QFont, QPainter, QColor
 
@@ -14,7 +14,6 @@ from config import RobotState, OperationMode, CHAT_CONFIG
 from core.event_manager import EventManager
 from services import MessageService, StateService
 from models import Message, User
-from ui.dialogs.response_dialog import ResponseDialog
 from ui.widgets.status_bar import StatusIndicator
 from ui.dialogs.response_dialog import (
     AIResponseSelector,
@@ -352,7 +351,6 @@ class ChatWidget(QWidget):
         # Estado del widget
         self.current_user: Optional[User] = None
         self.is_connected = False
-        self.active_dialog: Optional[ResponseDialog] = None
         
         # Componentes UI
         self.chat_display = None
@@ -469,19 +467,33 @@ class ChatWidget(QWidget):
         
         input_layout.addLayout(message_layout)
 
-        # Widget de acciones de respuesta y selector de IA
-        self.response_actions_widget = ResponseActionsWidget()
-        self.response_actions_widget.hide()
-        self.response_actions_widget.clearRequested.connect(self._on_clear_response_requested)
-        self.response_actions_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
-        input_layout.addWidget(self.response_actions_widget)    
+        # Layout horizontal para respuestas alternativas y botones de acción
+        response_and_actions_layout = QHBoxLayout()
+        response_and_actions_layout.setSpacing(10)
 
         # Selector de respuesta de IA
         self.ai_response_selector = AIResponseSelector()
         self.ai_response_selector.hide()
         self.ai_response_selector.responseSelected.connect(self._on_ai_response_selected)
-        input_layout.addWidget(self.ai_response_selector)
+        self.ai_response_selector.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred
+        )
+        response_and_actions_layout.addWidget(self.ai_response_selector, 70)
 
+        # Widget de acciones de respuesta y selector de IA
+        self.response_actions_widget = ResponseActionsWidget()
+        self.response_actions_widget.hide()
+        self.response_actions_widget.clearRequested.connect(self._on_clear_response_requested)
+        self.response_actions_widget.voiceRecordingRequested.connect(self._on_voice_recording_requested)
+        self.response_actions_widget.setMaximumWidth(80)  # Limitar el ancho máximo
+        self.response_actions_widget.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Preferred
+        )
+        response_and_actions_layout.addWidget(self.response_actions_widget, 30)
+
+        input_layout.addLayout(response_and_actions_layout)
         parent_layout.addWidget(self.input_frame)
     
     def _setup_controls(self, parent_layout):
@@ -650,6 +662,13 @@ class ChatWidget(QWidget):
             """)
 
             self._animate_controls_visibility(True)
+            if self.is_editing_response:
+                if self.ai_response_selector:
+                    self.ai_response_selector.show()
+                if self.response_actions_widget:
+                    self.response_actions_widget.show()
+        
+        logger.debug("Componentes de edición restaurados y geometría actualizada")
 
     def _reset_response_editing_state(self):
         """Resetea el estado de edición de respuesta SIN ocultar componentes."""
@@ -680,13 +699,7 @@ class ChatWidget(QWidget):
         self._reset_response_editing_state()
     
     async def _send_message_async(self, text: str, state: RobotState):
-        """
-        Envía un mensaje de forma asíncrona.
-        
-        Args:
-            text: Texto del mensaje
-            state: Estado emocional
-        """
+        """Envía un mensaje de forma asíncrona."""
         try:
             success = await self.message_service.send_wizard_message(text, state)
             
@@ -814,6 +827,7 @@ class ChatWidget(QWidget):
         # Implementar keep-alive si es necesario
         pass
 
+    @pyqtSlot(str)
     def _on_ai_response_selected(self, response: str):
         """Maneja la selección de una respuesta alternativa de IA."""
         if self.message_input:
@@ -971,10 +985,6 @@ class ChatWidget(QWidget):
                 except Exception as e:
                     logger.error(f"Error limpiando voice_recorder: {e}")
             
-            # Cerrar diálogo activo
-            if self.active_dialog:
-                self.active_dialog.close()
-            
             logger.info("Widget de chat limpiado")
             
         except Exception as e:
@@ -991,7 +1001,6 @@ class ChatWidget(QWidget):
             'is_connected': self.is_connected,
             'current_user_id': self.current_user.user_id if self.current_user else None,
             'operation_mode': self.state_service.operation_mode.value,
-            'has_active_dialog': self.active_dialog is not None,
             'selected_state': self.state_buttons.get_current_state().value if self.state_buttons.get_current_state() else None
         }
 
