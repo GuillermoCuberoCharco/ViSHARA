@@ -1,52 +1,53 @@
+Readme · MD
+Copiar
+
 # SHARA Wizard of Oz Interface
 
-Una aplicación PyQt6 para operar como interfaz de operador (Wizard of Oz) para el robot social SHARA, permitiendo supervisión y control manual/automático de las interacciones con usuarios.
+A PyQt6 application to operate as an operator interface (Wizard of Oz) for the SHARA social robot, allowing supervision and manual/automatic control of user interactions.
 
-![SHARA Logo](https://via.placeholder.com/400x100/2c3e50/ffffff?text=SHARA+Wizard+Interface)
+## 🚀 Main Features
 
-## 🚀 Características Principales
+### 💬 Advanced Chat Interface
+- Real-time chat with SHARA system users
+- Manual and automatic operation modes
+- Predefined responses by emotional state
+- Persistent conversation history
 
-### 💬 Interfaz de Chat Avanzada
-- Chat en tiempo real con usuarios del sistema SHARA
-- Modo manual y automático de operación
-- Respuestas predefinidas por estado emocional
-- Historial de conversaciones persistente
+### 📹 Real-Time Camera View
+- Live video stream from the user
+- Automatic reconnection in case of connection loss
+- Connection status indicators and statistics
 
-### 📹 Vista de Cámara en Tiempo Real
-- Stream de video en vivo del usuario
-- Reconexión automática en caso de pérdida de conexión
-- Indicadores de estado de conexión y estadísticas
+### 🌐 Integrated Web Browser
+- User web interface view
+- Automatic error management for loading
+- Support for pop-up windows
 
-### 🌐 Navegador Web Integrado
-- Vista de la interfaz web del usuario
-- Gestión automática de errores de carga
-- Soporte para ventanas emergentes
+### 🤖 Emotional State Management
+- 8 different emotional states (Attention, Greeting, Yes, No, Joy, Sadness, Anger, Blush)
+- Contextual responses based on state
+- Intuitive visual interface for state selection
 
-### 🤖 Gestión de Estados Emocionales
-- 8 estados emocionales diferentes (Atención, Saludo, Sí, No, Alegría, Tristeza, Enfado, Rubor)
-- Respuestas contextuales basadas en el estado
-- Interfaz visual intuitiva para selección de estados
+### 🔧 Modern Architecture
+- Modular service pattern
+- Centralized event system
+- Robust error handling
+- Advanced logging with file rotation
+- Complete data validation
 
-### 🔧 Arquitectura Moderna
-- Patrón de servicios modulares
-- Sistema de eventos centralizado
-- Gestión robusta de errores
-- Logging avanzado con rotación de archivos
-- Validación completa de datos
+## 📋 System Requirements
 
-## 📋 Requisitos del Sistema
+### Required Software
+- **Python 3.8+** (recommended 3.9+)
+- **PyQt6** with WebEngine support
+- Stable **Internet Connection**
 
-### Software Requerido
-- **Python 3.8+** (recomendado 3.9+)
-- **PyQt6** con soporte para WebEngine
-- **Conexión a Internet** estable
-
-### Sistemas Operativos Soportados
+### Supported Operating Systems
 - ✅ **Windows 10/11** (x64)
 - ✅ **Linux** (Ubuntu 20.04+, Debian 11+, etc.)
 - ✅ **macOS** (10.15+)
 
-### Dependencias del Sistema
+### System Dependencies
 
 #### Ubuntu/Debian
 ```bash
@@ -56,105 +57,105 @@ sudo apt-get install python3-pip python3-venv python3-pyqt6.qtwebengine
 
 #### Windows
 ```bash
-# No se requieren dependencias adicionales del sistema
-# Todo se instala vía pip
+# No additional system dependencies required
+# Everything is installed via pip
 ```
 
 #### macOS
 ```bash
-# Instalar usando Homebrew (opcional)
+# Install using Homebrew (optional)
 brew install python@3.9
 ```
 
-## 🛠️ Instalación
+## 🛠️ Installation
 
-### Método 1: Instalación Automática (Recomendado)
+### Method 1: Automatic Installation (Recommended)
 
 ```bash
-# 1. Clonar el repositorio
+# 1. Clone the repository
 git clone https://github.com/GuillermoCuberoCharco/ViSHARA/tree/main
 cd wizard
 
-# 2. Ejecutar el script de instalación
+# 2. Run the installation script
 python setup.py
 ```
 
-El script automáticamente:
-- ✅ Verifica requisitos del sistema
-- ✅ Crea entorno virtual
-- ✅ Instala todas las dependencias
-- ✅ Configura directorios necesarios
-- ✅ Crea archivos de configuración
-- ✅ Genera scripts de ejecución
+The script automatically:
+- ✅ Verifies system requirements
+- ✅ Creates virtual environment
+- ✅ Installs all dependencies
+- ✅ Configures necessary directories
+- ✅ Creates configuration files
+- ✅ Generates execution scripts
 
-### Método 2: Instalación Manual
+### Method 2: Manual Installation
 
 ```bash
-# 1. Clonar el repositorio
+# 1. Clone the repository
 git clone https://github.com/GuillermoCuberoCharco/ViSHARA/tree/main
 cd wizard
 
-# 2. Crear entorno virtual
+# 2. Create virtual environment
 python -m venv venv
 
-# 3. Activar entorno virtual
+# 3. Activate virtual environment
 # Windows:
 venv\Scripts\activate
 # Linux/macOS:
 source venv/bin/activate
 
-# 4. Instalar dependencias
+# 4. Install dependencies
 pip install -r requirements.txt
 
-# 5. Crear directorios necesarios
+# 5. Create necessary directories
 mkdir -p logs temp resources/icons data
 
-# 6. Configurar entorno
+# 6. Configure environment
 cp .env.example .env
-# Editar .env con tu configuración
+# Edit .env with your configuration
 ```
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-### Archivo de Configuración (.env)
+### Configuration File (.env)
 
-Copia `.env.example` a `.env` y configura los siguientes parámetros:
+Copy `.env.example` to `.env` and configure the following parameters:
 
 ```bash
-# URLs del servidor SHARA
+# SHARA server URLs
 SHARA_SERVER_URL=https://vishara.onrender.com
 SHARA_WEB_URL=https://vi-shara.vercel.app
 
-# Configuración de logging
+# Logging configuration
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-# Configuración de interfaz
+# Interface configuration
 WINDOW_WIDTH=1400
 WINDOW_HEIGHT=900
 THEME=light  # light, dark
 
-# Configuración de video
+# Video configuration
 VIDEO_FPS=15
 VIDEO_WIDTH=320
 VIDEO_HEIGHT=240
 ```
 
-### Configuración Avanzada
+### Advanced Configuration
 
-Para configuraciones más específicas, edita `config/settings.py`:
+For more specific configurations, edit `config/settings.py`:
 
 ```python
-# Ejemplo de configuración personalizada
+# Example of custom configuration
 settings.server.timeout = 15
 settings.video.fps = 30
 settings.logging.level = 'DEBUG'
 ```
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Ejecución
+### Execution
 
-#### Usando Scripts Generados
+#### Using Generated Scripts
 ```bash
 # Windows
 run_wizard.bat
@@ -163,305 +164,305 @@ run_wizard.bat
 ./run_wizard.sh
 ```
 
-#### Ejecución Manual
+#### Manual Execution
 ```bash
-# Activar entorno virtual primero
+# Activate virtual environment first
 source venv/bin/activate  # Linux/macOS
-# o
+# or
 venv\Scripts\activate     # Windows
 
-# Ejecutar aplicación
+# Run application
 python main.py
 ```
 
-### Modos de Operación
+### Operation Modes
 
-#### 🔧 Modo Manual
-- Control total del operador sobre las respuestas
-- Edición de mensajes antes de enviar
-- Selección manual de estados emocionales
-- Ideal para interacciones complejas o entrenamiento
+#### 🔧 Manual Mode
+- Full operator control over responses
+- Message editing before sending
+- Manual selection of emotional states
+- Ideal for complex interactions or training
 
-#### 🤖 Modo Automático
-- Respuestas automáticas basadas en IA (OpenAI)
-- Procesamiento sin intervención humana
-- Estados emocionales automáticos
-- Ideal para operación continua
+#### 🤖 Automatic Mode
+- Automatic AI-based responses (OpenAI)
+- Processing without human intervention
+- Automatic emotional states
+- Ideal for continuous operation
 
-### Flujo de Trabajo Típico
+### Typical Workflow
 
-1. **Inicio**: Abrir la aplicación y verificar conexión
-2. **Detección**: Esperar detección automática de usuario
-3. **Interacción**: 
-   - **Manual**: Revisar respuestas de IA y aprobar/editar
-   - **Automático**: Supervisar conversaciones automáticas
-4. **Monitoreo**: Observar video del usuario y métricas
-5. **Intervención**: Cambiar a manual si es necesario
+1. **Startup**: Open the application and verify connection
+2. **Detection**: Wait for automatic user detection
+3. **Interaction**: 
+   - **Manual**: Review AI responses and approve/edit
+   - **Automatic**: Monitor automatic conversations
+4. **Monitoring**: Observe user video and metrics
+5. **Intervention**: Switch to manual if necessary
 
-## 🏗️ Arquitectura
+## 🏗️ Architecture
 
-### Estructura del Proyecto
+### Project Structure
 
 ```
 shara-wizard/
-├── main.py                 # Punto de entrada
-├── requirements.txt        # Dependencias
-├── setup.py               # Script de instalación
-├── .env.example           # Configuración de ejemplo
-├── README.md              # Documentación
+├── main.py                 # Entry point
+├── requirements.txt        # Dependencies
+├── setup.py               # Installation script
+├── .env.example           # Example configuration
+├── README.md              # Documentation
 │
-├── config/                # Configuración
+├── config/                # Configuration
 │   ├── __init__.py
-│   ├── settings.py        # Configuración principal
-│   └── constants.py       # Constantes de la aplicación
+│   ├── settings.py        # Main configuration
+│   └── constants.py       # Application constants
 │
-├── core/                  # Núcleo de la aplicación
+├── core/                  # Application core
 │   ├── __init__.py
-│   ├── app.py            # Aplicación principal
-│   └── event_manager.py  # Sistema de eventos
+│   ├── app.py            # Main application
+│   └── event_manager.py  # Event system
 │
-├── models/               # Modelos de datos
+├── models/               # Data models
 │   ├── __init__.py
-│   ├── user.py          # Modelo de usuario
-│   ├── message.py       # Modelo de mensaje
-│   └── session.py       # Modelo de sesión
+│   ├── user.py          # User model
+│   ├── message.py       # Message model
+│   └── session.py       # Session model
 │
-├── services/            # Servicios de negocio
+├── services/            # Business services
 │   ├── __init__.py
-│   ├── socket_service.py    # Comunicación WebSocket
-│   ├── message_service.py   # Lógica de mensajería
-│   ├── video_service.py     # Gestión de video
-│   └── state_service.py     # Estado global
+│   ├── socket_service.py    # WebSocket communication
+│   ├── message_service.py   # Messaging logic
+│   ├── video_service.py     # Video management
+│   └── state_service.py     # Global state
 │
-├── ui/                  # Interfaz de usuario
+├── ui/                  # User interface
 │   ├── __init__.py
-│   ├── main_window.py       # Ventana principal
-│   ├── widgets/             # Widgets personalizados
-│   ├── dialogs/             # Diálogos
-│   └── styles/              # Estilos y temas
+│   ├── main_window.py       # Main window
+│   ├── widgets/             # Custom widgets
+│   ├── dialogs/             # Dialogs
+│   └── styles/              # Styles and themes
 │
-├── utils/               # Utilidades
+├── utils/               # Utilities
 │   ├── __init__.py
-│   ├── logger.py            # Sistema de logging
-│   └── validators.py        # Validadores
+│   ├── logger.py            # Logging system
+│   └── validators.py        # Validators
 │
-└── resources/           # Recursos
-    └── icons/               # Iconos de la aplicación
+└── resources/           # Resources
+    └── icons/               # Application icons
 ```
 
-### Patrones de Diseño Utilizados
+### Design Patterns Used
 
-- **🎯 Patrón Observer**: Sistema de eventos centralizado
-- **🏭 Factory Pattern**: Creación de mensajes y modelos
-- **🚀 Service Layer**: Separación de lógica de negocio
-- **📋 Repository Pattern**: Gestión de datos de sesiones
-- **🔄 Command Pattern**: Manejo de acciones de usuario
+- **🎯 Observer Pattern**: Centralized event system
+- **🏭 Factory Pattern**: Creation of messages and models
+- **🚀 Service Layer**: Separation of business logic
+- **📋 Repository Pattern**: Session data management
+- **🔄 Command Pattern**: User action handling
 
-### Flujo de Datos
+### Data Flow
 
 ```mermaid
 graph TD
-    A[Usuario SHARA] -->|WebSocket| B[SocketService]
+    A[SHARA User] -->|WebSocket| B[SocketService]
     B --> C[MessageService]
     C --> D[StateService]
     D --> E[UI Widgets]
-    E -->|Respuesta Manual| C
-    C -->|Respuesta| B
+    E -->|Manual Response| C
+    C -->|Response| B
     B -->|WebSocket| A
     
     F[Video Stream] -->|WebSocket| G[VideoService]
     G --> H[CameraWidget]
     
-    I[EventManager] -.->|Eventos| C
-    I -.->|Eventos| D
-    I -.->|Eventos| E
+    I[EventManager] -.->|Events| C
+    I -.->|Events| D
+    I -.->|Events| E
 ```
 
-## 🔧 Desarrollo
+## 🔧 Development
 
-### Configuración del Entorno de Desarrollo
+### Development Environment Setup
 
 ```bash
-# Clonar repositorio
+# Clone repository
 git clone https://github.com/GuillermoCuberoCharco/ViSHARA/tree/main
 cd wizard-interface
 
-# Instalar en modo desarrollo
+# Install in development mode
 pip install -e .
 
-# Instalar dependencias de desarrollo
+# Install development dependencies
 pip install pytest pytest-qt black flake8 mypy
 
-# Configurar pre-commit hooks (opcional)
+# Configure pre-commit hooks (optional)
 pre-commit install
 ```
 
-### Estructura de Testing
+### Testing Structure
 
 ```bash
-# Ejecutar tests
+# Run tests
 pytest tests/
 
-# Ejecutar con cobertura
+# Run with coverage
 pytest --cov=. tests/
 
-# Tests específicos de UI
+# UI-specific tests
 pytest tests/ui/ --qt-no-capture
 ```
 
-### Estándares de Código
+### Code Standards
 
-- **Formateo**: Black (automatizado)
+- **Formatting**: Black (automated)
 - **Linting**: Flake8
 - **Type Checking**: MyPy
-- **Documentación**: Google Style Docstrings
+- **Documentation**: Google Style Docstrings
 
-### Contribuir
+### Contributing
 
-1. 🍴 Fork el repositorio
-2. 🌿 Crear rama de feature (`git checkout -b feature/amazing-feature`)
-3. 💾 Commit cambios (`git commit -m 'Add amazing feature'`)
-4. 📤 Push a la rama (`git push origin feature/amazing-feature`)
-5. 🔍 Abrir Pull Request
+1. 🍴 Fork the repository
+2. 🌿 Create feature branch (`git checkout -b feature/amazing-feature`)
+3. 💾 Commit changes (`git commit -m 'Add amazing feature'`)
+4. 📤 Push to branch (`git push origin feature/amazing-feature`)
+5. 🔍 Open Pull Request
 
-## 📊 Monitoreo y Logs
+## 📊 Monitoring and Logs
 
-### Sistema de Logging
+### Logging System
 
-La aplicación incluye un sistema de logging:
+The application includes a comprehensive logging system:
 
 ```
 logs/
-├── shara_wizard.log         # Log principal (rotativo)
-├── shara_wizard_errors.log  # Solo errores
-└── session_*.log           # Logs por sesión
+├── shara_wizard.log         # Main log (rotating)
+├── shara_wizard_errors.log  # Errors only
+└── session_*.log           # Per-session logs
 ```
 
-### Niveles de Log
+### Log Levels
 
-- **DEBUG**: Información detallada para desarrollo
-- **INFO**: Información general de operación
-- **WARNING**: Advertencias que no afectan la operación
-- **ERROR**: Errores que afectan funcionalidad específica
-- **CRITICAL**: Errores críticos que pueden terminar la aplicación
+- **DEBUG**: Detailed information for development
+- **INFO**: General operational information
+- **WARNING**: Warnings that don't affect operation
+- **ERROR**: Errors affecting specific functionality
+- **CRITICAL**: Critical errors that may terminate the application
 
-### Métricas Disponibles
+### Available Metrics
 
-- 📈 Mensajes enviados/recibidos
-- 👥 Usuarios detectados
-- 💬 Sesiones creadas
-- 🔄 Reconexiones de video/socket
-- ⏱️ Tiempos de respuesta
+- 📈 Messages sent/received
+- 👥 Users detected
+- 💬 Sessions created
+- 🔄 Video/socket reconnections
+- ⏱️ Response times
 
-## 🔒 Seguridad
+## 🔒 Security
 
-### Consideraciones de Seguridad
+### Security Considerations
 
-- ✅ **Validación de entrada**: Todos los datos son validados
-- ✅ **Sanitización**: Prevención de inyección de código
-- ✅ **HTTPS**: Comunicación segura con servidores
-- ✅ **Timeouts**: Prevención de conexiones colgadas
-- ✅ **Rate limiting**: Control de frecuencia de mensajes
+- ✅ **Input validation**: All data is validated
+- ✅ **Sanitization**: Code injection prevention
+- ✅ **HTTPS**: Secure communication with servers
+- ✅ **Timeouts**: Prevention of hanging connections
+- ✅ **Rate limiting**: Message frequency control
 
-### Mejores Prácticas
+### Best Practices
 
-- 🔐 Usar HTTPS en producción
-- 🔑 No hardcodear credenciales
-- 🛡️ Mantener dependencias actualizadas
-- 📝 Revisar logs regularmente
-- 🔄 Backup de configuraciones importantes
+- 🔐 Use HTTPS in production
+- 🔑 Don't hardcode credentials
+- 🛡️ Keep dependencies updated
+- 📝 Review logs regularly
+- 🔄 Backup important configurations
 
-## ❓ Solución de Problemas
+## ❓ Troubleshooting
 
-### Problemas Comunes
+### Common Issues
 
-#### 🔌 Error de Conexión al Servidor
+#### 🔌 Server Connection Error
 ```bash
-# Verificar conectividad
+# Verify connectivity
 curl -I https://vishara.onrender.com
 
-# Revisar configuración
+# Check configuration
 cat .env | grep SERVER_URL
 
-# Verificar logs
+# Check logs
 tail -f logs/shara_wizard.log
 ```
 
-#### 📹 Video No Se Muestra
+#### 📹 Video Not Displaying
 ```bash
-# Verificar dependencias de video
+# Verify video dependencies
 pip install opencv-python
 
-# Verificar permisos de red
-# Asegurar que el puerto de video esté abierto
+# Check network permissions
+# Ensure video port is open
 ```
 
-#### 🐍 Errores de PyQt6
+#### 🐍 PyQt6 Errors
 ```bash
-# Linux: Instalar dependencias del sistema
+# Linux: Install system dependencies
 sudo apt-get install python3-pyqt6.qtwebengine
 
-# Windows: Reinstalar PyQt6
+# Windows: Reinstall PyQt6
 pip uninstall PyQt6
 pip install PyQt6
 ```
 
-#### 📄 Archivos de Log Muy Grandes
+#### 📄 Log Files Too Large
 ```bash
-# Configurar rotación en .env
+# Configure rotation in .env
 LOG_MAX_BYTES=5242880  # 5MB
 LOG_BACKUP_COUNT=3
 
-# Limpiar logs manualmente
+# Clean logs manually
 rm logs/*.log
 ```
 
-### Logs de Debugging
+### Debugging Logs
 
-Para obtener información detallada de debugging:
+To get detailed debugging information:
 
 ```bash
-# Configurar nivel DEBUG
+# Configure DEBUG level
 export LOG_LEVEL=DEBUG
 
-# Ejecutar con verbose
+# Run with verbose
 python main.py --verbose
 
-# Verificar logs específicos
+# Check specific logs
 tail -f logs/shara_wizard.log | grep ERROR
 ```
 
-### Contacto y Soporte
+### Contact and Support
 
 - 📧 **Email**: Guillermo.Cubero@uclm.es
 
-## 📜 Licencia
+## 📜 License
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
-- Equipo de desarrollo SHARA MAmI Lab
-- Comunidad PyQt6
-- Contribuidores open source
-- Universidad de Castilla-La Mancha
+- SHARA MAmI Lab development team
+- PyQt6 community
+- Open source contributors
+- University of Castilla-La Mancha
 
-## 🔄 Historial de Versiones
+## 🔄 Version History
 
-### v2.0.0 (Actual)
-- ✨ Refactorización completa de la arquitectura
-- 🚀 Nueva interfaz moderna con PyQt6
-- 🤖 Integración con OpenAI para respuestas automáticas
-- 📹 Mejor gestión de video en tiempo real
-- 🔧 Sistema de configuración mejorado
-- 📊 Logging y monitoreo avanzados
-- 🛡️ Validación robusta de datos
-- 🎨 Sistema de temas y estilos
+### v2.0.0 (Current)
+- ✨ Complete architecture refactoring
+- 🚀 New modern interface with PyQt6
+- 🤖 OpenAI integration for automatic responses
+- 📹 Improved real-time video management
+- 🔧 Enhanced configuration system
+- 📊 Advanced logging and monitoring
+- 🛡️ Robust data validation
+- 🎨 Theme and style system
 
 ### v1.x (Legacy)
-- Versión anterior con arquitectura básica
-- Soporte limitado para extensibilidad
+- Previous version with basic architecture
+- Limited extensibility support
 
 ---
 
-**¡Gracias por usar SHARA Wizard of Oz Interface!** 🎉
+**Thank you for using SHARA Wizard of Oz Interface!** 🎉

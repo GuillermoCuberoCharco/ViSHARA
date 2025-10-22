@@ -78,11 +78,7 @@ yarn install
 ```
 
 ### WoZ Application Setup
-It is recommended to use a virtual environment.
-```bash
-cd wizard
-pip install -r requirements.txt
-```
+Use the installations instrutions located in the README of the src/wizard folder
 
 ## 🖥️ Usage
 
